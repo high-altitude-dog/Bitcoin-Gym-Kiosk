@@ -47,7 +47,7 @@ Prices are always set and shown in Bs. Lightning amounts are converted to sats o
 | Provider | Coinos | Baneco API |
 | Member pays from | Any Lightning wallet | A bank app |
 | Amount charged | Bs total converted to sats with the Yadio rate | Bs total |
-| Funds go to | Coinos balance, then auto-swept when it passes a set threshold | The gym's Baneco account |
+| Funds go to | Coinos balance; auto-sweep stays off initially (see Decisions and non-goals) | The gym's Baneco account |
 
 Rules:
 
@@ -55,7 +55,7 @@ Rules:
 - **Fresh rates.** Cache the Yadio BOB/BTC rate for about a minute. If the cached rate is too old and Yadio is unreachable, hide the Lightning option; bank QR keeps working.
 - **Record what was charged.** Store the rate used and the sats amount on each Lightning order.
 - **Reconcile against Coinos, not the wallet.** Sweeps move pooled funds, so match orders to incoming payments in Coinos's history.
-- **Sweep threshold = maximum held at Coinos.** Set it by how much you are comfortable leaving with a custodial service.
+- **Sweep threshold = maximum held at Coinos.** Set it by how much you are comfortable leaving with a custodial service. Decided Oct 3, 2026: no auto-sweep for the pilot — turning it on adds a second place (the gym's own wallet) that payments have to be reconciled against, and the business operator would rather keep that simple while volume is low. Revisit once there's enough volume that leaving funds at Coinos becomes the bigger risk than the reconciliation overhead.
 - **Handle confirmations safely.** Receiving the same confirmation twice must not complete an order twice. A daily job compares provider records with Medusa orders.
 
 ## One gym now, room to grow
@@ -77,7 +77,7 @@ Today the setup is the smallest version of the design: one Medusa region, one st
 | Bitcoin payments | Coinos, Lightning only. No on-chain payments. |
 | Bs payments | Baneco API |
 | Exchange rates | Yadio |
-| Withdrawals | Coinos balance-based auto-sweep. Medusa has no withdrawal logic. |
+| Withdrawals | Coinos supports balance-based auto-sweep, but it stays off for the pilot by choice (simpler reconciliation while volume is low) — not a technical limitation. Medusa has no withdrawal logic either way. |
 | Multiple gyms | Supported by the design; multi-gym features are deferred until a second gym exists. |
 
 ## Getting credentials
@@ -88,16 +88,16 @@ None of these are in this file or in code — they go in `.env` only (see `.env.
 - **`COINOS_WEBHOOK_SECRET`:** not issued by anyone — generate your own long random value once, e.g. `openssl rand -hex 32`, and never reuse it elsewhere.
 - **`MEDUSA_BACKEND_URL`:** must be publicly reachable over the internet for Coinos's webhook to ever arrive (see the "known gap" note under the Coinos provider section below) — `localhost` only works once deployed, or tunneled with something like ngrok.
 - **Yadio:** no signup or key needed; it's a public API (`YADIO_API_URL=https://api.yadio.io`).
-- **Baneco:** apply through the bank directly — this is the slowest credential to get, so request it first regardless of how far along everything else is.
+- **Baneco:** apply through the bank directly. This is the business owner's task, not the developer's or Claude's — it's a relationship with the bank, not a technical setup step. It's also the slowest credential to get, so it should start as early as possible regardless of how far along everything else is.
 
 ## Next steps and open items
 
-Start Baneco access first, because it depends on the bank and takes the longest.
+Start Baneco access first, because it depends on the bank and takes the longest. That request is the business owner's task, not Claude's or the developer's — it's a relationship with the bank, not a technical step, so it doesn't show up as something to build or chase here.
 
 - [x] Write down the high-level design
-- [x] Decide where Medusa runs: one e2-medium VM on Google Cloud, Debian 13
+- [x] Decide where Medusa runs: one e2-medium VM on Google Cloud, Debian 13 (reconsidered e2-small for cost on Oct 3, 2026; stayed with e2-medium — see Decisions and non-goals)
 - [x] Choose the VM region: southamerica-west1 (Santiago)
-- [ ] Request Baneco API access
+- [ ] Baneco API access (business owner's task — see Getting credentials)
 - [x] Set up the local machine: VS Code, Node.js 20 or newer, PostgreSQL, Claude Code
 - [x] Set up Medusa locally: the Bolivia region in BOB, this gym's stock location, the real product list (3 products so far; more to add)
 - [x] Build the Coinos payment provider with Yadio rates (built and unit-tested against mocks; not yet called with a real Coinos token)
@@ -105,7 +105,7 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [ ] Tune the kiosk layout on the real Tecno Megapad SE (needs the developer to open the kiosk on the device and send screenshots of the grid, cart, and Lightning QR screens — can't be done from assumed viewport dimensions)
 - [ ] Create the VM with a swap file and deploy for the pilot
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
-- [ ] Set the Coinos auto-sweep threshold
+- [ ] Turn on Coinos auto-sweep and set its threshold — deliberately off for the pilot (see Decisions and non-goals); revisit once volume justifies it, kept open rather than closed as "won't do"
 
 # Current state and handoff
 
