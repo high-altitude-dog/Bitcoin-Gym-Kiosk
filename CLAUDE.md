@@ -74,17 +74,18 @@ Today the setup is the smallest version of the design: one Medusa region, one st
 | Commerce platform | MedusaJS. BTCPay Server is not part of this design. |
 | Hosting | Google Cloud: one e2-medium Compute Engine VM (2 vCPU, 4 GB, Debian 13) in southamerica-west1 (Santiago) running Medusa, Postgres and Redis, with a 2–4 GB swap file so builds don't run out of memory. Upgrade the machine type if it gets slow. Project `perseus-armor-coinos`; instance `armor-gym-kiosk` in zone `southamerica-west1-a`. |
 | Build approach | Build and test on the developer's own computer first (Claude Code in VS Code). Create the VM for the pilot and work on it through VS Code Remote-SSH. |
+| Bitcoin payments | Coinos, Lightning only. No on-chain payments. |
+| Bs payments | Baneco API |
+| Exchange rates | Yadio |
+| Withdrawals | Coinos supports balance-based auto-sweep, but it stays off for the pilot by choice (simpler reconciliation while volume is low) — not a technical limitation. Medusa has no withdrawal logic either way. |
+| Multiple gyms | Supported by the design; multi-gym features are deferred until a second gym exists. |
 
 Notes on creating the VM (Oct 3, 2026), for next time:
 
 - Used the Google Compute Engine MCP connector (`claude.ai Google Compute Engine`), not `gcloud` (not installed locally). Its `create_instance` tool only takes project/zone/name/machineType/imageFamily/imageProject/guestAccelerators/maintenancePolicy — no metadata, no SSH keys, no boot disk size. SSH access has to be added afterward through the Console (instance → Edit → SSH Keys), or use the Console's browser-based SSH button, which needs no key at all for whoever has the right IAM role on the project.
 - `create_instance` without an explicit `maintenancePolicy` fails for e2 instances (`"e2 instances do not support onHostMaintenance=TERMINATE unless they are preemptible"`) even though the tool's own docs say it defaults to MIGRATE. Pass `maintenancePolicy: "MIGRATE"` explicitly.
 - A brand-new GCP project returns a plain 403 from every Compute Engine call until both the Compute Engine API is enabled and a billing account is linked — the error message doesn't say which, so check both in the Console (APIs & Services → Enabled APIs, and Billing) if this happens again on a new project.
-| Bitcoin payments | Coinos, Lightning only. No on-chain payments. |
-| Bs payments | Baneco API |
-| Exchange rates | Yadio |
-| Withdrawals | Coinos supports balance-based auto-sweep, but it stays off for the pilot by choice (simpler reconciliation while volume is low) — not a technical limitation. Medusa has no withdrawal logic either way. |
-| Multiple gyms | Supported by the design; multi-gym features are deferred until a second gym exists. |
+- **Reserve the external IP as static** (Console → VPC network → IP addresses → find the ephemeral IP next to `armor-gym-kiosk` → Reserve — same IP, no downtime) before pointing a domain or `MEDUSA_BACKEND_URL` at it. An ephemeral IP can change if the instance is ever stopped and restarted, which would silently break the domain and the Coinos webhook URL. The Compute Engine MCP connector has no tool for this (it covers instances/disks/images/machine types/templates/compute-capacity reservations/commitments/snapshots, not VPC IP addresses) — do it through the Console.
 
 ## Getting credentials
 
@@ -110,6 +111,7 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [x] Build the kiosk storefront for the tablet (product grid, cart, the real Coinos Lightning payment screen, a bank QR placeholder, and app-shell resilience are built and tested against the real backend; layout tuning on the physical tablet is still open)
 - [ ] Tune the kiosk layout on the real Tecno Megapad SE (needs the developer to open the kiosk on the device and send screenshots of the grid, cart, and Lightning QR screens — can't be done from assumed viewport dimensions)
 - [x] Create the VM: `armor-gym-kiosk`, e2-medium, `southamerica-west1-a`, Debian 13, project `perseus-armor-coinos` (created Oct 3, 2026 via the Google Compute Engine MCP connector)
+- [ ] Reserve the VM's external IP as static (see the note under Decisions and non-goals)
 - [ ] SSH in, add the swap file, install Postgres/Redis/Node, and deploy Medusa + the kiosk build to the VM
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Turn on Coinos auto-sweep and set its threshold — deliberately off for the pilot (see Decisions and non-goals); revisit once volume justifies it, kept open rather than closed as "won't do"
