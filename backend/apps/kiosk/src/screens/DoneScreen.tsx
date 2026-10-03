@@ -8,10 +8,10 @@ interface Props {
 export function DoneScreen({ order, onNewOrder }: Props) {
   return (
     <div className="screen screen--center">
-      <h1>Thank you!</h1>
-      <p className="done-order">Order #{order.display_id}</p>
+      <h1>¡Gracias!</h1>
+      <p className="done-order">Pedido #{order.display_id}</p>
       <button className="primary-button" onClick={onNewOrder}>
-        New order
+        Nuevo pedido
       </button>
     </div>
   )

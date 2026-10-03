@@ -3,7 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { sdk } from "../lib/medusa"
 import { COINOS_LIGHTNING_PROVIDER_ID, readLightningInvoice, type LightningInvoice } from "../lib/payment"
 
-export type Screen = "grid" | "cart" | "payment" | "done"
+export type Screen = "idle" | "shop" | "payment-method" | "payment" | "done"
 export type PaymentStatus = "awaiting" | "expired" | null
 // "bank_qr" is a placeholder while the Baneco API request is pending: it
 // shows a static QR square instead of a real invoice. Swap in the real
@@ -11,7 +11,7 @@ export type PaymentStatus = "awaiting" | "expired" | null
 export type PaymentMethod = "lightning" | "bank_qr" | null
 
 const PRODUCT_FIELDS =
-  "*variants.calculated_price,+variants.inventory_quantity,*images"
+  "*variants.calculated_price,+variants.inventory_quantity,*images,+categories.id,+categories.name"
 const POLL_INTERVAL_MS = 3_000
 const PAYMENT_SESSION_FIELDS =
   "+payment_collection.payment_sessions.status,+payment_collection.payment_sessions.provider_id"
@@ -20,6 +20,7 @@ interface KioskState {
   screen: Screen
   region: HttpTypes.StoreRegion | null
   products: HttpTypes.StoreProduct[]
+  categories: HttpTypes.StoreProductCategory[]
   cart: HttpTypes.StoreCart | null
   order: HttpTypes.StoreOrder | null
   invoice: LightningInvoice | null
@@ -31,9 +32,10 @@ interface KioskState {
 
 export function useKiosk() {
   const [state, setState] = useState<KioskState>({
-    screen: "grid",
+    screen: "idle",
     region: null,
     products: [],
+    categories: [],
     cart: null,
     order: null,
     invoice: null,
@@ -58,11 +60,20 @@ export function useKiosk() {
     try {
       const { regions } = await sdk.store.region.list()
       const region = regions[0] ?? null
-      const { products } = await sdk.store.product.list({
-        region_id: region?.id,
-        fields: PRODUCT_FIELDS,
-      })
-      setState((s) => ({ ...s, region, products, loading: false }))
+      const [{ products }, { product_categories }] = await Promise.all([
+        sdk.store.product.list({
+          region_id: region?.id,
+          fields: PRODUCT_FIELDS,
+        }),
+        sdk.store.category.list({
+          fields: "id,name,rank,parent_category_id",
+          limit: 50,
+        }),
+      ])
+      const categories = product_categories
+        .filter((c) => !c.parent_category_id)
+        .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+      setState((s) => ({ ...s, region, products, categories, loading: false }))
     } catch {
       setState((s) => ({
         ...s,
@@ -152,7 +163,7 @@ export function useKiosk() {
           setState((s) => ({
             ...s,
             error: "Payment was confirmed but the order could not be completed. Please tell a staff member.",
-            screen: "cart",
+            screen: "shop",
             paymentStatus: null,
           }))
         }
@@ -201,7 +212,7 @@ export function useKiosk() {
           setState((s) => ({
             ...s,
             error: "Lightning payment is temporarily unavailable. Please try again shortly.",
-            screen: "cart",
+            screen: "payment-method",
           }))
           return
         }
@@ -225,7 +236,7 @@ export function useKiosk() {
         setState((s) => ({
           ...s,
           error: "Could not create the Lightning invoice. Please try again.",
-          screen: "cart",
+          screen: "payment-method",
         }))
       }
     },
@@ -262,14 +273,14 @@ export function useKiosk() {
 
   const cancelPayment = useCallback(() => {
     stopPolling()
-    setState((s) => ({ ...s, screen: "cart", invoice: null, paymentStatus: null, paymentMethod: null }))
+    setState((s) => ({ ...s, screen: "payment-method", invoice: null, paymentStatus: null, paymentMethod: null }))
   }, [stopPolling])
 
   const reset = useCallback(() => {
     stopPolling()
     setState((s) => ({
       ...s,
-      screen: "grid",
+      screen: "idle",
       cart: null,
       order: null,
       invoice: null,

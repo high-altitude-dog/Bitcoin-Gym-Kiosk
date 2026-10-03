@@ -1,23 +1,26 @@
 import { useEffect } from "react"
 import "./App.css"
+import "./kiosk.css"
 import { useKiosk } from "./state/useKiosk"
 import { useIdleReset } from "./hooks/useIdleReset"
 import { useOnlineStatus } from "./hooks/useOnlineStatus"
-import { ProductGrid } from "./screens/ProductGrid"
-import { CartScreen } from "./screens/CartScreen"
+import { IdleScreen } from "./screens/IdleScreen"
+import { ShopScreen } from "./screens/ShopScreen"
+import { Stage } from "./screens/Stage"
+import { PaymentMethodScreen } from "./screens/PaymentMethodScreen"
 import { PaymentScreen } from "./screens/PaymentScreen"
 import { DoneScreen } from "./screens/DoneScreen"
 
 function App() {
   const kiosk = useKiosk()
   const isOnline = useOnlineStatus()
-  useIdleReset(kiosk.reset, kiosk.paymentStatus !== "awaiting")
+  useIdleReset(kiosk.reset, kiosk.screen !== "idle" && kiosk.paymentStatus !== "awaiting")
 
   // The only place a lost connection can leave the kiosk stuck is the very
-  // first catalog load (screen stays "grid" with no cart yet, so there's
+  // first catalog load (screen stays "idle" with no cart yet, so there's
   // nothing to lose by retrying automatically once wifi comes back).
   useEffect(() => {
-    if (isOnline && kiosk.error && kiosk.screen === "grid") {
+    if (isOnline && kiosk.error && kiosk.screen === "idle") {
       kiosk.reset()
     }
   }, [isOnline, kiosk.error, kiosk.screen, kiosk.reset])
@@ -39,7 +42,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
     )
   }
 
-  if (kiosk.error && kiosk.screen === "grid") {
+  if (kiosk.error && (kiosk.screen === "idle" || kiosk.screen === "shop")) {
     return (
       <div className="screen screen--center">
         <p>{kiosk.error}</p>
@@ -50,15 +53,13 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
     )
   }
 
-  if (kiosk.screen === "cart" && kiosk.cart) {
+  if (kiosk.screen === "payment-method" && kiosk.cart) {
     return (
-      <CartScreen
+      <PaymentMethodScreen
         cart={kiosk.cart}
-        error={kiosk.error}
-        onQuantityChange={kiosk.setQuantity}
-        onBack={() => kiosk.goTo("grid")}
-        onPayWithLightning={kiosk.startPayment}
-        onPayWithBankQr={kiosk.startBankQrPayment}
+        onLightning={kiosk.startPayment}
+        onBankQr={kiosk.startBankQrPayment}
+        onBack={() => kiosk.goTo("shop")}
       />
     )
   }
@@ -80,16 +81,25 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
     return <DoneScreen order={kiosk.order} onNewOrder={kiosk.reset} />
   }
 
-  const cartItemCount =
-    kiosk.cart?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0
+  if (kiosk.screen === "shop") {
+    return (
+      <Stage variant="shop">
+        <ShopScreen
+          products={kiosk.products}
+          categories={kiosk.categories}
+          cart={kiosk.cart}
+          onAdd={kiosk.addItem}
+          onSetQuantity={kiosk.setQuantity}
+          onPay={() => kiosk.goTo("payment-method")}
+        />
+      </Stage>
+    )
+  }
 
   return (
-    <ProductGrid
-      products={kiosk.products}
-      cartItemCount={cartItemCount}
-      onAdd={kiosk.addItem}
-      onViewCart={() => kiosk.goTo("cart")}
-    />
+    <Stage variant="idle">
+      <IdleScreen onStart={() => kiosk.goTo("shop")} />
+    </Stage>
   )
 }
 

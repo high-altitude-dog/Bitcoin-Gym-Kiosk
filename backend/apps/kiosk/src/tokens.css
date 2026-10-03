@@ -1,0 +1,60 @@
+/*
+ * Kiosk design tokens: Byte doodle wall, La Paz, Spanish.
+ * All sizes are design pixels on the 1200 x 1920 portrait stage (Tecno MegaPad SE).
+ * The stage is scaled to fit the real viewport, so 1 design px = 1 physical px on the tablet.
+ */
+:root {
+  /* colour */
+  --k-bg: #1c1c1c;            /* wall background, warm-neutral charcoal */
+  --k-card: #2a2a2a;          /* cards, chips, order bar */
+  --k-card-lift: #424242;     /* centre of the photo spotlight */
+  --k-control: #3a3a3a;       /* quantity stepper track, disabled buttons */
+  --k-border: #555555;        /* unselected chip outline */
+  --k-text: #f5f5f5;          /* primary text  (15.6:1 on --k-bg) */
+  --k-text-2: #b4b4b4;        /* secondary text (8.2:1 on --k-bg) */
+  --k-text-disabled: #7a7a7a;
+  --k-action: #ff8d00;        /* ORANGE IS ONLY FOR ACTIONS: add, stepper +, pay, tap-to-start */
+  --k-action-text: #1c1c1c;   /* text on orange (7.4:1); never white on orange (2.3:1) */
+
+  /* type (Inter) */
+  --k-font: "Inter", system-ui, sans-serif;
+  --k-title: 700 64px/1.1 var(--k-font);
+  --k-clock: 600 34px/1 var(--k-font);
+  --k-chip: 600 28px/1 var(--k-font);
+  --k-name: 600 30px/1.15 var(--k-font);   /* shrinks to 24px to fit one line */
+  --k-name-min: 24px;
+  --k-price: 700 38px/1 var(--k-font);
+  --k-currency: 600 26px/1 var(--k-font);
+  --k-plus: 700 46px/1 var(--k-font);
+  --k-qty: 700 34px/1 var(--k-font);
+  --k-bar-label: 500 28px/1.2 var(--k-font);
+  --k-bar-total: 700 44px/1.1 var(--k-font);
+  --k-pay: 700 42px/1 var(--k-font);
+
+  /* shape */
+  --k-radius-card: 26px;
+  --k-radius-photo: 20px;
+  --k-radius-bar: 32px;
+  --k-pill: 999px;
+
+  /* layout: stage 1200 x 1920 */
+  --k-stage-w: 1200px;
+  --k-stage-h: 1920px;
+  --k-margin: 64px;
+  --k-gap: 24px;
+  --k-touch: 72px;            /* minimum touch target, about 9 mm on this tablet */
+  --k-header-top: 40px;
+  --k-header-h: 88px;
+  --k-chips-top: 140px;
+  --k-grid-top: 240px;
+  --k-card-h: 410px;          /* 3 columns x 2 rows visible; more rows scroll */
+  --k-photo-h: 250px;
+  --k-photo-box-w: 236px;     /* every product photo is contain-fit into this box */
+  --k-photo-box-h: 222px;     /* tall products (tubs, bags) get the extra height */
+  --k-add: 76px;              /* round "+" button */
+  --k-stepper-w: 184px;
+  --k-bar-top: 1712px;
+  --k-bar-h: 144px;
+  --k-pay-w: 296px;
+  --k-pay-h: 104px;
+}

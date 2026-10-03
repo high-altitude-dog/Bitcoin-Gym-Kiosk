@@ -55,13 +55,13 @@ export function PaymentScreen({
   if (paymentMethod === "bank_qr") {
     return (
       <div className="screen screen--center">
-        <h1>Pay {formatBs(cart.total)}</h1>
+        <h1>Pagar {formatBs(cart.total)}</h1>
         <div className="payment-qr payment-qr--placeholder">
-          <span>QR goes here</span>
+          <span>El QR aparecerá aquí</span>
         </div>
-        <p className="payment-note">Bank QR is coming soon. Scan with your bank app to pay.</p>
+        <p className="payment-note">El QR bancario estará disponible pronto. Escanea con tu app del banco para pagar.</p>
         <button className="back-button" onClick={onCancel}>
-          Cancel
+          Cancelar
         </button>
       </div>
     )
@@ -70,13 +70,13 @@ export function PaymentScreen({
   if (paymentStatus === "expired") {
     return (
       <div className="screen screen--center">
-        <h1>Invoice expired</h1>
-        <p className="payment-note">The Lightning invoice was not paid in time.</p>
+        <h1>La factura venció</h1>
+        <p className="payment-note">La factura Lightning no se pagó a tiempo.</p>
         <button className="primary-button" onClick={onRetry}>
-          Try again
+          Intentar de nuevo
         </button>
         <button className="back-button" onClick={onCancel}>
-          Cancel
+          Cancelar
         </button>
       </div>
     )
@@ -85,10 +85,10 @@ export function PaymentScreen({
   if (!invoice) {
     return (
       <div className="screen screen--center">
-        <h1>Pay {formatBs(cart.total)}</h1>
-        <p className="payment-note">Creating the Lightning invoice...</p>
+        <h1>Pagar {formatBs(cart.total)}</h1>
+        <p className="payment-note">Creando la factura Lightning...</p>
         <button className="back-button" onClick={onCancel}>
-          Cancel
+          Cancelar
         </button>
       </div>
     )
@@ -96,17 +96,17 @@ export function PaymentScreen({
 
   return (
     <div className="screen screen--center">
-      <h1>Pay {formatBs(invoice.bobAmount)}</h1>
+      <h1>Pagar {formatBs(invoice.bobAmount)}</h1>
       {qrDataUrl ? (
-        <img className="payment-qr" src={qrDataUrl} alt="Lightning invoice QR code" />
+        <img className="payment-qr" src={qrDataUrl} alt="Código QR de la factura Lightning" />
       ) : (
-        <p className="payment-note">Generating QR code...</p>
+        <p className="payment-note">Generando código QR...</p>
       )}
       <p className="payment-sats">{invoice.satsAmount.toLocaleString()} sats</p>
-      <p className="payment-countdown">Expires in {formatCountdown(msLeft)}</p>
-      <p className="payment-note">Scan with a Lightning wallet to pay.</p>
+      <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
+      <p className="payment-note">Escanea con una billetera Lightning para pagar.</p>
       <button className="back-button" onClick={onCancel}>
-        Cancel
+        Cancelar
       </button>
     </div>
   )

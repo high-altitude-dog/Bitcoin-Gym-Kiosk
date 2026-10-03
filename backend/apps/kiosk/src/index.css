@@ -1,6 +1,6 @@
 :root {
-  color-scheme: light;
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+  font-family: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -9,7 +9,7 @@
 
 body {
   margin: 0;
-  background: #f7f7f7;
+  background: #1c1c1c;
   overscroll-behavior: none;
   user-select: none;
 }

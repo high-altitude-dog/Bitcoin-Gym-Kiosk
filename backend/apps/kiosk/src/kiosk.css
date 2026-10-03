@@ -1,0 +1,305 @@
+/* Kiosk screens. Uses only the variables in tokens.css; all classes are prefixed "k-". */
+@import "./tokens.css";
+
+/* ---------------------------------------------------------------- stage (fixed 1200x1920, scaled to fit) */
+.k-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--k-bg);
+  touch-action: manipulation;          /* no double-tap zoom */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.k-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--k-stage-w);
+  height: var(--k-stage-h);
+  transform-origin: 0 0;
+  overflow: hidden;
+  color: var(--k-text);
+  font-family: var(--k-font);
+  background-color: var(--k-bg);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+/* zero-specificity resets (:where) so every component class below wins without */
+:where(.k-stage) *, :where(.k-stage) *::before, :where(.k-stage) *::after { box-sizing: border-box; }
+:where(.k-stage) button { font: inherit; color: inherit; border: 0; padding: 0; margin: 0; background: none; cursor: pointer; }
+/* the wall image (idle or shop) is set by <Stage> from KIOSK.wall, so asset paths follow Vite's base */
+
+/* ---------------------------------------------------------------- idle screen */
+.k-idle { position: absolute; inset: 0; }
+.k-idle__cta {
+  position: absolute;
+  left: 50%;
+  top: 1812px;
+  height: 80px;
+  min-width: 480px;
+  padding: 0 48px;
+  transform: translateX(-50%);
+  border-radius: var(--k-pill);
+  background: var(--k-action);
+  color: var(--k-action-text);
+  font: var(--k-pay);
+  font-size: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: k-breathe 2.4s ease-in-out infinite;
+}
+@keyframes k-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 141, 0, 0.45); }
+  50% { box-shadow: 0 0 0 18px rgba(255, 141, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .k-idle__cta { animation: none; } }
+
+/* ---------------------------------------------------------------- header */
+.k-header {
+  position: absolute;
+  top: var(--k-header-top);
+  left: var(--k-margin);
+  right: var(--k-margin);
+  height: var(--k-header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.k-title { margin: 0; font: var(--k-title); letter-spacing: -0.02em; white-space: nowrap; }
+.k-clock { font: var(--k-clock); font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- category chips */
+.k-chips {
+  position: absolute;
+  top: var(--k-chips-top);
+  left: var(--k-margin);
+  right: var(--k-margin);
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.k-chips::-webkit-scrollbar { display: none; }
+.k-chip {
+  flex: none;
+  height: var(--k-touch);
+  padding: 0 32px;
+  border-radius: var(--k-pill);
+  font: var(--k-chip);
+  background: var(--k-card);
+  box-shadow: inset 0 0 0 2px var(--k-border);
+  white-space: nowrap;
+}
+.k-chip[aria-pressed="true"] {
+  background: var(--k-text);
+  color: var(--k-bg);
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- product grid */
+.k-grid {
+  position: absolute;
+  top: var(--k-grid-top);
+  left: var(--k-margin);
+  width: calc(var(--k-stage-w) - 2 * var(--k-margin));
+  height: calc(2 * var(--k-card-h) + var(--k-gap));
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: var(--k-card-h);
+  gap: var(--k-gap);
+  align-content: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  scroll-snap-type: y mandatory;
+}
+.k-grid::-webkit-scrollbar { display: none; }
+.k-grid__message {
+  grid-column: 1 / -1;
+  align-self: start;
+  padding: 40px 32px;
+  border-radius: var(--k-radius-card);
+  background: var(--k-card);
+  font: var(--k-bar-label);
+  color: var(--k-text-2);
+}
+
+/* ---------------------------------------------------------------- product card */
+.k-card {
+  position: relative;
+  border-radius: var(--k-radius-card);
+  background: var(--k-card);
+  padding: 8px;
+  scroll-snap-align: start;
+  overflow: hidden;
+}
+.k-card--in-order { box-shadow: inset 0 0 0 3px var(--k-action); }
+.k-card__tap { position: absolute; inset: 0; border-radius: inherit; }     /* whole card adds the first one */
+.k-card__photo {
+  height: var(--k-photo-h);
+  border-radius: var(--k-radius-photo);
+  background: radial-gradient(60% 75% at 50% 58%, var(--k-card-lift), var(--k-card) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.k-card__img {
+  max-width: var(--k-photo-box-w);
+  max-height: var(--k-photo-box-h);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.5));
+}
+.k-card__name {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 276px;
+  margin: 0;
+  font: var(--k-name);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.k-card__price {
+  position: absolute;
+  left: 22px;
+  bottom: 44px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  pointer-events: none;
+}
+.k-card__currency { font: var(--k-currency); color: var(--k-text-2); }
+.k-card__amount { font: var(--k-price); font-variant-numeric: tabular-nums; }
+
+.k-add, .k-stepper__plus {
+  width: var(--k-add);
+  height: var(--k-add);
+  border-radius: var(--k-pill);
+  background: var(--k-action);
+  color: var(--k-action-text);
+  font: var(--k-plus);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.k-add { position: absolute; right: 16px; bottom: 16px; }
+.k-stepper {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: var(--k-stepper-w);
+  height: var(--k-add);
+  border-radius: var(--k-pill);
+  background: var(--k-control);
+  display: flex;
+  align-items: center;
+}
+.k-stepper__minus {
+  width: 64px;
+  height: var(--k-add);
+  font: var(--k-plus);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 8px;
+}
+.k-stepper__qty { flex: 1; text-align: center; font: var(--k-qty); font-variant-numeric: tabular-nums; }
+.k-add:active, .k-stepper__plus:active, .k-stepper__minus:active, .k-pay:active, .k-chip:active { transform: scale(0.95); }
+
+.k-card--sold-out .k-card__img { opacity: 0.35; filter: grayscale(1); }
+.k-card__sold-out {
+  position: absolute;
+  right: 16px;
+  bottom: 30px;
+  padding: 12px 20px;
+  border-radius: var(--k-pill);
+  background: var(--k-control);
+  font: var(--k-chip);
+  font-size: 24px;
+  color: var(--k-text-2);
+}
+.k-card--skeleton .k-card__photo { background: var(--k-control); opacity: 0.5; }
+
+/* ---------------------------------------------------------------- order bar */
+.k-bar {
+  position: absolute;
+  top: var(--k-bar-top);
+  left: var(--k-margin);
+  right: var(--k-margin);
+  height: var(--k-bar-h);
+  border-radius: var(--k-radius-bar);
+  background: var(--k-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px 0 36px;
+}
+.k-bar__label { font: var(--k-bar-label); color: var(--k-text-2); }
+.k-bar__total { font: var(--k-bar-total); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.k-pay {
+  width: var(--k-pay-w);
+  height: var(--k-pay-h);
+  border-radius: var(--k-pill);
+  background: var(--k-action);
+  color: var(--k-action-text);
+  font: var(--k-pay);
+}
+.k-pay:disabled { background: var(--k-control); color: var(--k-text-disabled); cursor: default; }
+
+/* ---------------------------------------------------------------- payment method screen */
+/* Not wrapped in <Stage>/.k-stage (it's a plain fluid screen, not the fixed 1200x1920 canvas),
+   so button resets that .k-stage normally provides via :where() are repeated explicitly here. */
+.k-method {
+  position: fixed;
+  inset: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 0 var(--k-margin);
+  background: var(--k-bg);
+  color: var(--k-text);
+  font-family: var(--k-font);
+  box-sizing: border-box;
+}
+.k-method button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.k-method__total { font: var(--k-bar-total); font-size: 56px; margin: 0 0 16px; }
+.k-method__option {
+  width: 100%;
+  max-width: 720px;
+  height: 140px;
+  border-radius: var(--k-radius-card);
+  background: var(--k-action);
+  color: var(--k-action-text);
+  font: var(--k-pay);
+  font-size: 40px;
+}
+.k-method__option--secondary {
+  background: var(--k-card);
+  color: var(--k-text);
+  box-shadow: inset 0 0 0 2px var(--k-border);
+}
+.k-method__back {
+  height: var(--k-touch);
+  padding: 0 32px;
+  border-radius: var(--k-pill);
+  background: var(--k-control);
+  color: var(--k-text);
+  font: var(--k-chip);
+}
