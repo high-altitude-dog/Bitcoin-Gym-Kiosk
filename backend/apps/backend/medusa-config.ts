@@ -44,6 +44,33 @@ module.exports = defineConfig({
         ]
       : []),
     {
+      // Unconfigured, this defaults to hardcoding http://localhost:9000/static
+      // for every uploaded file's URL (@medusajs/file-local's own fallback),
+      // which only happened to work locally because MEDUSA_BACKEND_URL is
+      // also localhost there. Deployed, that broke every product image.
+      //
+      // Don't try to redirect storage elsewhere with `upload_dir`: the
+      // GET /static route that actually serves these files is hardcoded in
+      // @medusajs/framework's express-loader to `<cwd>/static` regardless of
+      // this provider's config ("Currently we don't allow configuration of
+      // static files" per that file's own comment) — upload_dir only moves
+      // where uploads are WRITTEN, not where they're served FROM, so the two
+      // go out of sync and every image 404s. See the "known gap" note in
+      // CLAUDE.md for how uploads actually survive a `medusa build` deploy.
+      resolve: '@medusajs/medusa/file',
+      options: {
+        providers: [
+          {
+            resolve: '@medusajs/medusa/file-local',
+            id: 'local',
+            options: {
+              backend_url: `${process.env.MEDUSA_BACKEND_URL}/static`,
+            },
+          },
+        ],
+      },
+    },
+    {
       resolve: '@medusajs/medusa/payment',
       options: {
         providers: [

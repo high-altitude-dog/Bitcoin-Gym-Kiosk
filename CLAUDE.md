@@ -111,8 +111,10 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [x] Build the kiosk storefront for the tablet (product grid, cart, the real Coinos Lightning payment screen, a bank QR placeholder, and app-shell resilience are built and tested against the real backend; layout tuning on the physical tablet is still open)
 - [ ] Tune the kiosk layout on the real Tecno Megapad SE (needs the developer to open the kiosk on the device and send screenshots of the grid, cart, and Lightning QR screens — can't be done from assumed viewport dimensions)
 - [x] Create the VM: `armor-gym-kiosk`, e2-medium, `southamerica-west1-a`, Debian 13, project `perseus-armor-coinos` (created Oct 3, 2026 via the Google Compute Engine MCP connector)
-- [ ] Reserve the VM's external IP as static (see the note under Decisions and non-goals)
-- [ ] SSH in, add the swap file, install Postgres/Redis/Node, and deploy Medusa + the kiosk build to the VM
+- [x] Reserve the VM's external IP as static: `34.176.250.72`
+- [x] SSH in, add the swap file, install Postgres/Redis/Node, and deploy Medusa to the VM (Oct 3, 2026 — see "Deploying to the VM" below for the full runbook and gotchas). Admin reachable at `http://34.176.250.72:9000/app`; region, stock location, sales channel, and the real 3-product catalog all set up and verified via the Store API.
+- [ ] Deploy the kiosk build to the VM (not done yet — only the Medusa backend is deployed so far; the kiosk still needs a way to be statically served, which ties into the still-undecided domain/HTTPS question below)
+- [ ] Decide on a domain name and set up HTTPS (nginx reverse proxy in front of Medusa). Needed before the Coinos webhook can work on the deployed backend — it requires an `https://` callback URL, and right now `MEDUSA_BACKEND_URL` is set to `http://34.176.250.72:9000` (plain HTTP) as a temporary stand-in. Also needed before narrowing the temporary `allow-medusa-9000` firewall rule (currently open to `0.0.0.0/0` on port 9000 for testing — should become nginx-only on 80/443 with 9000 restricted to localhost once this is sorted).
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Turn on Coinos auto-sweep and set its threshold — deliberately off for the pilot (see Decisions and non-goals); revisit once volume justifies it, kept open rather than closed as "won't do"
 
@@ -220,3 +222,56 @@ Implements the design doc's resilience requirement ("cache the app shell so a wi
 - **Live "Reconnecting..." banner:** `useOnlineStatus` (tracks `navigator.onLine` plus the browser's `online`/`offline` events) drives a fixed banner rendered at the `App` level regardless of screen, so a wifi blip is visible whether the member is browsing, in the cart, or mid-payment. It does not interrupt an in-progress Lightning poll — `pollForPayment` already swallows transient fetch errors and keeps trying, per the "a dropped connection mid-payment must never lose a paid order" rule.
 - **Auto-recovery:** if the initial catalog load fails (screen is still "grid", no cart exists yet, so there's nothing to lose) and connectivity returns, the kiosk retries automatically (`kiosk.reset()`) instead of waiting for a tap on "Retry." Verified: toggling Playwright's offline mode shows/hides the banner correctly.
 - Not done: the layout hasn't been tuned against the actual Tecno Megapad SE hardware yet (only against an assumed ~800x1280 CSS px portrait viewport); that needs the physical device.
+
+## Deploying to the VM (Oct 3, 2026)
+
+The Medusa backend is live on `armor-gym-kiosk` (`34.176.250.72`), reachable at `http://34.176.250.72:9000` (admin at `/app`). Done via SSH from Claude Code, not VS Code Remote-SSH (that's still how the developer would connect for ongoing work — see "SSH access" below). The kiosk app itself is **not** deployed yet; only the backend. What follows is the actual runbook, written from what worked, plus every gotcha hit along the way so the next deploy (or a redeploy after a Baneco/HTTPS change) doesn't rediscover them.
+
+**SSH access:** the Google Compute Engine MCP connector's `create_instance` has no metadata/SSH-key parameter, so there's no way to provision access through it. An ed25519 key was added manually via the Console (instance → Edit → SSH Keys) for a `claude` user, who has passwordless sudo (`google-sudoers` group — this is standard for any key added this way, not something configured separately). The developer should add their own key the same way for Remote-SSH.
+
+**Runbook, in order:**
+
+1. `ssh claude@34.176.250.72`, then grow the disk: GCP's `create_instance` has no boot-disk-size parameter either, so it defaults to 10GB. Resized to 30GB via Console (Disks tab → Edit → resize — online, no downtime, cannot shrink later), then on the VM: `sudo apt-get install -y cloud-guest-utils` (for `growpart`, not preinstalled) → `sudo growpart /dev/sda 1` → `sudo resize2fs /dev/sda1`. GCP resizing the disk does **not** resize the partition/filesystem automatically; both of those steps are required separately.
+2. Swap file: `sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`, persisted via `/etc/fstab` (`/swapfile none swap sw 0 0`) and `vm.swappiness=10` in `/etc/sysctl.conf` (file didn't exist yet on this Debian 13 image; `tee -a` creates it).
+3. Postgres, Redis, Node, npm, git, build-essential are all in Debian 13's default apt repos at exactly the versions this project already uses locally (Postgres 17, Redis 8, Node 20.19, npm 9.2) — no third-party repos (NodeSource, apt.postgresql.org) needed. `sudo apt-get install -y postgresql redis-server nodejs npm git build-essential`. Both services auto-start and auto-enable on install.
+4. Create the DB role/database: `sudo -u postgres psql -c "CREATE ROLE medusa WITH LOGIN PASSWORD '...';" -c "CREATE DATABASE perseus OWNER medusa;"` — a freshly generated password, not the local dev one.
+5. Get the code onto the VM. There's no git remote, so this was a `tar czf - . | ssh ... tar xzf -` from the dev machine (excluding `node_modules`, `.env*`, `.medusa`, `dist`, `build`), landing at `~/perseus`. Full git history came along since `.git` wasn't excluded.
+6. `.env`: copy the non-secret values (`COINOS_API_URL`, `YADIO_API_URL`) and the Coinos token from local dev (same real Coinos account — see "Getting credentials" above for why), but generate **fresh** `JWT_SECRET`, `COOKIE_SECRET`, `AUTH_MFA_ENCRYPTION_KEY`, and `COINOS_WEBHOOK_SECRET` — never reuse local dev's (especially since local dev's `JWT_SECRET`/`COOKIE_SECRET` are literally `supersecret`). Set `MEDUSA_BACKEND_URL=http://34.176.250.72:9000` and CORS vars to match. `DATABASE_URL` uses the VM's own fresh Postgres password.
+7. `cd backend && npm install` (workspace root — this is the normal TypeScript source tree, ~1.7k packages, several minutes).
+8. `npx medusa db:migrate` from `backend/apps/backend` — this also runs the starter's own `initial-data-seed.ts` migration script, which seeds its default Europe demo region/products. That's expected; step 10 removes it.
+9. `npx medusa exec ./src/scripts/setup-armor-gym.ts`. **First run fails** on a fresh database: it looks up an existing admin user to attribute the publishable API key to, and there isn't one yet (`Cannot read properties of undefined (reading 'id')` at the `users[0].id` line). Create one first — `npx medusa user -e <email> -p <password>` — then re-run; it's idempotent and picks up exactly where it left off (region/stock-location/channel already exist and aren't duplicated).
+10. `npx medusa exec ./src/scripts/remove-demo-data.ts` to clear the starter's Europe demo data (must run after step 9 — it throws if the Armor Gym records don't exist yet, by design).
+11. **The 3 real products have no creation script** — they were originally made through the Admin UI, not captured anywhere in code. Recreated them directly via the Admin API (`POST /admin/products`, region-scoped `bob` price via a `region_id` price rule per the "region prices only" convention, then `POST /admin/inventory-items/:id/location-levels` for the 21-unit stock, then `POST /admin/uploads` + `POST /admin/products/:id` for images). This is a real gap: there's no idempotent script for the product catalog the way there is for everything else. Worth writing one (following `setup-armor-gym.ts`'s pattern) before the next redeploy, especially once "more [products] to add" actually happens.
+12. Production build and run — see the next section, this is the part with the real traps.
+
+**Building and running Medusa in production — three traps, in the order they bite:**
+
+- `medusa build` (from `backend/apps/backend`) produces `.medusa/server`: a **fully standalone deployable app** with its own `package.json`, decoupled from the source tree. `medusa start` must be run from **inside** `.medusa/server`, not from `apps/backend` — running it from the source directory fails with `Could not find index.html in the admin build directory`, because `@medusajs/medusa`'s admin loader resolves the admin build path as `<rootDirectory>/public/admin`, and `rootDirectory` is wherever `start` is invoked *from* (`process.cwd()`), not wherever `build` was invoked from. `.medusa/server` needs its own `npm install` (full ~1.7k packages again, it's a separate tree) and its own copy of `.env`.
+- **Every `medusa build` deletes and recreates `.medusa/server` from scratch** ("Removing existing .medusa/server folder" in its own log output). That wipes the `.env` copy, the `node_modules` just installed there, and — the one that actually cost time here — **any files uploaded through the admin while running**, since Medusa's local file provider defaults to writing uploads under `<cwd>/static`, i.e. `.medusa/server/static`. All three need redoing after every rebuild: re-copy `.env`, `npm install` again, re-upload anything that was uploaded (product images, etc.). **Do not** try to fix the upload-loss problem with the file-local provider's `upload_dir` option — it only changes where uploads are *written*, not where `GET /static/*` *serves from*. That route is hardcoded in `@medusajs/framework`'s `express-loader.js` to `express.static(path.join(baseDir, "static"))` with the comment "Currently we don't allow configuration of static files" — pointing `upload_dir` elsewhere just makes every uploaded file 404. (Tried this, confirmed it breaks, reverted.) The real fix, not yet implemented: back up `.medusa/server/static` before a rebuild and restore it after, as a scripted step — on the to-do list, not yet needed again since there's been no second rebuild.
+- The local file provider's `backend_url` option is **not optional** for a real deploy: unconfigured, it hardcodes `http://localhost:9000/static` into every uploaded file's URL (`@medusajs/file-local`'s own fallback), which only ever worked locally by coincidence (`MEDUSA_BACKEND_URL` is also `localhost` there). Fixed in `medusa-config.ts` by adding a `file` module block with `backend_url: ${process.env.MEDUSA_BACKEND_URL}/static` — this is now in source control, so it's a one-time fix, not a per-deploy step.
+
+**Running it persistently:** a systemd service, since `medusa develop`/`start` dying with the SSH session would take the backend down with it. `/etc/systemd/system/medusa.service`:
+
+```ini
+[Unit]
+Description=Medusa backend (Armor Gym kiosk)
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=claude
+WorkingDirectory=/home/claude/perseus/backend/apps/backend/.medusa/server
+ExecStart=/usr/bin/npx medusa start
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`sudo systemctl daemon-reload && sudo systemctl enable --now medusa.service`. Startup takes ~9-11 seconds from process start to "Server is ready" — don't conclude it failed from a health check run too soon after a restart.
+
+**Networking:** the static IP and the `allow-medusa-9000` firewall rule (0.0.0.0/0 → TCP 9000) are both temporary stand-ins for a real domain + HTTPS + nginx setup, tracked as open checklist items above. Port 9000 open to the whole internet is fine for getting things verified now, not for the actual pilot.
+
+**Verification:** health check (`/health`), admin login (`POST /auth/user/emailpass`), and the Store API product listing (`GET /store/products` with the kiosk's publishable key) all confirmed working with real data matching local dev exactly (titles, Bs 10/3/1 prices, 21-unit stock, images). Did not yet test the kiosk app itself against this deployed backend, or a real Coinos webhook against it (needs HTTPS first, per the checklist item above).
