@@ -6,10 +6,18 @@ interface Props {
   error: string | null
   onQuantityChange: (lineItemId: string, quantity: number) => void
   onBack: () => void
-  onCheckout: () => void
+  onPayWithLightning: () => void
+  onPayWithBankQr: () => void
 }
 
-export function CartScreen({ cart, error, onQuantityChange, onBack, onCheckout }: Props) {
+export function CartScreen({
+  cart,
+  error,
+  onQuantityChange,
+  onBack,
+  onPayWithLightning,
+  onPayWithBankQr,
+}: Props) {
   const items = cart.items ?? []
 
   return (
@@ -58,9 +66,22 @@ export function CartScreen({ cart, error, onQuantityChange, onBack, onCheckout }
 
       {error && <p className="cart-error">{error}</p>}
 
-      <button className="primary-button" disabled={items.length === 0} onClick={onCheckout}>
-        Pay
-      </button>
+      <div className="pay-button-row">
+        <button
+          className="primary-button"
+          disabled={items.length === 0}
+          onClick={onPayWithLightning}
+        >
+          Pay with Lightning
+        </button>
+        <button
+          className="primary-button secondary-button"
+          disabled={items.length === 0}
+          onClick={onPayWithBankQr}
+        >
+          Pay with bank QR
+        </button>
+      </div>
     </div>
   )
 }

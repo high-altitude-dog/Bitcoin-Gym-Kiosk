@@ -6,6 +6,19 @@
   box-sizing: border-box;
 }
 
+.reconnecting-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  padding: 10px;
+  background: #c0392b;
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+}
+
 .screen--center {
   align-items: center;
   justify-content: center;
@@ -170,6 +183,18 @@
   opacity: 0.5;
 }
 
+.pay-button-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.secondary-button {
+  background: #fff;
+  color: #111;
+  border: 2px solid #111;
+}
+
 .back-button {
   padding: 12px 20px;
   font-size: 1rem;
@@ -195,6 +220,17 @@
   border-radius: 16px;
   background: #fff;
   padding: 8px;
+}
+
+.payment-qr--placeholder {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #ccc;
+  color: #888;
+  font-weight: 600;
+  text-align: center;
 }
 
 .payment-sats {

@@ -5,6 +5,10 @@ import { COINOS_LIGHTNING_PROVIDER_ID, readLightningInvoice, type LightningInvoi
 
 export type Screen = "grid" | "cart" | "payment" | "done"
 export type PaymentStatus = "awaiting" | "expired" | null
+// "bank_qr" is a placeholder while the Baneco API request is pending: it
+// shows a static QR square instead of a real invoice. Swap in the real
+// Baneco flow here once credentials arrive.
+export type PaymentMethod = "lightning" | "bank_qr" | null
 
 const PRODUCT_FIELDS =
   "*variants.calculated_price,+variants.inventory_quantity,*images"
@@ -20,6 +24,7 @@ interface KioskState {
   order: HttpTypes.StoreOrder | null
   invoice: LightningInvoice | null
   paymentStatus: PaymentStatus
+  paymentMethod: PaymentMethod
   loading: boolean
   error: string | null
 }
@@ -33,6 +38,7 @@ export function useKiosk() {
     order: null,
     invoice: null,
     paymentStatus: null,
+    paymentMethod: null,
     loading: true,
     error: null,
   })
@@ -157,13 +163,35 @@ export function useKiosk() {
     }, POLL_INTERVAL_MS)
   }, [stopPolling])
 
+  // A cart needs a shipping option to complete regardless of payment
+  // method, so both the Lightning and bank QR paths go through this first.
+  const ensureShippingMethod = useCallback(async (cart: HttpTypes.StoreCart) => {
+    if (cart.shipping_methods?.length) return cart
+    const { shipping_options } = await sdk.store.fulfillment.listCartOptions({
+      cart_id: cart.id,
+    })
+    const pickup = shipping_options[0]
+    if (!pickup) return cart
+    const { cart: updated } = await sdk.store.cart.addShippingMethod(cart.id, {
+      option_id: pickup.id,
+    })
+    return updated
+  }, [])
+
   // Takes the cart as an argument rather than reading state.cart, so a
   // caller that just attached a shipping method (startPayment) or is
   // retrying (retryPayment) always uses the cart it has in hand instead of
   // a possibly one-render-stale value from the hook's closure.
   const initiateLightningPayment = useCallback(
     async (cart: HttpTypes.StoreCart) => {
-      setState((s) => ({ ...s, error: null, invoice: null, paymentStatus: null, screen: "payment" }))
+      setState((s) => ({
+        ...s,
+        error: null,
+        invoice: null,
+        paymentStatus: null,
+        paymentMethod: "lightning",
+        screen: "payment",
+      }))
 
       try {
         const { available } = await sdk.client.fetch<{ available: boolean }>(
@@ -206,30 +234,35 @@ export function useKiosk() {
 
   const startPayment = useCallback(async () => {
     if (!state.cart) return
-    let cart = state.cart
-    if (!cart.shipping_methods?.length) {
-      const { shipping_options } = await sdk.store.fulfillment.listCartOptions({
-        cart_id: cart.id,
-      })
-      const pickup = shipping_options[0]
-      if (pickup) {
-        const { cart: updated } = await sdk.store.cart.addShippingMethod(cart.id, {
-          option_id: pickup.id,
-        })
-        cart = updated
-      }
-    }
+    const cart = await ensureShippingMethod(state.cart)
     await initiateLightningPayment(cart)
-  }, [state.cart, initiateLightningPayment])
+  }, [state.cart, ensureShippingMethod, initiateLightningPayment])
 
   const retryPayment = useCallback(() => {
     if (!state.cart) return
     initiateLightningPayment(state.cart)
   }, [state.cart, initiateLightningPayment])
 
+  // Baneco access is still pending (see CLAUDE.md), so this just shows a
+  // static placeholder QR rather than creating a real invoice. No polling:
+  // there is nothing yet to confirm.
+  const startBankQrPayment = useCallback(async () => {
+    if (!state.cart) return
+    const cart = await ensureShippingMethod(state.cart)
+    setState((s) => ({
+      ...s,
+      cart,
+      error: null,
+      invoice: null,
+      paymentStatus: null,
+      paymentMethod: "bank_qr",
+      screen: "payment",
+    }))
+  }, [state.cart, ensureShippingMethod])
+
   const cancelPayment = useCallback(() => {
     stopPolling()
-    setState((s) => ({ ...s, screen: "cart", invoice: null, paymentStatus: null }))
+    setState((s) => ({ ...s, screen: "cart", invoice: null, paymentStatus: null, paymentMethod: null }))
   }, [stopPolling])
 
   const reset = useCallback(() => {
@@ -241,6 +274,7 @@ export function useKiosk() {
       order: null,
       invoice: null,
       paymentStatus: null,
+      paymentMethod: null,
       error: null,
     }))
     loadCatalog()
@@ -252,6 +286,7 @@ export function useKiosk() {
     setQuantity,
     goTo,
     startPayment,
+    startBankQrPayment,
     retryPayment,
     cancelPayment,
     reset,

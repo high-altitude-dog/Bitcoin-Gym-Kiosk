@@ -24,6 +24,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vite-plugin-pwa": "^1.3.0"
   }
 }

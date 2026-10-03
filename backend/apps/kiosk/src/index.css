@@ -25,3 +25,28 @@ button {
 h1 {
   margin: 0;
 }
+
+/* The kiosk tablet (Tecno Megapad SE, 11" 1200x1920) is meant to be locked
+   to portrait by the kiosk browser (Fully Kiosk Browser) at the OS/app
+   level. This is a CSS-only fallback for if that lock isn't engaged (e.g.
+   during development, or before it's configured on the device) — it lives
+   outside #root so it still works even if the app's JS hasn't loaded. */
+#rotate-overlay {
+  display: none;
+}
+
+@media (orientation: landscape) {
+  #rotate-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #111;
+    color: #fff;
+    font-size: 1.3rem;
+    text-align: center;
+  }
+}

@@ -4,10 +4,11 @@ import type { HttpTypes } from "@medusajs/types"
 import { formatBs } from "../lib/money"
 import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
-import type { PaymentStatus } from "../state/useKiosk"
+import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
 interface Props {
   cart: HttpTypes.StoreCart
+  paymentMethod: PaymentMethod
   invoice: LightningInvoice | null
   paymentStatus: PaymentStatus
   onRetry: () => void
@@ -38,9 +39,33 @@ function usePaymentQrCode(bolt11: string | undefined) {
   return qrDataUrl
 }
 
-export function PaymentScreen({ cart, invoice, paymentStatus, onRetry, onCancel }: Props) {
+export function PaymentScreen({
+  cart,
+  paymentMethod,
+  invoice,
+  paymentStatus,
+  onRetry,
+  onCancel,
+}: Props) {
   const qrDataUrl = usePaymentQrCode(invoice?.bolt11)
   const msLeft = useCountdown(invoice?.expiresAt ?? 0)
+
+  // Placeholder while the Baneco API request is pending (see CLAUDE.md):
+  // a static square instead of a real bank QR invoice.
+  if (paymentMethod === "bank_qr") {
+    return (
+      <div className="screen screen--center">
+        <h1>Pay {formatBs(cart.total)}</h1>
+        <div className="payment-qr payment-qr--placeholder">
+          <span>QR goes here</span>
+        </div>
+        <p className="payment-note">Bank QR is coming soon. Scan with your bank app to pay.</p>
+        <button className="back-button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    )
+  }
 
   if (paymentStatus === "expired") {
     return (
