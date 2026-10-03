@@ -3,6 +3,7 @@
 - Build on the developer's own computer first; deploy to the Google Cloud VM later.
 - Never put credentials (Coinos, Baneco, database) in code or in this file. Read them from environment variables in a `.env` file that the developer fills in and that is listed in `.gitignore`.
 - Prices are always in Bs (BOB). Lightning amounts in sats are computed only when an invoice is created.
+- **This file currently describes one specific gym's instance**: the gym name ("Armor Gym"), its product catalog, the GCP region, the admin email, the git author identity, and the tablet model are all specific to that deployment, not structural requirements. Reusing this file for a different gym or as a template means replacing those first.
 
 # Gym kiosk: high-level design
 
@@ -79,6 +80,16 @@ Today the setup is the smallest version of the design: one Medusa region, one st
 | Withdrawals | Coinos balance-based auto-sweep. Medusa has no withdrawal logic. |
 | Multiple gyms | Supported by the design; multi-gym features are deferred until a second gym exists. |
 
+## Getting credentials
+
+None of these are in this file or in code — they go in `.env` only (see `.env.example` for the exact variable names).
+
+- **Coinos:** sign up at coinos.io, then generate an API token from account settings. That's `COINOS_API_TOKEN`; `COINOS_API_URL` is `https://coinos.io/api`.
+- **`COINOS_WEBHOOK_SECRET`:** not issued by anyone — generate your own long random value once, e.g. `openssl rand -hex 32`, and never reuse it elsewhere.
+- **`MEDUSA_BACKEND_URL`:** must be publicly reachable over the internet for Coinos's webhook to ever arrive (see the "known gap" note under the Coinos provider section below) — `localhost` only works once deployed, or tunneled with something like ngrok.
+- **Yadio:** no signup or key needed; it's a public API (`YADIO_API_URL=https://api.yadio.io`).
+- **Baneco:** apply through the bank directly — this is the slowest credential to get, so request it first regardless of how far along everything else is.
+
 ## Next steps and open items
 
 Start Baneco access first, because it depends on the bank and takes the longest.
@@ -107,7 +118,7 @@ Written Oct 1, 2026 when work moved from the Claude desktop app to Claude Code i
 - **Redis is wired in** through `medusa-config.ts` when `REDIS_URL` is set (sessions, event bus, workflow engine, locking).
 - **Region "Bolivia"** (BOB, country BO), **stock location "Armor Gym"**, **sales channel "Armor Gym Kiosk"** (the store default), and a free **"Armor Gym pickup"** shipping option (a cart needs one to complete). Region payment providers: `pp_system_default` and `pp_coinos-lightning_coinos-lightning`.
 - **Products:** Whey Protein Concentrate - Chocolate (Bs 10), Creatine Monohydrate (Bs 3), Banana (Bs 1). Inventory is managed, 21 units each at Armor Gym. These prices look like test values.
-- **Admin user** exists for the developer's own email (not recorded in the repo). The developer set the password. Never create or reset admin accounts for them.
+- **Admin user** exists for the developer's own email (not recorded in the repo). The developer set the password. Never create or reset *that* account — this isn't a blanket rule against ever creating an admin user; if no admin user exists yet (e.g. a fresh setup), create one and ask the developer to set its password.
 - **Kiosk storefront** in `backend/apps/kiosk/` (Vite + React, `@dtc/kiosk`), with a publishable API key scoped to the Armor Gym Kiosk channel, created by `setup-armor-gym.ts` and stored in `backend/apps/kiosk/.env`.
 - Git repo at the project root, one commit so far, no remote yet.
 
@@ -143,6 +154,7 @@ Design notes:
 - Lightning payments go straight from pending to `captured` (never a separate `authorized`-then-captured step), since Coinos settlement is instant and final on receipt. Idempotency on duplicate webhook deliveries is handled by Medusa core itself (`authorizePaymentSession` is documented and implemented as idempotent), not by custom code here.
 - Confirmed by calling the live APIs directly and reading the open-source `coinos-server` code (coinos.io runs it), since both `coinos.io/docs` and `docs.yadio.io` are JS-rendered pages that couldn't be fetched directly. Unconfirmed: the exact full field list `GET /payments` returns per record — the reconciliation job matches defensively on several possible fields (`memo`, `hash`, `paymentHash`) rather than assuming one.
 - Tested against mocked Coinos/Yadio HTTP clients only (`src/modules/coinos-lightning/__tests__/`, 22 tests, `npm run test:unit`). Nothing has called Coinos with the developer's real token yet — ask before doing that.
+- **Known gap: webhooks can't reach a local backend.** Confirmed Oct 3, 2026 by actually paying a real test invoice from a phone wallet: Coinos confirmed the payment on its end, but the kiosk never saw it, because `MEDUSA_BACKEND_URL` was `http://localhost:9000` — not reachable from the public internet, so Coinos has nowhere to deliver the webhook. The invoice really was paid; Medusa just never found out. Unblocked it by calling `POST /store/carts/:id/complete` directly, which re-checks Coinos's live invoice state independently of the webhook (the same check `authorizePayment` always does) and completed the order correctly. This only matters for local testing — once deployed, `MEDUSA_BACKEND_URL` points at a real public URL and the webhook works as designed. For local testing before that, either tunnel the backend (e.g. ngrok) or expect to complete payment-confirmed carts manually the same way.
 
 After this: build the kiosk storefront, load the full product list, then deploy to the VM. Baneco comes later when credentials arrive.
 
