@@ -19,4 +19,12 @@ export const t = {
   payWithLightning: "Pagar con Lightning",
   payWithBankQr: "Pagar con QR bancario",
   back: "Atrás",
+  // Added for App.tsx's loading/retry screen and useKiosk.ts's error
+  // messages, the last English text left in the kiosk.
+  loading: "Cargando...",
+  retry: "Reintentar",
+  errorCatalog: "No pudimos conectar con la tienda. Revisa la conexión e intenta de nuevo.",
+  errorOrderIncomplete: "El pago se confirmó, pero no pudimos completar el pedido. Avisa a un miembro del personal.",
+  errorLightningUnavailable: "El pago con Lightning no está disponible por el momento. Intenta de nuevo en un momento.",
+  errorInvoiceFailed: "No pudimos crear la factura Lightning. Intenta de nuevo.",
 } as const

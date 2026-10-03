@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { sdk } from "../lib/medusa"
+import { t } from "../lib/strings"
 import { COINOS_LIGHTNING_PROVIDER_ID, readLightningInvoice, type LightningInvoice } from "../lib/payment"
 
 export type Screen = "idle" | "shop" | "payment-method" | "payment" | "done"
@@ -78,7 +79,7 @@ export function useKiosk() {
       setState((s) => ({
         ...s,
         loading: false,
-        error: "Could not reach the store. Check the connection and try again.",
+        error: t.errorCatalog,
       }))
     }
   }, [])
@@ -162,7 +163,7 @@ export function useKiosk() {
         } else {
           setState((s) => ({
             ...s,
-            error: "Payment was confirmed but the order could not be completed. Please tell a staff member.",
+            error: t.errorOrderIncomplete,
             screen: "shop",
             paymentStatus: null,
           }))
@@ -211,7 +212,7 @@ export function useKiosk() {
         if (!available) {
           setState((s) => ({
             ...s,
-            error: "Lightning payment is temporarily unavailable. Please try again shortly.",
+            error: t.errorLightningUnavailable,
             screen: "payment-method",
           }))
           return
@@ -235,7 +236,7 @@ export function useKiosk() {
       } catch {
         setState((s) => ({
           ...s,
-          error: "Could not create the Lightning invoice. Please try again.",
+          error: t.errorInvoiceFailed,
           screen: "payment-method",
         }))
       }

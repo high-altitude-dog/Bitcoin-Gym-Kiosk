@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import "./App.css"
 import "./kiosk.css"
+import { t } from "./lib/strings"
 import { useKiosk } from "./state/useKiosk"
 import { useIdleReset } from "./hooks/useIdleReset"
 import { useOnlineStatus } from "./hooks/useOnlineStatus"
@@ -37,7 +38,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
   if (kiosk.loading) {
     return (
       <div className="screen screen--center">
-        <p>Loading...</p>
+        <p>{t.loading}</p>
       </div>
     )
   }
@@ -47,7 +48,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
       <div className="screen screen--center">
         <p>{kiosk.error}</p>
         <button className="primary-button" onClick={kiosk.reset}>
-          Retry
+          {t.retry}
         </button>
       </div>
     )
