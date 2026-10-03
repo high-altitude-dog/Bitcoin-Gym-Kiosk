@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import "./App.css"
 import "./kiosk.css"
 import { t } from "./lib/strings"
@@ -15,20 +15,32 @@ import { DoneScreen } from "./screens/DoneScreen"
 function App() {
   const kiosk = useKiosk()
   const isOnline = useOnlineStatus()
-  useIdleReset(kiosk.reset, kiosk.screen !== "idle" && kiosk.paymentStatus !== "awaiting")
+  // Never reset while a Lightning invoice is live (the member may be paying
+  // from their phone) or while a paid order is waiting on staff.
+  useIdleReset(
+    kiosk.reset,
+    kiosk.screen !== "idle" &&
+      kiosk.paymentStatus !== "awaiting" &&
+      kiosk.paymentStatus !== "needs_staff"
+  )
 
   // The only place a lost connection can leave the kiosk stuck is the very
   // first catalog load (screen stays "idle" with no cart yet, so there's
-  // nothing to lose by retrying automatically once wifi comes back).
+  // nothing to lose by retrying automatically once wifi comes back). Only on
+  // the offline-to-online transition: retrying on every failure would hammer
+  // a backend that's down while the wifi is up.
+  const wasOnline = useRef(isOnline)
   useEffect(() => {
-    if (isOnline && kiosk.error && kiosk.screen === "idle") {
+    const cameBackOnline = isOnline && !wasOnline.current
+    wasOnline.current = isOnline
+    if (cameBackOnline && kiosk.error && kiosk.screen === "idle") {
       kiosk.reset()
     }
   }, [isOnline, kiosk.error, kiosk.screen, kiosk.reset])
 
   return (
     <>
-      {!isOnline && <div className="reconnecting-banner">Reconnecting...</div>}
+      {!isOnline && <div className="reconnecting-banner">{t.reconnecting}</div>}
       {renderScreen(kiosk)}
     </>
   )
@@ -43,7 +55,9 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
     )
   }
 
-  if (kiosk.error && (kiosk.screen === "idle" || kiosk.screen === "shop")) {
+  // Full-screen only for a failed catalog load. Its Retry clears the cart,
+  // so it must never stand in for a payment error on a live cart.
+  if (kiosk.error && kiosk.screen === "idle") {
     return (
       <div className="screen screen--center">
         <p>{kiosk.error}</p>
@@ -58,6 +72,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
     return (
       <PaymentMethodScreen
         cart={kiosk.cart}
+        error={kiosk.error}
         onLightning={kiosk.startPayment}
         onBankQr={kiosk.startBankQrPayment}
         onBack={() => kiosk.goTo("shop")}

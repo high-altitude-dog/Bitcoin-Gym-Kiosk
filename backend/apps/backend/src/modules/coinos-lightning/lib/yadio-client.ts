@@ -73,3 +73,17 @@ export class YadioClient {
     return Math.round(amountBob * rate.btcPerBob * SATS_PER_BTC)
   }
 }
+
+const shared = new Map<string, YadioClient>()
+
+// One client (and so one rate cache) per Yadio URL for the whole process,
+// so the store route that decides whether to show Lightning and the
+// provider that prices the invoice agree on whether a fresh rate exists.
+export function sharedYadioClient(baseUrl: string, cacheTtlMs?: number): YadioClient {
+  let client = shared.get(baseUrl)
+  if (!client) {
+    client = new YadioClient({ baseUrl, cacheTtlMs })
+    shared.set(baseUrl, client)
+  }
+  return client
+}

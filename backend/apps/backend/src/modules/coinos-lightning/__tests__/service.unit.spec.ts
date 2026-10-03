@@ -19,10 +19,16 @@ describe("CoinosLightningProviderService", () => {
   let fetchMock: jest.Mock
   let logger: { warn: jest.Mock; info: jest.Mock; error: jest.Mock }
 
+  let serviceCount = 0
   const makeService = () =>
     // The base class constructor only reads from the container/options it's
     // given; a plain object stands in fine for the real module container.
-    new CoinosLightningProviderService({ logger } as any, options as any)
+    // A distinct Yadio URL per service: the Yadio client (and its rate cache)
+    // is shared per URL, so a rate cached by one test would leak into the next.
+    new CoinosLightningProviderService(
+      { logger } as any,
+      { ...options, yadioApiUrl: `https://yadio.test/${++serviceCount}` } as any
+    )
 
   beforeEach(() => {
     fetchMock = jest.fn()
@@ -61,6 +67,7 @@ describe("CoinosLightningProviderService", () => {
         webhook: "https://backend.test/hooks/payment/pp_coinos-lightning_coinos-lightning",
         secret: "shared-secret",
       })
+      expect(result.data).toMatchObject({ expiry_seconds: 600 })
 
       expect(result.id).toBe("inv_1")
       expect(result.data).toMatchObject({
@@ -84,6 +91,7 @@ describe("CoinosLightningProviderService", () => {
         service.initiatePayment({ amount: 10, currency_code: "bob", data: { session_id: "payses_123" } } as any)
       ).rejects.toThrow("network down")
       expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0][0]).toMatch(/\/rate\/BTC\/BOB$/)
     })
   })
 
@@ -128,7 +136,9 @@ describe("CoinosLightningProviderService", () => {
 
       expect(result.action).toBe(PaymentActions.SUCCESSFUL)
       expect(result.data?.session_id).toBe("payses_123")
-      expect(Number(result.data?.amount)).toBe(1000)
+      // The webhook's amount is in sats; passing it on would make Medusa
+      // record a Bs 1000 capture. Omitted so the full Bs amount is captured.
+      expect(result.data?.amount).toBeUndefined()
     })
 
     it("ignores a callback with the wrong secret", async () => {

@@ -22,9 +22,13 @@ export const t = {
   // Added for App.tsx's loading/retry screen and useKiosk.ts's error
   // messages, the last English text left in the kiosk.
   loading: "Cargando...",
+  reconnecting: "Reconectando...",
   retry: "Reintentar",
   errorCatalog: "No pudimos conectar con la tienda. Revisa la conexión e intenta de nuevo.",
   errorOrderIncomplete: "El pago se confirmó, pero no pudimos completar el pedido. Avisa a un miembro del personal.",
   errorLightningUnavailable: "El pago con Lightning no está disponible por el momento. Intenta de nuevo en un momento.",
   errorInvoiceFailed: "No pudimos crear la factura Lightning. Intenta de nuevo.",
+  errorPayment: "No pudimos preparar el pago. Intenta de nuevo.",
+  checkingPayment: "Verificando el pago...",
+  cartReference: (id: string) => `Referencia: ${id}`,
 } as const

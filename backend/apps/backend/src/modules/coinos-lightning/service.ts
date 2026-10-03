@@ -1,4 +1,4 @@
-import { AbstractPaymentProvider, BigNumber, MedusaError, PaymentActions } from "@medusajs/framework/utils"
+import { AbstractPaymentProvider, MedusaError, PaymentActions } from "@medusajs/framework/utils"
 import {
   AuthorizePaymentInput,
   AuthorizePaymentOutput,
@@ -23,7 +23,7 @@ import {
   WebhookActionResult,
 } from "@medusajs/framework/types"
 import { CoinosClient } from "./lib/coinos-client"
-import { YadioClient } from "./lib/yadio-client"
+import { YadioClient, sharedYadioClient } from "./lib/yadio-client"
 import { COINOS_LIGHTNING_PROVIDER_ID, CoinosLightningOptions } from "./types"
 
 type InjectedDependencies = {
@@ -53,10 +53,7 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
       baseUrl: options.coinosApiUrl,
       token: options.coinosApiToken,
     })
-    this.yadio_ = new YadioClient({
-      baseUrl: options.yadioApiUrl,
-      cacheTtlMs: options.yadioCacheTtlMs,
-    })
+    this.yadio_ = sharedYadioClient(options.yadioApiUrl, options.yadioCacheTtlMs)
   }
 
   static validateOptions(options: Record<string, unknown>) {
@@ -114,6 +111,9 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
         // Computed here rather than trusted from Coinos's own `expiry`/`created`
         // fields, whose exact units/format are unconfirmed (see coinos-client.ts).
         expires_at: Date.now() + expirySeconds * 1000,
+        // The kiosk counts down from this on its own clock: comparing its
+        // clock to the server's expires_at goes wrong whenever they drift.
+        expiry_seconds: expirySeconds,
       },
     }
   }
@@ -217,12 +217,13 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
       return { action: PaymentActions.NOT_SUPPORTED }
     }
 
+    // No `amount`: Coinos reports it in sats, but Medusa uses this value as
+    // the capture amount in the payment's currency (Bs) and records it on the
+    // order. Left out, Medusa captures the full authorized amount, which is
+    // what a Lightning invoice always is (paid in full or not at all).
     return {
       action: PaymentActions.SUCCESSFUL,
-      data: {
-        session_id: sessionId,
-        amount: new BigNumber(Number(body.amount ?? 0)),
-      },
+      data: { session_id: sessionId } as WebhookActionResult["data"],
     }
   }
 }

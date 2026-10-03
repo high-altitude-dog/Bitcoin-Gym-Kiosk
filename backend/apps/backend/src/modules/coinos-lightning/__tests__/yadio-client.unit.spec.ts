@@ -1,4 +1,4 @@
-import { YadioClient } from "../lib/yadio-client"
+import { YadioClient, sharedYadioClient } from "../lib/yadio-client"
 
 const jsonResponse = (body: unknown, ok = true, status = 200) => ({
   ok,
@@ -81,5 +81,13 @@ describe("YadioClient", () => {
 
       await expect(client.isAvailable()).resolves.toBe(false)
     })
+  })
+})
+
+describe("sharedYadioClient", () => {
+  it("returns one client per URL, so the availability route and the provider share a rate cache", () => {
+    const a = sharedYadioClient("https://shared.test")
+    expect(sharedYadioClient("https://shared.test")).toBe(a)
+    expect(sharedYadioClient("https://other.test")).not.toBe(a)
   })
 })

@@ -280,6 +280,16 @@
   cursor: pointer;
 }
 .k-method__total { font: var(--k-bar-total); font-size: 56px; margin: 0 0 16px; }
+.k-method__error {
+  max-width: 720px;
+  margin: 0;
+  padding: 20px 24px;
+  border-radius: var(--k-radius-card);
+  background: var(--k-card);
+  box-shadow: inset 0 0 0 2px var(--k-border);
+  font: var(--k-bar-label);
+  text-align: center;
+}
 .k-method__option {
   width: 100%;
   max-width: 720px;

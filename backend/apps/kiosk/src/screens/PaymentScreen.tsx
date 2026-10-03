@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import QRCode from "qrcode"
 import type { HttpTypes } from "@medusajs/types"
 import { formatBs } from "../lib/money"
+import { t } from "../lib/strings"
 import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
@@ -50,6 +51,17 @@ export function PaymentScreen({
   const qrDataUrl = usePaymentQrCode(invoice?.bolt11)
   const msLeft = useCountdown(invoice?.expiresAt ?? 0)
 
+  // Paid, but the order didn't complete. No buttons: paying again or
+  // starting over would be wrong. Staff use the reference to find the cart.
+  if (paymentStatus === "needs_staff") {
+    return (
+      <div className="screen screen--center">
+        <h1>{t.errorOrderIncomplete}</h1>
+        <p className="payment-note">{t.cartReference(cart.id)}</p>
+      </div>
+    )
+  }
+
   // Placeholder while the Baneco API request is pending (see CLAUDE.md):
   // a static square instead of a real bank QR invoice.
   if (paymentMethod === "bank_qr") {
@@ -87,6 +99,21 @@ export function PaymentScreen({
       <div className="screen screen--center">
         <h1>Pagar {formatBs(cart.total)}</h1>
         <p className="payment-note">Creando la factura Lightning...</p>
+        <button className="back-button" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    )
+  }
+
+  // Past the deadline the invoice can't be paid any more, so the QR goes,
+  // but a payment sent in the last seconds may still be landing: keep
+  // checking (useKiosk's grace period) rather than calling it expired.
+  if (msLeft === 0) {
+    return (
+      <div className="screen screen--center">
+        <h1>Pagar {formatBs(invoice.bobAmount)}</h1>
+        <p className="payment-note">{t.checkingPayment}</p>
         <button className="back-button" onClick={onCancel}>
           Cancelar
         </button>
