@@ -17,29 +17,49 @@ module.exports = defineConfig({
     }
   },
   // Redis-backed modules; without REDIS_URL Medusa falls back to in-memory ones.
-  modules: redisUrl
-    ? [
-        {
-          resolve: '@medusajs/medusa/event-bus-redis',
-          options: { redisUrl },
-        },
-        {
-          resolve: '@medusajs/medusa/workflow-engine-redis',
-          options: { redis: { url: redisUrl } },
-        },
-        {
-          resolve: '@medusajs/medusa/locking',
-          options: {
-            providers: [
-              {
-                resolve: '@medusajs/medusa/locking-redis',
-                id: 'locking-redis',
-                is_default: true,
-                options: { redisUrl },
-              },
-            ],
+  modules: [
+    ...(redisUrl
+      ? [
+          {
+            resolve: '@medusajs/medusa/event-bus-redis',
+            options: { redisUrl },
           },
-        },
-      ]
-    : [],
+          {
+            resolve: '@medusajs/medusa/workflow-engine-redis',
+            options: { redis: { url: redisUrl } },
+          },
+          {
+            resolve: '@medusajs/medusa/locking',
+            options: {
+              providers: [
+                {
+                  resolve: '@medusajs/medusa/locking-redis',
+                  id: 'locking-redis',
+                  is_default: true,
+                  options: { redisUrl },
+                },
+              ],
+            },
+          },
+        ]
+      : []),
+    {
+      resolve: '@medusajs/medusa/payment',
+      options: {
+        providers: [
+          {
+            resolve: './src/modules/coinos-lightning',
+            id: 'coinos-lightning',
+            options: {
+              coinosApiUrl: process.env.COINOS_API_URL,
+              coinosApiToken: process.env.COINOS_API_TOKEN,
+              yadioApiUrl: process.env.YADIO_API_URL,
+              webhookSecret: process.env.COINOS_WEBHOOK_SECRET,
+              webhookBaseUrl: process.env.MEDUSA_BACKEND_URL,
+            },
+          },
+        ],
+      },
+    },
+  ],
 })

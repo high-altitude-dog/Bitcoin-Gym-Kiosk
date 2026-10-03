@@ -5,14 +5,19 @@ import {
   Modules,
 } from "@medusajs/framework/utils";
 import {
+  createApiKeysWorkflow,
   createRegionsWorkflow,
   createSalesChannelsWorkflow,
   createShippingOptionsWorkflow,
   createStockLocationsWorkflow,
   createTaxRegionsWorkflow,
+  linkSalesChannelsToApiKeyWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
+  updateProductsWorkflow,
+  updateRegionsWorkflow,
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows";
+import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types";
 
 const GYM_NAME = "Armor Gym";
 const REGION_NAME = "Bolivia";
@@ -33,7 +38,7 @@ export default async function setupArmorGym({ container }: ExecArgs) {
     return data[0] as { id: string } | undefined;
   };
 
-  // Region: Bolivia, BOB. Coinos and Baneco providers are added once built.
+  // Region: Bolivia, BOB. Baneco is added once built.
   let region = await find("region", { name: REGION_NAME });
   if (!region) {
     const { result } = await createRegionsWorkflow(container).run({
@@ -43,13 +48,30 @@ export default async function setupArmorGym({ container }: ExecArgs) {
             name: REGION_NAME,
             currency_code: "bob",
             countries: ["bo"],
-            payment_providers: ["pp_system_default"],
+            payment_providers: ["pp_system_default", COINOS_LIGHTNING_PROVIDER_ID],
           },
         ],
       },
     });
     region = result[0];
     logger.info(`Created region ${REGION_NAME} (BOB).`);
+  } else {
+    const { data: regions } = await query.graph({
+      entity: "region",
+      fields: ["id", "payment_providers.id"],
+      filters: { id: region.id },
+    });
+    const currentProviders = (regions[0] as { payment_providers: { id: string }[] })
+      .payment_providers.map((p) => p.id);
+    if (!currentProviders.includes(COINOS_LIGHTNING_PROVIDER_ID)) {
+      await updateRegionsWorkflow(container).run({
+        input: {
+          selector: { id: region.id },
+          update: { payment_providers: [...currentProviders, COINOS_LIGHTNING_PROVIDER_ID] },
+        },
+      });
+      logger.info(`Enabled ${COINOS_LIGHTNING_PROVIDER_ID} on region ${REGION_NAME}.`);
+    }
   }
 
   if (!(await find("tax_region", { country_code: "bo" }))) {
@@ -92,6 +114,36 @@ export default async function setupArmorGym({ container }: ExecArgs) {
     });
     logger.info(`Created sales channel ${CHANNEL_NAME}.`);
   }
+
+  // Publishable API key for the kiosk storefront, scoped to this channel.
+  const KIOSK_KEY_TITLE = `${CHANNEL_NAME} storefront`;
+  const { data: existingKeys } = await query.graph({
+    entity: "api_key",
+    fields: ["id", "token", "sales_channels.id"],
+    filters: { title: KIOSK_KEY_TITLE, type: "publishable" },
+  });
+  let apiKey = existingKeys[0] as
+    | { id: string; token: string; sales_channels: { id: string }[] }
+    | undefined;
+  if (!apiKey) {
+    const { data: users } = await query.graph({ entity: "user", fields: ["id"] });
+    const { result } = await createApiKeysWorkflow(container).run({
+      input: {
+        api_keys: [
+          { title: KIOSK_KEY_TITLE, type: "publishable", created_by: users[0].id },
+        ],
+      },
+    });
+    apiKey = { ...result[0], sales_channels: [] };
+    logger.info(`Created publishable API key "${KIOSK_KEY_TITLE}".`);
+  }
+  if (!apiKey.sales_channels.some((c) => c.id === channel.id)) {
+    await linkSalesChannelsToApiKeyWorkflow(container).run({
+      input: { id: apiKey.id, add: [channel.id] },
+    });
+    logger.info(`Linked sales channel ${CHANNEL_NAME} to the kiosk publishable key.`);
+  }
+  logger.info(`Kiosk publishable key token: ${apiKey.token}`);
 
   // Free in-gym pickup: a cart needs a shipping option to complete.
   const pickupName = `${GYM_NAME} pickup`;
@@ -136,6 +188,31 @@ export default async function setupArmorGym({ container }: ExecArgs) {
       ],
     });
     logger.info(`Created shipping option ${pickupName}.`);
+  }
+
+  // A product with no shipping profile fails checkout with "shipping
+  // profiles not satisfied" even though the pickup option exists.
+  const { data: profilelessProducts } = await query.graph({
+    entity: "product",
+    fields: ["id", "shipping_profile.id"],
+  });
+  const missingProfile = (
+    profilelessProducts as { id: string; shipping_profile: { id: string } | null }[]
+  ).filter((p) => !p.shipping_profile);
+  if (missingProfile.length) {
+    const { data: profiles } = await query.graph({
+      entity: "shipping_profile",
+      fields: ["id"],
+    });
+    await updateProductsWorkflow(container).run({
+      input: {
+        selector: { id: missingProfile.map((p) => p.id) },
+        update: { shipping_profile_id: profiles[0].id },
+      },
+    });
+    logger.info(
+      `Linked ${missingProfile.length} product(s) to the default shipping profile.`
+    );
   }
 
   // Store: support BOB as the default currency, keep the gym's location default.

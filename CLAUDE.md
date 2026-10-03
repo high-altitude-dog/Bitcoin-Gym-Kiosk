@@ -87,10 +87,87 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [x] Decide where Medusa runs: one e2-medium VM on Google Cloud, Debian 13
 - [x] Choose the VM region: southamerica-west1 (Santiago)
 - [ ] Request Baneco API access
-- [ ] Set up the local machine: VS Code, Node.js 20 or newer, PostgreSQL, Claude Code
-- [ ] Set up Medusa locally: the Bolivia region in BOB, this gym's stock location, the real product list
-- [ ] Build the Coinos payment provider with Yadio rates
-- [ ] Build the kiosk storefront for the tablet
+- [x] Set up the local machine: VS Code, Node.js 20 or newer, PostgreSQL, Claude Code
+- [x] Set up Medusa locally: the Bolivia region in BOB, this gym's stock location, the real product list (3 products so far; more to add)
+- [x] Build the Coinos payment provider with Yadio rates (built and unit-tested against mocks; not yet called with a real Coinos token)
+- [x] Build the kiosk storefront for the tablet (product grid, cart and a mocked payment step are built and tested against the real backend; real Coinos payment, device testing, and app-shell resilience are still open)
 - [ ] Create the VM with a swap file and deploy for the pilot
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Set the Coinos auto-sweep threshold
+
+# Current state and handoff
+
+Written Oct 1, 2026 when work moved from the Claude desktop app to Claude Code in VS Code. The design above is unchanged; this section records what exists on disk. When the checklist above changes, mirror it in the design doc.
+
+## What is built (local machine only)
+
+- **Medusa v2.21.2** in `backend/` (Turborepo layout). The app is `backend/apps/backend/`. Run all Medusa commands from there.
+- **Postgres 17** and **Redis 8** run as system services. Database `perseus`, role `medusa`. No sudo from Claude: ask the developer to run anything that needs it.
+- **Redis is wired in** through `medusa-config.ts` when `REDIS_URL` is set (sessions, event bus, workflow engine, locking).
+- **Region "Bolivia"** (BOB, country BO), **stock location "Armor Gym"**, **sales channel "Armor Gym Kiosk"** (the store default), and a free **"Armor Gym pickup"** shipping option (a cart needs one to complete). Region payment providers: `pp_system_default` and `pp_coinos-lightning_coinos-lightning`.
+- **Products:** Whey Protein Concentrate - Chocolate (Bs 10), Creatine Monohydrate (Bs 3), Banana (Bs 1). Inventory is managed, 21 units each at Armor Gym. These prices look like test values.
+- **Admin user** exists for the developer's own email (not recorded in the repo). The developer set the password. Never create or reset admin accounts for them.
+- **Kiosk storefront** in `backend/apps/kiosk/` (Vite + React, `@dtc/kiosk`), with a publishable API key scoped to the Armor Gym Kiosk channel, created by `setup-armor-gym.ts` and stored in `backend/apps/kiosk/.env`.
+- Git repo at the project root, one commit so far, no remote yet.
+
+## Run it
+
+```bash
+cd ~/Documents/perseus/backend/apps/backend && npx medusa develop
+cd ~/Documents/perseus/backend/apps/kiosk && npx vite --port 5173   # kiosk storefront
+```
+
+Health check: `http://localhost:9000/health`. Admin: `http://localhost:9000/app`. Kiosk: `http://localhost:5173`. Do not use `pkill -f` (it kills your own shell); stop servers by PID and check the port is free.
+
+## Conventions and traps
+
+- **Env files:** Medusa reads `backend/apps/backend/.env`. The root `.env` and `.env.example` are templates and hold the same keys. Put new variables in both `.env.example` files (placeholders only) and in `backend/apps/backend/.env`. When appending to an env file, make sure the previous line ends with a newline, or the two lines merge.
+- **Prices are region prices only.** Set the Bolivia region price and never a plain BOB currency price, so there is one price per product and nothing to keep in sync. Amounts are whole bolivianos (10 means Bs 10).
+- **Setup scripts live in `backend/apps/backend/src/scripts/`** and run with `npx medusa exec ./src/scripts/<name>.ts`. `setup-armor-gym.ts` is idempotent and is the way to rebuild the base data on the VM. `remove-demo-data.ts` was a one-off for the starter's Europe data.
+- **Known harmless error:** deleting products logs `Search index "product" has no active version yet`. It does not break the operation. Fix it by migrating and seeding the search index when convenient.
+- **Git identity is fixed:** commits use `high-altitude-dog <336328767+high-altitude-dog@users.noreply.github.com>` from the global git config. Never use the developer's real email in commits.
+- **Credentials:** never ask for, print or commit them. They go in `.env` only.
+
+## Coinos payment provider with Yadio rates
+
+Built Oct 1, 2026 as `backend/apps/backend/src/modules/coinos-lightning/` (`CoinosLightningProviderService`, identifier `coinos-lightning`), registered under the payment module in `medusa-config.ts` and enabled on the Bolivia region by `setup-armor-gym.ts` (idempotent, same as the rest of that script). Also added:
+
+- `src/api/store/lightning-availability` — a store route the kiosk calls to decide whether to show Lightning, backed by the Yadio rate cache (stale cache + unreachable Yadio → `{available: false}`; bank QR is unaffected).
+- `src/jobs/reconcile-coinos-payments.ts` — a daily job (06:00) comparing Coinos's `GET /payments` history against Medusa orders for the previous day and logging mismatches.
+
+Design notes:
+
+- The Medusa payment session id is passed to Coinos as the invoice's `memo` at creation time, and Coinos echoes it back on the webhook callback — that's how a webhook call is tied back to the right cart, since Coinos invoices have no generic metadata field.
+- A single static `COINOS_WEBHOOK_SECRET` (random, generated once, in `.env`) is sent on every invoice and checked against the `secret` Coinos echoes back on each webhook call, to reject forged callbacks.
+- Lightning payments go straight from pending to `captured` (never a separate `authorized`-then-captured step), since Coinos settlement is instant and final on receipt. Idempotency on duplicate webhook deliveries is handled by Medusa core itself (`authorizePaymentSession` is documented and implemented as idempotent), not by custom code here.
+- Confirmed by calling the live APIs directly and reading the open-source `coinos-server` code (coinos.io runs it), since both `coinos.io/docs` and `docs.yadio.io` are JS-rendered pages that couldn't be fetched directly. Unconfirmed: the exact full field list `GET /payments` returns per record — the reconciliation job matches defensively on several possible fields (`memo`, `hash`, `paymentHash`) rather than assuming one.
+- Tested against mocked Coinos/Yadio HTTP clients only (`src/modules/coinos-lightning/__tests__/`, 22 tests, `npm run test:unit`). Nothing has called Coinos with the developer's real token yet — ask before doing that.
+
+After this: build the kiosk storefront, load the full product list, then deploy to the VM. Baneco comes later when credentials arrive.
+
+## Kiosk storefront plan (decided Oct 1, 2026)
+
+Build after the Coinos provider. This is a new app, not a change to Medusa's admin or the starter's optional Next.js storefront (which was not installed).
+
+- **Stack:** Vite + React, in `backend/apps/kiosk/`. Static files, no Node server at runtime, so it costs almost no memory on the e2-medium VM. Use Medusa's `@medusajs/js-sdk` against the Store API with the publishable key tied to the Armor Gym Kiosk channel.
+- **Target device:** Android tablet, portrait, run in a kiosk browser (Fully Kiosk Browser is the planned choice; check its current licence price). Lock orientation to portrait. Screen size and Android version are still unknown, so ask the developer before finalizing the layout.
+- **Screens:** product grid, cart, payment (invoice QR with countdown), done. Big touch targets, Bs prices, "sold out" when stock is 0. No accounts, no keyboard input, anonymous carts.
+- **Flow:** create a cart in the Bolivia region, add items, auto-select the "Armor Gym pickup" shipping option, create the payment session, show the QR, and wait for Medusa to complete the order. Never show "done" until Medusa confirms the order is complete.
+- **Payment states:** handle paid, expired, cancelled and failed. Hide the Lightning option when the provider reports it unavailable (stale rate); bank QR must keep working.
+- **Idle reset:** after about 60 seconds of no touch, clear the cart and return to the start screen, so one member's cart is never left for the next.
+- **Resilience:** cache the app shell so a wifi blip shows a clear "reconnecting" message and not a blank page. A dropped connection mid-payment must never lose a paid order: orders complete on provider confirmation, not on the kiosk's state.
+- **Development:** the tablet loads the app from the dev machine over the same wifi, so add that address to `STORE_CORS` in `backend/apps/backend/.env`. For the pilot, the app and Medusa sit on the VM behind HTTPS on a domain name (not yet decided).
+- **Order of work:** product grid and cart against the real backend first, with the payment step mocked. Switch to the real Coinos provider when it is ready.
+
+## Kiosk storefront: built so far (Oct 1, 2026)
+
+Scaffolded as `backend/apps/kiosk/` (`@dtc/kiosk`, Vite + React + TypeScript), using `@medusajs/js-sdk` against the Store API. Product grid, cart (quantity stepper, running total) and a mocked payment screen are built and were driven end to end against the real backend with a headless browser: add item → view cart → pay → "Simulate payment" (authorizes with `pp_system_default` and completes the cart) → done screen with the order number. Idle reset (60s of no touch clears the cart and returns to the grid) is implemented but not yet tested on a real tablet.
+
+Also added to `setup-armor-gym.ts` (idempotent, same pattern as the rest of that script):
+
+- A publishable API key titled "Armor Gym Kiosk storefront", linked to the Armor Gym Kiosk sales channel. The token is logged on every run; copy it into `backend/apps/kiosk/.env` as `VITE_MEDUSA_PUBLISHABLE_KEY`.
+- A fix that links any product missing a shipping profile to the store's default one. The three real products (Whey, Creatine, Banana) had no shipping profile set — however they were created, it wasn't through a workflow that assigned one — which made `cart.complete()` fail for every product with "shipping profiles not satisfied," regardless of payment method. This was caught by actually running the purchase flow, not by code review.
+
+Gotcha hit while scaffolding: `npm create vite@latest -- --template react-ts` pulled Vite 8 (the new Rolldown-based engine) with `@vitejs/plugin-react` 6, which fails every request with `Missing field moduleType` from `builtin:vite-react-refresh-wrapper` — a blank page, not a readable error in the browser. Pinned `backend/apps/kiosk/package.json` to the known-stable pair (`vite` ^6.3.5, `@vitejs/plugin-react` ^4.3.4) instead. If re-scaffolding this app or starting a new Vite app in this repo, pin those versions from the start rather than taking whatever `create-vite` defaults to.
+
+Not built yet: the real Coinos payment screen (QR, countdown, polling for confirmation), the "reconnecting" app-shell caching, and anything tablet-specific (Fully Kiosk Browser setup, portrait lock, real screen dimensions).
