@@ -8,7 +8,7 @@ import { DoneScreen } from "./screens/DoneScreen"
 
 function App() {
   const kiosk = useKiosk()
-  useIdleReset(kiosk.reset)
+  useIdleReset(kiosk.reset, kiosk.paymentStatus !== "awaiting")
 
   if (kiosk.loading) {
     return (
@@ -18,7 +18,7 @@ function App() {
     )
   }
 
-  if (kiosk.error) {
+  if (kiosk.error && kiosk.screen === "grid") {
     return (
       <div className="screen screen--center">
         <p>{kiosk.error}</p>
@@ -33,6 +33,7 @@ function App() {
     return (
       <CartScreen
         cart={kiosk.cart}
+        error={kiosk.error}
         onQuantityChange={kiosk.setQuantity}
         onBack={() => kiosk.goTo("grid")}
         onCheckout={kiosk.startPayment}
@@ -44,8 +45,10 @@ function App() {
     return (
       <PaymentScreen
         cart={kiosk.cart}
-        onConfirm={kiosk.confirmMockPayment}
-        onCancel={() => kiosk.goTo("cart")}
+        invoice={kiosk.invoice}
+        paymentStatus={kiosk.paymentStatus}
+        onRetry={kiosk.retryPayment}
+        onCancel={kiosk.cancelPayment}
       />
     )
   }

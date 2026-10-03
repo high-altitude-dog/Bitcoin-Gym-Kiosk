@@ -90,7 +90,7 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [x] Set up the local machine: VS Code, Node.js 20 or newer, PostgreSQL, Claude Code
 - [x] Set up Medusa locally: the Bolivia region in BOB, this gym's stock location, the real product list (3 products so far; more to add)
 - [x] Build the Coinos payment provider with Yadio rates (built and unit-tested against mocks; not yet called with a real Coinos token)
-- [x] Build the kiosk storefront for the tablet (product grid, cart and a mocked payment step are built and tested against the real backend; real Coinos payment, device testing, and app-shell resilience are still open)
+- [x] Build the kiosk storefront for the tablet (product grid, cart, and the real Coinos Lightning payment screen with QR/countdown/polling are built and tested against the real backend; device testing and app-shell resilience are still open)
 - [ ] Create the VM with a swap file and deploy for the pilot
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Set the Coinos auto-sweep threshold
@@ -170,4 +170,16 @@ Also added to `setup-armor-gym.ts` (idempotent, same pattern as the rest of that
 
 Gotcha hit while scaffolding: `npm create vite@latest -- --template react-ts` pulled Vite 8 (the new Rolldown-based engine) with `@vitejs/plugin-react` 6, which fails every request with `Missing field moduleType` from `builtin:vite-react-refresh-wrapper` — a blank page, not a readable error in the browser. Pinned `backend/apps/kiosk/package.json` to the known-stable pair (`vite` ^6.3.5, `@vitejs/plugin-react` ^4.3.4) instead. If re-scaffolding this app or starting a new Vite app in this repo, pin those versions from the start rather than taking whatever `create-vite` defaults to.
 
-Not built yet: the real Coinos payment screen (QR, countdown, polling for confirmation), the "reconnecting" app-shell caching, and anything tablet-specific (Fully Kiosk Browser setup, portrait lock, real screen dimensions).
+Not built yet: the "reconnecting" app-shell caching, and anything tablet-specific (Fully Kiosk Browser setup, portrait lock, real screen dimensions).
+
+## Kiosk storefront: real Coinos payment screen (Oct 3, 2026)
+
+Replaced the mocked payment screen with the real Lightning flow, in `backend/apps/kiosk/src/state/useKiosk.ts`, `src/screens/PaymentScreen.tsx`, and new `src/hooks/useCountdown.ts` and `src/lib/payment.ts`.
+
+- **Flow:** after the shipping method is attached, the kiosk checks `/store/lightning-availability`, then calls `sdk.store.payment.initiatePaymentSession` with the coinos-lightning provider and reads `bolt11`/`sats_amount`/`bob_amount`/`expires_at` back off the created payment session's `data`. It renders the invoice as a QR code (the `qrcode` package, client-side, so it works without depending on the tablet's own internet) with a live mm:ss countdown to `expires_at`.
+- **Polling without creating an order early:** the kiosk polls `GET /store/carts/:id` (not `cart.complete()`) every 3s, watching for the coinos-lightning payment session's `status` to become `"authorized"`. Only then does it call `cart.complete()` once. This matters because `cart.complete()` creates the order and reserves stock immediately even when payment is still pending — that's Medusa's documented behavior for async/deferred payment providers (confirmed by reading `completeCartWorkflow`, `authorizePaymentSessionStep`, and `processPaymentWorkflow` in `@medusajs/core-flows`) — so completing early would reserve stock against an invoice that might never get paid. Waiting for `"authorized"` means an expired, unpaid invoice leaves no order and no reservation behind.
+- **Session status, not order status, drives the UI:** the Coinos webhook authorizes the payment session directly (via `processPaymentWorkflow`'s autocapture branch) regardless of whether an order exists yet, so polling the cart's session status works whether the webhook arrives before or after the kiosk would otherwise have called `complete()`.
+- **Idle reset is paused** while a Lightning invoice is awaiting payment (`useIdleReset` now takes an `enabled` flag), since a member paying from their phone won't touch the tablet and that must not clear their cart mid-payment.
+- **Retry re-initiates a fresh invoice** by calling `initiatePaymentSession` again; Medusa's `createPaymentSessionsWorkflow` deletes the old session and creates a new one (no split-payment support), so this just works without any extra cleanup code.
+- **Known gap:** if the member cancels or walks away without the invoice expiring, there's no order to clean up (none was created) — but if `cart.complete()` ever returns `type: "cart"` after the session was already authorized (an unexpected-state error), that's surfaced as an inline cart error asking for a staff member, not silently retried.
+- Verified end to end against the real backend and a real Coinos invoice (with the developer's explicit go-ahead to use the live token for one test invoice): added an item, paid screen rendered a real QR for a real `bolt11`, sats amount matched the live Yadio rate, and the countdown ticked down correctly. Did not complete a real payment (that needs a funded Lightning wallet) — the authorized → complete path is verified by reading Medusa's workflow source, not by an actual paid invoice.

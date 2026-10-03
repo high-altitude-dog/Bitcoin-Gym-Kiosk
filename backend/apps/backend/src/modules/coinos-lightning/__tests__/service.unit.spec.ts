@@ -71,6 +71,9 @@ describe("CoinosLightningProviderService", () => {
         bob_amount: 10,
         yadio_rate_btc_per_bob: 0.000001,
       })
+      // Computed from the default expiry, not read off the Coinos response.
+      expect(result.data!.expires_at as number).toBeGreaterThan(Date.now())
+      expect(result.data!.expires_at as number).toBeLessThanOrEqual(Date.now() + 600_000)
     })
 
     it("propagates the Yadio error instead of creating an invoice when the rate is unavailable", async () => {

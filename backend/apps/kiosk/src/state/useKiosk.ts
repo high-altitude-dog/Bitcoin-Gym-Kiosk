@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { sdk } from "../lib/medusa"
+import { COINOS_LIGHTNING_PROVIDER_ID, readLightningInvoice, type LightningInvoice } from "../lib/payment"
 
 export type Screen = "grid" | "cart" | "payment" | "done"
+export type PaymentStatus = "awaiting" | "expired" | null
 
 const PRODUCT_FIELDS =
   "*variants.calculated_price,+variants.inventory_quantity,*images"
+const POLL_INTERVAL_MS = 3_000
+const PAYMENT_SESSION_FIELDS =
+  "+payment_collection.payment_sessions.status,+payment_collection.payment_sessions.provider_id"
 
 interface KioskState {
   screen: Screen
@@ -13,6 +18,8 @@ interface KioskState {
   products: HttpTypes.StoreProduct[]
   cart: HttpTypes.StoreCart | null
   order: HttpTypes.StoreOrder | null
+  invoice: LightningInvoice | null
+  paymentStatus: PaymentStatus
   loading: boolean
   error: string | null
 }
@@ -24,9 +31,21 @@ export function useKiosk() {
     products: [],
     cart: null,
     order: null,
+    invoice: null,
+    paymentStatus: null,
     loading: true,
     error: null,
   })
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }, [])
+
+  useEffect(() => stopPolling, [stopPolling])
 
   const loadCatalog = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
@@ -95,6 +114,96 @@ export function useKiosk() {
     setState((s) => ({ ...s, screen }))
   }, [])
 
+  // Polls the cart's payment session rather than repeatedly calling
+  // cart.complete(): completing the cart creates the order and reserves
+  // stock immediately, even before the invoice is paid (Medusa's documented
+  // behavior for async/deferred payment providers). Waiting for the Coinos
+  // webhook to mark the session "authorized" first means an abandoned,
+  // unpaid invoice never creates an order at all.
+  const pollForPayment = useCallback((cartId: string, expiresAt: number) => {
+    stopPolling()
+    pollRef.current = setInterval(async () => {
+      if (Date.now() >= expiresAt) {
+        stopPolling()
+        setState((s) => ({ ...s, paymentStatus: "expired" }))
+        return
+      }
+
+      try {
+        const { cart } = await sdk.store.cart.retrieve(cartId, {
+          fields: PAYMENT_SESSION_FIELDS,
+        })
+        const session = cart.payment_collection?.payment_sessions?.find(
+          (s) => s.provider_id === COINOS_LIGHTNING_PROVIDER_ID
+        )
+        if (session?.status !== "authorized") return
+
+        stopPolling()
+        const result = await sdk.store.cart.complete(cartId)
+        if (result.type === "order") {
+          setState((s) => ({ ...s, order: result.order, screen: "done", paymentStatus: null }))
+        } else {
+          setState((s) => ({
+            ...s,
+            error: "Payment was confirmed but the order could not be completed. Please tell a staff member.",
+            screen: "cart",
+            paymentStatus: null,
+          }))
+        }
+      } catch {
+        // A transient network error; the next tick tries again rather than
+        // tearing down the invoice the member might already be paying.
+      }
+    }, POLL_INTERVAL_MS)
+  }, [stopPolling])
+
+  // Takes the cart as an argument rather than reading state.cart, so a
+  // caller that just attached a shipping method (startPayment) or is
+  // retrying (retryPayment) always uses the cart it has in hand instead of
+  // a possibly one-render-stale value from the hook's closure.
+  const initiateLightningPayment = useCallback(
+    async (cart: HttpTypes.StoreCart) => {
+      setState((s) => ({ ...s, error: null, invoice: null, paymentStatus: null, screen: "payment" }))
+
+      try {
+        const { available } = await sdk.client.fetch<{ available: boolean }>(
+          "/store/lightning-availability"
+        )
+        if (!available) {
+          setState((s) => ({
+            ...s,
+            error: "Lightning payment is temporarily unavailable. Please try again shortly.",
+            screen: "cart",
+          }))
+          return
+        }
+
+        const { payment_collection } = await sdk.store.payment.initiatePaymentSession(
+          cart,
+          { provider_id: COINOS_LIGHTNING_PROVIDER_ID },
+          { fields: "+payment_sessions.data,+payment_sessions.provider_id" }
+        )
+        const session = payment_collection.payment_sessions?.find(
+          (s) => s.provider_id === COINOS_LIGHTNING_PROVIDER_ID
+        )
+        const invoice = readLightningInvoice(session?.data)
+        if (!invoice) {
+          throw new Error("coinos-lightning did not return invoice data")
+        }
+
+        setState((s) => ({ ...s, cart, invoice, paymentStatus: "awaiting" }))
+        pollForPayment(cart.id, invoice.expiresAt)
+      } catch {
+        setState((s) => ({
+          ...s,
+          error: "Could not create the Lightning invoice. Please try again.",
+          screen: "cart",
+        }))
+      }
+    },
+    [pollForPayment]
+  )
+
   const startPayment = useCallback(async () => {
     if (!state.cart) return
     let cart = state.cart
@@ -110,39 +219,32 @@ export function useKiosk() {
         cart = updated
       }
     }
-    setState((s) => ({ ...s, cart, screen: "payment" }))
-  }, [state.cart])
+    await initiateLightningPayment(cart)
+  }, [state.cart, initiateLightningPayment])
 
-  // Payment is mocked for now: authorize with the system provider and
-  // complete the order immediately. The real Coinos flow replaces this once
-  // it is wired up in the kiosk.
-  const confirmMockPayment = useCallback(async () => {
+  const retryPayment = useCallback(() => {
     if (!state.cart) return
-    await sdk.store.payment.initiatePaymentSession(state.cart, {
-      provider_id: "pp_system_default",
-    })
-    const result = await sdk.store.cart.complete(state.cart.id)
-    if (result.type === "order") {
-      setState((s) => ({ ...s, order: result.order, screen: "done" }))
-    } else {
-      setState((s) => ({
-        ...s,
-        error: "Payment could not be completed. Please try again.",
-        screen: "cart",
-      }))
-    }
-  }, [state.cart])
+    initiateLightningPayment(state.cart)
+  }, [state.cart, initiateLightningPayment])
+
+  const cancelPayment = useCallback(() => {
+    stopPolling()
+    setState((s) => ({ ...s, screen: "cart", invoice: null, paymentStatus: null }))
+  }, [stopPolling])
 
   const reset = useCallback(() => {
+    stopPolling()
     setState((s) => ({
       ...s,
       screen: "grid",
       cart: null,
       order: null,
+      invoice: null,
+      paymentStatus: null,
       error: null,
     }))
     loadCatalog()
-  }, [loadCatalog])
+  }, [loadCatalog, stopPolling])
 
   return {
     ...state,
@@ -150,7 +252,8 @@ export function useKiosk() {
     setQuantity,
     goTo,
     startPayment,
-    confirmMockPayment,
+    retryPayment,
+    cancelPayment,
     reset,
   }
 }

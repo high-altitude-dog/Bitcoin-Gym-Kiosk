@@ -90,11 +90,12 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
 
     const rate = await this.yadio_.getRate()
     const satsAmount = this.yadio_.satsForBob(amountBob, rate)
+    const expirySeconds = this.options_.invoiceExpirySeconds ?? DEFAULT_INVOICE_EXPIRY_SECONDS
 
     const invoice = await this.coinos_.createInvoice({
       amountSats: satsAmount,
       memo: sessionId,
-      expirySeconds: this.options_.invoiceExpirySeconds ?? DEFAULT_INVOICE_EXPIRY_SECONDS,
+      expirySeconds,
       webhookUrl: this.webhookUrl(),
       webhookSecret: this.options_.webhookSecret,
     })
@@ -110,6 +111,9 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
         sats_amount: satsAmount,
         yadio_rate_btc_per_bob: rate.btcPerBob,
         received_sats: 0,
+        // Computed here rather than trusted from Coinos's own `expiry`/`created`
+        // fields, whose exact units/format are unconfirmed (see coinos-client.ts).
+        expires_at: Date.now() + expirySeconds * 1000,
       },
     }
   }

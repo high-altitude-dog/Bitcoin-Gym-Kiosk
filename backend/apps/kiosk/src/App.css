@@ -183,6 +183,30 @@
   max-width: 320px;
 }
 
+.cart-error {
+  color: #c0392b;
+  font-weight: 600;
+  text-align: center;
+}
+
+.payment-qr {
+  width: 260px;
+  height: 260px;
+  border-radius: 16px;
+  background: #fff;
+  padding: 8px;
+}
+
+.payment-sats {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.payment-countdown {
+  color: #c0392b;
+  font-weight: 600;
+}
+
 .done-order {
   font-size: 1.3rem;
   font-weight: 700;

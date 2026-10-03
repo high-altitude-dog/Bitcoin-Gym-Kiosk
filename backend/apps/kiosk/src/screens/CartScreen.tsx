@@ -3,12 +3,13 @@ import { formatBs } from "../lib/money"
 
 interface Props {
   cart: HttpTypes.StoreCart
+  error: string | null
   onQuantityChange: (lineItemId: string, quantity: number) => void
   onBack: () => void
   onCheckout: () => void
 }
 
-export function CartScreen({ cart, onQuantityChange, onBack, onCheckout }: Props) {
+export function CartScreen({ cart, error, onQuantityChange, onBack, onCheckout }: Props) {
   const items = cart.items ?? []
 
   return (
@@ -54,6 +55,8 @@ export function CartScreen({ cart, onQuantityChange, onBack, onCheckout }: Props
         <span>Total</span>
         <span>{formatBs(cart.total)}</span>
       </div>
+
+      {error && <p className="cart-error">{error}</p>}
 
       <button className="primary-button" disabled={items.length === 0} onClick={onCheckout}>
         Pay
