@@ -90,7 +90,8 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [x] Set up the local machine: VS Code, Node.js 20 or newer, PostgreSQL, Claude Code
 - [x] Set up Medusa locally: the Bolivia region in BOB, this gym's stock location, the real product list (3 products so far; more to add)
 - [x] Build the Coinos payment provider with Yadio rates (built and unit-tested against mocks; not yet called with a real Coinos token)
-- [x] Build the kiosk storefront for the tablet (product grid, cart, and the real Coinos Lightning payment screen with QR/countdown/polling are built and tested against the real backend; device testing and app-shell resilience are still open)
+- [x] Build the kiosk storefront for the tablet (product grid, cart, the real Coinos Lightning payment screen, a bank QR placeholder, and app-shell resilience are built and tested against the real backend; layout tuning on the physical tablet is still open)
+- [ ] Tune the kiosk layout on the real Tecno Megapad SE (needs the developer to open the kiosk on the device and send screenshots of the grid, cart, and Lightning QR screens — can't be done from assumed viewport dimensions)
 - [ ] Create the VM with a swap file and deploy for the pilot
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Set the Coinos auto-sweep threshold
