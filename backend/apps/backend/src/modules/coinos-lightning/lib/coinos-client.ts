@@ -19,17 +19,21 @@ export type CoinosInvoice = {
   created?: number
 }
 
-// Unconfirmed: the full field list of a payment record from GET /payments —
-// seen the route's filtering logic (start/end/limit/offset/received) but not
-// a live authenticated response. Treated as a loose bag of known-likely
-// fields for reconciliation; code should not assume more than this.
+// A payment record from GET /payments. Confirmed against a live
+// authenticated response on Oct 4, 2026: the endpoint returns
+// { payments: CoinosPayment[], count, incoming, outgoing }, not a bare list.
+// `iid` is the Coinos invoice id the payment paid; `amount` is in sats and
+// negative for outgoing payments.
 export type CoinosPayment = {
+  id?: string
+  iid?: string
   hash?: string
+  payment_hash?: string
   amount?: number
   confirmed?: boolean
-  received?: number
   memo?: string
   created?: number
+  type?: string
   [key: string]: unknown
 }
 
@@ -102,10 +106,14 @@ export class CoinosClient {
     return body as CoinosInvoice
   }
 
+  // Incoming payments only (`received`): outgoing ones, like moving funds
+  // out of Coinos, can never match a kiosk order. With a start/end window
+  // and no `limit`, coinos-server returns every payment in the window.
   async listPayments(params: { start?: number; end?: number } = {}): Promise<CoinosPayment[]> {
     const query = new URLSearchParams()
     if (params.start) query.set("start", String(params.start))
     if (params.end) query.set("end", String(params.end))
+    query.set("received", "1")
 
     const res = await this.fetchImpl(`${this.baseUrl}/payments?${query.toString()}`, {
       headers: this.authHeaders(),
@@ -118,6 +126,13 @@ export class CoinosClient {
       )
     }
 
-    return (await res.json()) as CoinosPayment[]
+    const body = (await res.json()) as { payments?: CoinosPayment[] }
+    if (!Array.isArray(body?.payments)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Coinos payments list returned an unexpected shape (no `payments` array)"
+      )
+    }
+    return body.payments.filter((p) => (p.amount ?? 0) > 0)
   }
 }

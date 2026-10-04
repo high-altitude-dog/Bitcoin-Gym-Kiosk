@@ -119,6 +119,8 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Turn on Coinos auto-sweep and set its threshold — deliberately off for the pilot (see Decisions and non-goals); revisit once volume justifies it, kept open rather than closed as "won't do"
 - [ ] Design in "pay with cash" and "pay later" as additional payment options on the kiosk — backburner, not needed for the pilot; consider once the gym is live and the Lightning/bank-QR flow is proven out
+- [x] Slack alerts for sales, low stock, paid-but-no-order and reconciliation mismatches (Oct 4, 2026; see "Slack alerts" below)
+- [ ] Consider a separate Coinos account for local development: the shared account means every local test payment shows up as a reconciliation mismatch on the VM
 - [ ] Refactor `coinos-lightning` into a standalone, publishable Medusa plugin other MedusaJS users could install — backburner, not needed for the pilot. Estimated ~3-5 focused days: the real cost is generalizing the currency handling (BOB is hardcoded throughout the Yadio client and session data today — `/rate/BTC/BOB`, `btcPerBob`, `bob_amount`, etc. — not just this project's setup script), plus packaging, a real README for strangers, and deciding whether to bundle the `lightning-availability` route and the reconciliation job. Also bundle the constant-time webhook-secret comparison fix (flagged in the Oct 3, 2026 security review, cheap, not yet applied) while touching this file anyway.
 
 # Current state and handoff
@@ -144,6 +146,8 @@ cd ~/Documents/perseus/backend/apps/kiosk && npx vite --port 5173   # kiosk stor
 ```
 
 Health check: `http://localhost:9000/health`. Admin: `http://localhost:9000/app`. Kiosk: `http://localhost:5173`. Do not use `pkill -f` (it kills your own shell); stop servers by PID and check the port is free.
+
+**Stopping `medusa develop` properly** (learned Oct 4, 2026): it's a watcher (`medusa develop`) plus a server child (`@medusajs/cli/cli.js start --types`). Killing only the process on port 9000 doesn't stop it: the watcher starts a new child. And every restart after a file edit can leave the old child running on its own, with no port, but still connected to the database and Redis, so it keeps running scheduled jobs and event subscribers. One such leftover silently served requests for a whole session. To stop everything, list them with `ps -eo pid,cmd | grep -E "[@]medusajs/cli/cli.js|[m]edusa develop"` (the brackets stop `grep` from matching itself), `kill` every PID listed, and run the same command again: it should print nothing.
 
 ## Conventions and traps
 
@@ -346,3 +350,25 @@ Ran `/code-review high backend/apps`. A path target was needed because everythin
 3. A key added by hand to `/home/claude/.ssh/authorized_keys` lasted two minutes. The next metadata change, the Console browser-SSH button's temporary keys expiring, made the agent re-sync, and it cleared `claude`'s keys as an "unused user".
 
 **Rule:** never hand-edit `authorized_keys` on this VM. Add keys through Console → instance → Edit → SSH Keys, with the comment set to the username (`claude`), and keep any existing `claude` line when editing. Any metadata change, including just using the Console's SSH button, triggers a re-sync. Still in metadata, as optional cleanup: a stale `claude-session` entry (same public key, a second sudo user) and two expired browser-SSH keys.
+
+## Slack alerts (Oct 4, 2026)
+
+Kiosk activity goes to one Slack channel, in Spanish:
+- **Sales:** order number, items, Bs total, and the Lightning sats amount, with a link to the order in the admin.
+- **Low stock:** after a sale, any of its products at **3 or fewer** left, or sold out.
+- **Paid but no order:** a confirmed Lightning payment whose cart still has no order 3 minutes later. This is the case where the kiosk shows "call staff", which until now was visible only on the tablet.
+- **Reconciliation mismatches** from the daily 06:00 UTC job (02:00 in Bolivia).
+
+**Design.** A custom Medusa notification provider, `src/modules/slack-notification/`, posts to a Slack **incoming webhook**. The message text is built by pure functions in `messages.ts`. Alerts are sent from `src/subscribers/order-placed-slack.ts` (sales and low stock), the new job `src/jobs/alert-paid-without-order.ts` (every 5 minutes), and `src/jobs/reconcile-coinos-payments.ts`, all through `src/lib/notify-slack.ts`. Medusa's docs list Slack as a provider, but it's a tutorial for building your own, and no `@medusajs/notification-slack` package exists. Sending through Medusa's Notification Module instead of calling Slack directly buys two things, both confirmed in the installed module's source:
+- Every message is saved (the `notification` table) with its status: pending, success or failure.
+- Each send carries an idempotency key (for example `slack:order-placed:<order id>`). A redelivered event or a re-run job doesn't post twice, and a send that failed is retried the next time the same key comes round.
+
+`notify-slack.ts` never throws, so a Slack problem can't affect the sale or job that triggered it. Low stock uses the same availability calculation the Store API uses for the kiosk's "Agotado" label, so Slack and the tablet always agree.
+
+**Configuration.** `SLACK_WEBHOOK_URL` in `backend/apps/backend/.env`, on each machine. It's a secret: never commit it or paste it into chat. The provider is registered in `medusa-config.ts` only when that variable is set, so a machine without it starts normally and sends nothing. Configuring the notification module replaces Medusa's default one, so the default provider (the admin's notification feed) is listed again next to Slack. Outside production (`NODE_ENV` isn't `production`), every message is prefixed with **[prueba]**, so test runs from a dev machine are obvious in the real channel.
+
+**Verified for real**, against the actual Slack channel: a real local sale, paid with Medusa's built-in test payment provider, posted the sale message and a low-stock message ("Banana: quedan 2"), both recorded as `success`. Redelivering the same `order.placed` event posted nothing new. The paid-but-no-order job runs cleanly against the real database (nothing was stuck, so it posted nothing); its selection logic is unit-tested, but it hasn't seen a real stuck payment. 35 unit tests in total. The test orders were cancelled afterwards, and stock is back to where it was.
+
+**The reconciliation job had never worked, and is now fixed.** Running it for real crashed. It assumed `GET /payments` returns a list, but the live API returns `{ payments, count, incoming, outgoing }`. Its unit test mocked a list, the same wrong assumption, so both passed. It also matched on `paymentHash` when the real field is `payment_hash`, and never used `iid` (the Coinos invoice id). Fixed and confirmed against the live API: yesterday's one payment now matches its order. The client also asks for incoming payments only, since outgoing ones (moving funds out of Coinos) can never match an order.
+
+**Expect some false alarms:** local dev and the VM share the same real Coinos account. Any real test payment made through a local backend is a Coinos payment with no order on the VM, so the VM's reconciliation reports it as a mismatch. The first will be Oct 3's local test payment, in the 06:00 UTC run that checks Oct 3. A separate Coinos account for development would stop these.

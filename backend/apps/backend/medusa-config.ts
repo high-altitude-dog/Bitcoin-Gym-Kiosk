@@ -88,5 +88,35 @@ module.exports = defineConfig({
         ],
       },
     },
+    {
+      // Configuring this module replaces Medusa's default one, so its
+      // default provider (the admin's notification feed) is listed again.
+      resolve: '@medusajs/medusa/notification',
+      options: {
+        providers: [
+          {
+            resolve: '@medusajs/medusa/notification-local',
+            id: 'local',
+            options: { name: 'Local Notification Provider', channels: ['feed'] },
+          },
+          // Kiosk alerts to Slack (see src/lib/notify-slack.ts). Only
+          // registered when the webhook is configured, so a machine without
+          // it still starts and just sends no alerts.
+          ...(process.env.SLACK_WEBHOOK_URL
+            ? [
+                {
+                  resolve: './src/modules/slack-notification',
+                  id: 'slack',
+                  options: {
+                    channels: ['slack'],
+                    webhook_url: process.env.SLACK_WEBHOOK_URL,
+                    label: process.env.NODE_ENV === 'production' ? '' : '[prueba] ',
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+    },
   ],
 })

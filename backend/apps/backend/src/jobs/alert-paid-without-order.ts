@@ -1,0 +1,100 @@
+import type { MedusaContainer } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { notifySlack } from "../lib/notify-slack"
+import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types"
+
+// Give the kiosk's poll and the Coinos webhook this long to complete the
+// order before calling a confirmed payment stuck. Normally it's seconds.
+export const STUCK_AFTER_MINUTES = 3
+// Only look this far back: older cases have already been alerted on.
+const LOOKBACK_HOURS = 24
+
+export type SessionRow = {
+  id: string
+  amount: number
+  data: Record<string, unknown> | null
+  payment_collection_id: string
+  updated_at: string | Date
+}
+
+export type StuckPayment = {
+  sessionId: string
+  cartId: string
+  amount: number
+  sats: number | null
+  minutesWaiting: number
+}
+
+// A confirmed Lightning session whose cart has no order after the grace
+// period. Pure, so it's unit-testable without a database.
+export function findStuckPayments(
+  sessions: SessionRow[],
+  cartByCollection: Map<string, string>,
+  cartsWithOrder: Set<string>,
+  now: number
+): StuckPayment[] {
+  return sessions.flatMap((s) => {
+    const cartId = cartByCollection.get(s.payment_collection_id)
+    if (!cartId || cartsWithOrder.has(cartId)) return []
+    const minutesWaiting = Math.floor((now - new Date(s.updated_at).getTime()) / 60_000)
+    if (minutesWaiting < STUCK_AFTER_MINUTES) return []
+    const sats = Number(s.data?.sats_amount ?? 0) || null
+    return [{ sessionId: s.id, cartId, amount: Number(s.amount), sats, minutesWaiting }]
+  })
+}
+
+// The kiosk shows "call staff" for this case, but only on the tablet. This
+// puts it in Slack too, once per payment session (the idempotency key keeps
+// later runs of this job from repeating it).
+export default async function alertPaidWithoutOrder(container: MedusaContainer) {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const now = Date.now()
+
+  const { data: sessions } = await query.graph({
+    entity: "payment_session",
+    fields: ["id", "amount", "data", "payment_collection_id", "updated_at"],
+    filters: {
+      provider_id: COINOS_LIGHTNING_PROVIDER_ID,
+      status: ["authorized", "captured"],
+      updated_at: { $gte: new Date(now - LOOKBACK_HOURS * 3_600_000).toISOString() },
+    },
+  })
+  if (!sessions.length) return
+
+  const { data: links } = await query.graph({
+    entity: "cart_payment_collection",
+    fields: ["cart_id", "payment_collection_id"],
+    filters: { payment_collection_id: sessions.map((s: any) => s.payment_collection_id) },
+  })
+  const cartByCollection = new Map(links.map((l: any) => [l.payment_collection_id, l.cart_id] as [string, string]))
+  const cartIds = [...cartByCollection.values()]
+  if (!cartIds.length) return
+
+  const { data: orderCarts } = await query.graph({
+    entity: "order_cart",
+    fields: ["cart_id", "order_id"],
+    filters: { cart_id: cartIds },
+  })
+  const cartsWithOrder = new Set(orderCarts.map((o: any) => o.cart_id as string))
+
+  for (const stuck of findStuckPayments(sessions as SessionRow[], cartByCollection, cartsWithOrder, now)) {
+    await notifySlack(container, {
+      template: "paid-without-order",
+      data: {
+        cart_id: stuck.cartId,
+        amount: stuck.amount,
+        sats: stuck.sats,
+        minutes_waiting: stuck.minutesWaiting,
+      },
+      idempotencyKey: `slack:paid-without-order:${stuck.sessionId}`,
+      triggerType: "job:alert-paid-without-order",
+      resourceId: stuck.cartId,
+      resourceType: "cart",
+    })
+  }
+}
+
+export const config = {
+  name: "alert-paid-without-order",
+  schedule: "*/5 * * * *",
+}

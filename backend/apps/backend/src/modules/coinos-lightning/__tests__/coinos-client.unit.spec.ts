@@ -92,16 +92,35 @@ describe("CoinosClient", () => {
   })
 
   describe("listPayments", () => {
-    it("sends start/end as query params with the auth header", async () => {
-      fetchMock.mockResolvedValueOnce(jsonResponse([{ hash: "abc", confirmed: true, amount: 1000 }]))
+    // The real response shape, confirmed against the live API on Oct 4, 2026.
+    // An earlier version of this test mocked a bare array, the same wrong
+    // assumption the reconciliation job made, so both passed while the job
+    // could never have worked against the real API.
+    it("unwraps { payments }, asks for incoming only, and drops outgoing amounts", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          payments: [
+            { id: "p1", iid: "inv_1", hash: "abc", payment_hash: "ph1", memo: "payses_1", confirmed: true, amount: 1000 },
+            { id: "p2", hash: "out", confirmed: true, amount: -500 },
+          ],
+          count: 2,
+          incoming: {},
+          outgoing: {},
+        })
+      )
 
       const payments = await client.listPayments({ start: 1000, end: 2000 })
 
       expect(fetchMock).toHaveBeenCalledWith(
-        "https://coinos.test/api/payments?start=1000&end=2000",
+        "https://coinos.test/api/payments?start=1000&end=2000&received=1",
         expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-token" }) })
       )
-      expect(payments).toHaveLength(1)
+      expect(payments.map((p) => p.id)).toEqual(["p1"])
+    })
+
+    it("fails loudly on an unexpected shape instead of reconciling nothing", async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse([{ hash: "abc", amount: 1000 }]))
+      await expect(client.listPayments()).rejects.toThrow("unexpected shape")
     })
 
     it("throws on a non-OK response", async () => {
