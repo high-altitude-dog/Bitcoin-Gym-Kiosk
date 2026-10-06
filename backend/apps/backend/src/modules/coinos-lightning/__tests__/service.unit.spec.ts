@@ -154,6 +154,20 @@ describe("CoinosLightningProviderService", () => {
       expect(logger.warn).toHaveBeenCalled()
     })
 
+    it("ignores a callback with a missing or non-string secret", async () => {
+      const service = makeService()
+
+      for (const secret of [undefined, 12345, ["shared-secret"]]) {
+        const result = await service.getWebhookActionAndData({
+          data: { memo: "payses_123", confirmed: true, amount: 1000, secret },
+          rawData: "",
+          headers: {},
+        } as any)
+
+        expect(result.action).toBe(PaymentActions.NOT_SUPPORTED)
+      }
+    })
+
     it("ignores an unconfirmed payment event", async () => {
       const service = makeService()
 

@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "crypto"
 import { AbstractPaymentProvider, MedusaError, PaymentActions } from "@medusajs/framework/utils"
 import {
   AuthorizePaymentInput,
@@ -25,6 +26,16 @@ import {
 import { CoinosClient } from "./lib/coinos-client"
 import { YadioClient, sharedYadioClient } from "./lib/yadio-client"
 import { CoinosLightningOptions } from "./types"
+
+// Constant-time comparison. Hashing first gives both sides the same length,
+// which timingSafeEqual requires, without revealing the secret's length.
+function secretMatches(received: unknown, expected: string): boolean {
+  if (typeof received !== "string") {
+    return false
+  }
+  const digest = (value: string) => createHash("sha256").update(value).digest()
+  return timingSafeEqual(digest(received), digest(expected))
+}
 
 type InjectedDependencies = {
   logger: Logger
@@ -205,7 +216,7 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
   ): Promise<WebhookActionResult> {
     const body = (payload.data ?? {}) as Record<string, unknown>
 
-    if (body.secret !== this.options_.webhookSecret) {
+    if (!secretMatches(body.secret, this.options_.webhookSecret)) {
       this.logger_.warn("coinos-lightning: webhook received with an invalid or missing secret, ignoring")
       return { action: PaymentActions.NOT_SUPPORTED }
     }
