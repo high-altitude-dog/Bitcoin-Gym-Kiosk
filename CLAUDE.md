@@ -239,6 +239,16 @@ Implements the design doc's resilience requirement ("cache the app shell so a wi
 - **Auto-recovery:** if the initial catalog load fails (screen is still "grid", no cart exists yet, so there's nothing to lose) and connectivity returns, the kiosk retries automatically (`kiosk.reset()`) instead of waiting for a tap on "Retry." Verified: toggling Playwright's offline mode shows/hides the banner correctly.
 - Not done: the layout hasn't been tuned against the actual Tecno Megapad SE hardware yet (only against an assumed ~800x1280 CSS px portrait viewport); that needs the physical device.
 
+## Kiosk storefront: instant taps and click feedback (Oct 7, 2026)
+
+The developer's first screen recording on the real Megapad showed about a second of lag per tap, growing as taps queued, and one lost tap. Each cart change takes ~0.9-1.1 s on the server (measured against the live API; almost all of it is Medusa's cart workflow, not the network), and the screen waited for it. The lost tap was a real bug: "+" computed the new quantity from the last rendered cart, so two quick taps both asked for the same number.
+
+- **Instant quantities:** taps go into `pending` (by variant id) in `useKiosk.ts` and show at once; `syncCart()` sends them to Medusa in the background, one change at a time, until the cart matches. A burst of taps costs one request per product. The order bar total is the cart's total plus the price of each unsent change (`toKioskCart` in `kioskMapping.ts`). On a failed request the unsent taps are dropped and the cart is reloaded. "Pagar" (`goToPaymentMethod`) and both payment paths wait for the sync (`settleCart`). "+" stops at available stock.
+- **Feedback:** `useTapFeedback` gives every button a click (synthesized with Web Audio, no sound file; the tablet has no vibration motor) and an `.is-pressed` look on touch-down. Android only allows audio once a touch has lifted, so the very first tap after a page load may be silent.
+- Visible text says "Bitcoin⚡" instead of "Lightning". The salteña doodle beside the church on both wall images was replaced with a paw print in the wall's own paw style.
+- Verified with headless tests against the local backend (with a simulated 1 s server) and against the deployed site. Not yet felt on the real tablet.
+- **Local dev trap:** `backend/apps/kiosk/.env` points at the old `http://34.176.250.72:9000` (closed) with a key that isn't valid locally. For local testing, export `VITE_MEDUSA_BACKEND_URL=http://localhost:9000` and the local "Armor Gym Kiosk storefront" key (from the local `api_key` table) before `npx vite`.
+
 ## Deploying to the VM (Oct 3, 2026)
 
 The Medusa backend is live on `armor-gym-kiosk` (`34.176.250.72`), reachable at `http://34.176.250.72:9000` (admin at `/app`). Done via SSH from Claude Code, not VS Code Remote-SSH (that's still how the developer would connect for ongoing work — see "SSH access" below). The kiosk app itself is **not** deployed yet; only the backend. What follows is the actual runbook, written from what worked, plus every gotcha hit along the way so the next deploy (or a redeploy after a Baneco/HTTPS change) doesn't rediscover them.
