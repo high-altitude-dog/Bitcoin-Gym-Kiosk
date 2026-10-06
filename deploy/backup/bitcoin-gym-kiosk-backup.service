@@ -4,4 +4,4 @@ After=postgresql.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/perseus-backup
+ExecStart=/usr/local/sbin/bitcoin-gym-kiosk-backup

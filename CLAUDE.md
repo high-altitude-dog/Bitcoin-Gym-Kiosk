@@ -72,7 +72,7 @@ Today the setup is the smallest version of the design: one Medusa region, one st
 | Area | Decision |
 | --- | --- |
 | Commerce platform | MedusaJS. BTCPay Server is not part of this design. |
-| Hosting | Google Cloud: one e2-medium Compute Engine VM (2 vCPU, 4 GB, Debian 13) in southamerica-west1 (Santiago) running Medusa, Postgres and Redis, with a 2–4 GB swap file so builds don't run out of memory. Upgrade the machine type if it gets slow. Project `perseus-armor-coinos`; instance `armor-gym-kiosk` in zone `southamerica-west1-a`. |
+| Hosting | Google Cloud: one e2-medium Compute Engine VM (2 vCPU, 4 GB, Debian 13) in southamerica-west1 (Santiago) running Medusa, Postgres and Redis, with a 2–4 GB swap file so builds don't run out of memory. Upgrade the machine type if it gets slow. Project `perseus-armor-coinos` (GCP project IDs are permanent, so it keeps the old name); instance `armor-gym-kiosk` in zone `southamerica-west1-a`. |
 | Build approach | Build and test on the developer's own computer first (Claude Code in VS Code). Create the VM for the pilot and work on it through VS Code Remote-SSH. |
 | Bitcoin payments | Coinos, Lightning only. No on-chain payments. |
 | Bs payments | Baneco API |
@@ -136,7 +136,7 @@ Written Oct 1, 2026 when work moved from the Claude desktop app to Claude Code i
 ## What is built (local machine only)
 
 - **Medusa v2.21.2** in `backend/` (Turborepo layout). The app is `backend/apps/backend/`. Run all Medusa commands from there.
-- **Postgres 17** and **Redis 8** run as system services. Database `perseus`, role `medusa`. No sudo from Claude: ask the developer to run anything that needs it.
+- **Postgres 17** and **Redis 8** run as system services. Database `bitcoin_gym_kiosk` (named `perseus` until Oct 7, 2026), role `medusa`. No sudo from Claude: ask the developer to run anything that needs it.
 - **Redis is wired in** through `medusa-config.ts` when `REDIS_URL` is set (sessions, event bus, workflow engine, locking).
 - **Region "Bolivia"** (BOB, country BO), **stock location "Armor Gym"**, **sales channel "Armor Gym Kiosk"** (the store default), and a free **"Armor Gym pickup"** shipping option (a cart needs one to complete). Region payment providers: `pp_system_default` and `pp_coinos-lightning_coinos-lightning`.
 - **Products:** Whey Protein Concentrate - Chocolate (Bs 10), Creatine Monohydrate (Bs 3), Banana (Bs 1). Inventory is managed, 21 units each at Armor Gym. These prices look like test values.
@@ -147,8 +147,8 @@ Written Oct 1, 2026 when work moved from the Claude desktop app to Claude Code i
 ## Run it
 
 ```bash
-cd ~/Documents/perseus/backend/apps/backend && npx medusa develop
-cd ~/Documents/perseus/backend/apps/kiosk && npx vite --port 5173   # kiosk storefront
+cd ~/Documents/bitcoin-gym-kiosk/backend/apps/backend && npx medusa develop
+cd ~/Documents/bitcoin-gym-kiosk/backend/apps/kiosk && npx vite --port 5173   # kiosk storefront
 ```
 
 Health check: `http://localhost:9000/health`. Admin: `http://localhost:9000/app`. Kiosk: `http://localhost:5173`. Do not use `pkill -f` (it kills your own shell); stop servers by PID and check the port is free.
@@ -250,8 +250,8 @@ The Medusa backend is live on `armor-gym-kiosk` (`34.176.250.72`), reachable at 
 1. `ssh claude@34.176.250.72`, then grow the disk: GCP's `create_instance` has no boot-disk-size parameter either, so it defaults to 10GB. Resized to 30GB via Console (Disks tab → Edit → resize — online, no downtime, cannot shrink later), then on the VM: `sudo apt-get install -y cloud-guest-utils` (for `growpart`, not preinstalled) → `sudo growpart /dev/sda 1` → `sudo resize2fs /dev/sda1`. GCP resizing the disk does **not** resize the partition/filesystem automatically; both of those steps are required separately.
 2. Swap file: `sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`, persisted via `/etc/fstab` (`/swapfile none swap sw 0 0`) and `vm.swappiness=10` in `/etc/sysctl.conf` (file didn't exist yet on this Debian 13 image; `tee -a` creates it).
 3. Postgres, Redis, Node, npm, git, build-essential are all in Debian 13's default apt repos at exactly the versions this project already uses locally (Postgres 17, Redis 8, Node 20.19, npm 9.2) — no third-party repos (NodeSource, apt.postgresql.org) needed. `sudo apt-get install -y postgresql redis-server nodejs npm git build-essential`. Both services auto-start and auto-enable on install.
-4. Create the DB role/database: `sudo -u postgres psql -c "CREATE ROLE medusa WITH LOGIN PASSWORD '...';" -c "CREATE DATABASE perseus OWNER medusa;"` — a freshly generated password, not the local dev one.
-5. Get the code onto the VM. There's no git remote, so this was a `tar czf - . | ssh ... tar xzf -` from the dev machine (excluding `node_modules`, `.env*`, `.medusa`, `dist`, `build`), landing at `~/perseus`. Full git history came along since `.git` wasn't excluded.
+4. Create the DB role/database: `sudo -u postgres psql -c "CREATE ROLE medusa WITH LOGIN PASSWORD '...';" -c "CREATE DATABASE bitcoin_gym_kiosk OWNER medusa;"` — a freshly generated password, not the local dev one.
+5. Get the code onto the VM. There's no git remote, so this was a `tar czf - . | ssh ... tar xzf -` from the dev machine (excluding `node_modules`, `.env*`, `.medusa`, `dist`, `build`), landing at `~/bitcoin-gym-kiosk`. Full git history came along since `.git` wasn't excluded.
 6. `.env`: copy the non-secret values (`COINOS_API_URL`, `YADIO_API_URL`) and the Coinos token from local dev (same real Coinos account — see "Getting credentials" above for why), but generate **fresh** `JWT_SECRET`, `COOKIE_SECRET`, `AUTH_MFA_ENCRYPTION_KEY`, and `COINOS_WEBHOOK_SECRET` — never reuse local dev's (especially since local dev's `JWT_SECRET`/`COOKIE_SECRET` are literally `supersecret`). Set `MEDUSA_BACKEND_URL=http://34.176.250.72:9000` and CORS vars to match. `DATABASE_URL` uses the VM's own fresh Postgres password.
 7. `cd backend && npm install` (workspace root — this is the normal TypeScript source tree, ~1.7k packages, several minutes).
 8. `npx medusa db:migrate` from `backend/apps/backend` — this also runs the starter's own `initial-data-seed.ts` migration script, which seeds its default Europe demo region/products. That's expected; step 10 removes it.
@@ -266,7 +266,7 @@ The Medusa backend is live on `armor-gym-kiosk` (`34.176.250.72`), reachable at 
 - **Every `medusa build` deletes and recreates `.medusa/server` from scratch** ("Removing existing .medusa/server folder" in its own log output). That wipes the `.env` copy, the `node_modules` just installed there, and (the one that actually cost time here) **any files uploaded through the admin while running**, since Medusa's local file provider defaults to writing uploads under `<cwd>/static`, i.e. `.medusa/server/static`. All three need redoing after every rebuild: re-copy `.env`, `npm install` again, re-upload anything that was uploaded (product images, etc.). **Do not** try to fix the upload-loss problem with the file-local provider's `upload_dir` option — it only changes where uploads are *written*, not where `GET /static/*` *serves from*. That route is hardcoded in `@medusajs/framework`'s `express-loader.js` to `express.static(path.join(baseDir, "static"))` with the comment "Currently we don't allow configuration of static files" — pointing `upload_dir` elsewhere just makes every uploaded file 404. (Tried this, confirmed it breaks, reverted.) **Closed Oct 3, 2026:** `backend/apps/backend/scripts/build.sh` wraps `medusa build` and handles all three automatically — see "Build script" below.
 - The local file provider's `backend_url` option is **not optional** for a real deploy: unconfigured, it hardcodes `http://localhost:9000/static` into every uploaded file's URL (`@medusajs/file-local`'s own fallback), which only ever worked locally by coincidence (`MEDUSA_BACKEND_URL` is also `localhost` there). Fixed in `medusa-config.ts` by adding a `file` module block with `backend_url: ${process.env.MEDUSA_BACKEND_URL}/static` — this is now in source control, so it's a one-time fix, not a per-deploy step.
 
-**Updating the code on the VM** (by git bundle, first done Oct 4, 2026; still the method after the GitHub remote was added Oct 7, because the VM has no GitHub access. A read-only deploy key on the VM would let it `git pull` instead): on the dev machine, `git bundle create perseus.bundle <VM's HEAD>..main` and `scp` it over. On the VM, in `~/perseus`: `git fetch ~/perseus.bundle main:refs/remotes/bundle/main && git merge --ff-only bundle/main`. Check `git status` there first: on Oct 4 the VM had an uncommitted copy of the deploy-day `medusa-config.ts` fix. It was identical to the committed version and was stashed, not discarded (`git stash list`). Then `sudo systemctl stop medusa`, `./scripts/build.sh` from `backend/apps/backend`, and `sudo systemctl start medusa`. Expect about 6 minutes of downtime, mostly `npm install`. `medusa build` deletes the folder the running service uses, which is why the service is stopped first. Run it detached (`nohup`) so a dropped SSH connection can't leave the build half-done. Re-run the root `npm install` only when `backend/apps/backend`'s dependencies change.
+**Updating the code on the VM** (by git bundle, first done Oct 4, 2026; still the method after the GitHub remote was added Oct 7, because the VM has no GitHub access. A read-only deploy key on the VM would let it `git pull` instead): on the dev machine, `git bundle create bitcoin-gym-kiosk.bundle <VM's HEAD>..main` and `scp` it over. On the VM, in `~/bitcoin-gym-kiosk`: `git fetch ~/bitcoin-gym-kiosk.bundle main:refs/remotes/bundle/main && git merge --ff-only bundle/main`. Check `git status` there first: on Oct 4 the VM had an uncommitted copy of the deploy-day `medusa-config.ts` fix. It was identical to the committed version and was stashed, not discarded (`git stash list`). Then `sudo systemctl stop medusa`, `./scripts/build.sh` from `backend/apps/backend`, and `sudo systemctl start medusa`. Expect about 6 minutes of downtime, mostly `npm install`. `medusa build` deletes the folder the running service uses, which is why the service is stopped first. Run it detached (`nohup`) so a dropped SSH connection can't leave the build half-done. Re-run the root `npm install` only when `backend/apps/backend`'s dependencies change.
 
 **Running it persistently:** a systemd service, since `medusa develop`/`start` dying with the SSH session would take the backend down with it. `/etc/systemd/system/medusa.service`:
 
@@ -278,7 +278,7 @@ After=network.target postgresql.service redis-server.service
 [Service]
 Type=simple
 User=claude
-WorkingDirectory=/home/claude/perseus/backend/apps/backend/.medusa/server
+WorkingDirectory=/home/claude/bitcoin-gym-kiosk/backend/apps/backend/.medusa/server
 ExecStart=/usr/bin/npx medusa start
 Restart=on-failure
 RestartSec=5
@@ -404,9 +404,9 @@ The first real payment through the deployed webhook took ~7 s from Coinos's webh
 
 ## Database backups (Oct 6, 2026)
 
-`deploy/backup/` holds the script and systemd units, installed on the VM as `/usr/local/sbin/perseus-backup` and `perseus-backup.{service,timer}`. Every night at 07:30 UTC (03:30 Bolivia) it writes `perseus-<time>.dump` (`pg_dump --format=custom`) and `static-<time>.tar.gz` (the uploaded images in `.medusa/server/static`) to `/var/backups/perseus` (root-only), and deletes files older than 14 days. Run one by hand with `sudo systemctl start perseus-backup.service`; check with `journalctl -u perseus-backup.service`.
+`deploy/backup/` holds the script and systemd units, installed on the VM as `/usr/local/sbin/bitcoin-gym-kiosk-backup` and `bitcoin-gym-kiosk-backup.{service,timer}`. Every night at 07:30 UTC (03:30 Bolivia) it writes `bitcoin-gym-kiosk-<time>.dump` (`pg_dump --format=custom`) and `static-<time>.tar.gz` (the uploaded images in `.medusa/server/static`) to `/var/backups/bitcoin-gym-kiosk` (root-only), and deletes files older than 14 days. Run one by hand with `sudo systemctl start bitcoin-gym-kiosk-backup.service`; check with `journalctl -u bitcoin-gym-kiosk-backup.service`.
 
 - **Off-VM copy:** the VM has no service account, so it can't write to Cloud Storage without stopping it to attach one. Instead, a daily GCP snapshot schedule on the boot disk carries the dumps off the VM (open checklist item). The dump is what to restore from, since a snapshot of a running Postgres is only crash-consistent.
-- **Restore:** `sudo -u postgres createdb perseus_new && sudo cat /var/backups/perseus/<file>.dump | sudo -u postgres pg_restore --no-owner -d perseus_new`. Then stop `medusa`, swap database names (or point `DATABASE_URL` at the new one), and start it again. Images: untar into `.medusa/server/`.
+- **Restore:** `sudo -u postgres createdb bitcoin_gym_kiosk_new && sudo cat /var/backups/bitcoin-gym-kiosk/<file>.dump | sudo -u postgres pg_restore --no-owner -d bitcoin_gym_kiosk_new`. Then stop `medusa`, swap database names (or point `DATABASE_URL` at the new one), and start it again. Images: untar into `.medusa/server/`.
 - **Verified:** the first backup was restored into a scratch database. Orders, products, payments, total stock and notifications matched the live database exactly. The scratch database was then dropped. It's about 1 MB per night today.
-- Shell globs under `/var/backups/perseus` need `sudo sh -c "..."`, because the directory isn't readable by `claude`.
+- Shell globs under `/var/backups/bitcoin-gym-kiosk` need `sudo sh -c "..."`, because the directory isn't readable by `claude`.
