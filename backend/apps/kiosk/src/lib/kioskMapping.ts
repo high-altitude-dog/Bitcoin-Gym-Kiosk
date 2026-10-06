@@ -17,11 +17,39 @@ export function toKioskProduct(product: HttpTypes.StoreProduct): KioskProduct | 
     thumbnail: product.thumbnail ?? product.images?.[0]?.url ?? null,
     price: variant.calculated_price?.calculated_amount ?? 0,
     soldOut: stock <= 0,
+    stock,
   }
 }
 
-export function toKioskCart(cart: HttpTypes.StoreCart | null): KioskCart | null {
-  if (!cart) return null
-  const itemCount = (cart.items ?? []).reduce((sum, item) => sum + item.quantity, 0)
-  return { id: cart.id, total: cart.total ?? 0, itemCount }
+export function cartQuantity(cart: HttpTypes.StoreCart | null, variantId: string): number {
+  return cart?.items?.find((i) => i.variant_id === variantId)?.quantity ?? 0
+}
+
+/** What the member sees: the quantity they tapped in if Medusa hasn't confirmed it yet, else the cart's. */
+export function shownQuantity(
+  cart: HttpTypes.StoreCart | null,
+  pending: Record<string, number>,
+  variantId: string
+): number {
+  return pending[variantId] ?? cartQuantity(cart, variantId)
+}
+
+/**
+ * The order bar's count and total, including taps Medusa hasn't confirmed yet: the cart's own
+ * total plus the price of each unconfirmed change, so it matches the cart exactly once synced.
+ */
+export function toKioskCart(
+  cart: HttpTypes.StoreCart | null,
+  pending: Record<string, number>,
+  products: KioskProduct[]
+): KioskCart {
+  let itemCount = (cart?.items ?? []).reduce((sum, item) => sum + item.quantity, 0)
+  let total = cart?.total ?? 0
+  for (const [variantId, quantity] of Object.entries(pending)) {
+    const delta = quantity - cartQuantity(cart, variantId)
+    const price = products.find((p) => p.variantId === variantId)?.price ?? 0
+    itemCount += delta
+    total += delta * price
+  }
+  return { id: cart?.id ?? null, total, itemCount }
 }

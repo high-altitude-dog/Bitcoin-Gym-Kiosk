@@ -212,7 +212,11 @@
   padding-left: 8px;
 }
 .k-stepper__qty { flex: 1; text-align: center; font: var(--k-qty); font-variant-numeric: tabular-nums; }
-.k-add:active, .k-stepper__plus:active, .k-stepper__minus:active, .k-pay:active, .k-chip:active { transform: scale(0.95); }
+.k-add, .k-stepper__plus, .k-stepper__minus, .k-pay, .k-chip, .k-method button { transition: transform 80ms ease-out, filter 80ms ease-out; }
+/* .is-pressed is set on touch-down by useTapFeedback, so every tap shows at once, however quick. */
+.k-add.is-pressed, .k-stepper__plus.is-pressed, .k-stepper__minus.is-pressed, .k-pay.is-pressed, .k-chip.is-pressed, .k-method button.is-pressed { transform: scale(0.9); filter: brightness(1.25); transition: none; }
+.k-card__tap.is-pressed { background: rgb(255 255 255 / 0.06); }
+.k-stepper__plus:disabled { opacity: 0.35; }
 
 .k-card--sold-out .k-card__img { opacity: 0.35; filter: grayscale(1); }
 .k-card__sold-out {

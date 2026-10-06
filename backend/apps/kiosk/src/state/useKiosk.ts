@@ -30,6 +30,9 @@ interface KioskState {
   products: HttpTypes.StoreProduct[]
   categories: HttpTypes.StoreProductCategory[]
   cart: HttpTypes.StoreCart | null
+  // Quantities tapped in but not yet confirmed by Medusa, by variant id.
+  // The screen shows these at once; syncCart() sends them in the background.
+  pending: Record<string, number>
   order: HttpTypes.StoreOrder | null
   invoice: LightningInvoice | null
   paymentStatus: PaymentStatus
@@ -45,6 +48,7 @@ export function useKiosk() {
     products: [],
     categories: [],
     cart: null,
+    pending: {},
     order: null,
     invoice: null,
     paymentStatus: null,
@@ -59,6 +63,8 @@ export function useKiosk() {
   const regionRef = useRef<HttpTypes.StoreRegion | null>(null)
   const invoiceRef = useRef<LightningInvoice | null>(null)
   const queueRef = useRef<Promise<unknown>>(Promise.resolve())
+  const pendingRef = useRef<Record<string, number>>({})
+  const syncQueuedRef = useRef(false)
   // Bumped by reset(): work started for the previous member checks it and
   // drops its result instead of writing into the next member's session.
   const epochRef = useRef(0)
@@ -140,42 +146,83 @@ export function useKiosk() {
     [commitCart]
   )
 
-  const addItem = useCallback(
-    (variantId: string) =>
-      enqueue(async (isCurrent) => {
-        let cart = cartRef.current
-        if (!cart) {
-          const created = await sdk.store.cart.create({ region_id: regionRef.current?.id })
+  // Sends the tapped-in quantities to Medusa one change at a time, until the
+  // cart matches what the member sees. Taps that land while a request is in
+  // flight are picked up by the same loop, so a burst of taps costs one
+  // request per product, not one per tap. Each change takes about a second
+  // on the server, which is why the screen doesn't wait for it.
+  const syncCart = useCallback(
+    async (isCurrent: () => boolean) => {
+      syncQueuedRef.current = false
+      try {
+        for (;;) {
           if (!isCurrent()) return
-          cart = created.cart
-          commitCart(cart)
+          const cart = cartRef.current
+          const change = nextCartChange(cart, pendingRef.current)
+          if (!change) {
+            pendingRef.current = {}
+            setState((s) => ({ ...s, pending: {} }))
+            return
+          }
+          if (!cart) {
+            const { cart: created } = await sdk.store.cart.create({ region_id: regionRef.current?.id })
+            if (isCurrent()) commitCart(created)
+            continue
+          }
+          const { variantId, lineItemId, quantity } = change
+          let updated: HttpTypes.StoreCart | undefined
+          if (!lineItemId) {
+            ;({ cart: updated } = await sdk.store.cart.createLineItem(cart.id, { variant_id: variantId, quantity }))
+          } else if (quantity === 0) {
+            ;({ parent: updated } = await sdk.store.cart.deleteLineItem(cart.id, lineItemId))
+          } else {
+            ;({ cart: updated } = await sdk.store.cart.updateLineItem(cart.id, lineItemId, { quantity }))
+          }
+          if (!updated) throw new Error("cart change returned no cart")
+          if (isCurrent()) commitCart(updated)
         }
-        const { cart: updated } = await sdk.store.cart.createLineItem(cart.id, {
-          variant_id: variantId,
-          quantity: 1,
-        })
-        if (isCurrent()) commitCart(updated)
-      }),
-    [enqueue, commitCart]
+      } catch (err) {
+        // Drop the unsent taps; enqueue() then reloads the cart so the
+        // screen shows what it really holds.
+        if (isCurrent()) {
+          pendingRef.current = {}
+          setState((s) => ({ ...s, pending: {} }))
+        }
+        throw err
+      }
+    },
+    [commitCart]
   )
 
-  const setQuantity = useCallback(
-    (lineItemId: string, quantity: number) =>
-      enqueue(async (isCurrent) => {
-        const cart = cartRef.current
-        if (!cart) return
-        if (quantity <= 0) {
-          const { parent } = await sdk.store.cart.deleteLineItem(cart.id, lineItemId)
-          if (isCurrent() && parent) commitCart(parent)
-          return
-        }
-        const { cart: updated } = await sdk.store.cart.updateLineItem(cart.id, lineItemId, {
-          quantity,
-        })
-        if (isCurrent()) commitCart(updated)
-      }),
-    [enqueue, commitCart]
+  const setItemQuantity = useCallback(
+    (variantId: string, quantity: number) => {
+      pendingRef.current = { ...pendingRef.current, [variantId]: Math.max(0, quantity) }
+      setState((s) => ({ ...s, pending: pendingRef.current }))
+      if (syncQueuedRef.current) return
+      syncQueuedRef.current = true
+      enqueue(syncCart)
+    },
+    [enqueue, syncCart]
   )
+
+  // Waits until every queued cart change has reached Medusa, including any
+  // tapped in while waiting.
+  const settleCart = useCallback(async () => {
+    let queue: Promise<unknown>
+    do {
+      queue = queueRef.current
+      await queue
+    } while (queue !== queueRef.current)
+  }, [])
+
+  // "Pagar" waits for the cart to settle, so the payment-method screen shows
+  // the total Medusa will actually charge.
+  const goToPaymentMethod = useCallback(async () => {
+    const epoch = epochRef.current
+    await settleCart()
+    if (epoch !== epochRef.current || !cartRef.current?.items?.length) return
+    setState((s) => ({ ...s, error: null, screen: "payment-method" }))
+  }, [settleCart])
 
   const goTo = useCallback((screen: Screen) => {
     setState((s) => ({ ...s, screen }))
@@ -320,7 +367,7 @@ export function useKiosk() {
   const startPayment = useCallback(async () => {
     // Let any taps still in flight land first, so the invoice is for the
     // cart the member actually sees.
-    await queueRef.current
+    await settleCart()
     const cart = cartRef.current
     if (!cart) return
 
@@ -340,7 +387,7 @@ export function useKiosk() {
     } catch {
       setState((s) => ({ ...s, error: t.errorInvoiceFailed, screen: "payment-method" }))
     }
-  }, [ensureShippingMethod, initiateLightningPayment])
+  }, [ensureShippingMethod, initiateLightningPayment, settleCart])
 
   const retryPayment = useCallback(async () => {
     const cart = cartRef.current
@@ -353,7 +400,7 @@ export function useKiosk() {
   // live Lightning invoice and its polling alone: if the member already paid
   // that invoice, the order still completes.
   const startBankQrPayment = useCallback(async () => {
-    await queueRef.current
+    await settleCart()
     const cart = cartRef.current
     if (!cart) return
     const epoch = epochRef.current
@@ -366,7 +413,7 @@ export function useKiosk() {
       if (epoch !== epochRef.current) return
       setState((s) => ({ ...s, error: t.errorPayment, screen: "payment-method" }))
     }
-  }, [ensureShippingMethod, commitCart])
+  }, [ensureShippingMethod, commitCart, settleCart])
 
   // Deliberately keeps a live Lightning invoice and its polling running: the
   // member may already be paying from their phone, and Coinos can't cancel
@@ -379,6 +426,8 @@ export function useKiosk() {
   const reset = useCallback(() => {
     epochRef.current += 1
     queueRef.current = Promise.resolve()
+    pendingRef.current = {}
+    syncQueuedRef.current = false
     stopPolling()
     pollBusyRef.current = false
     cartRef.current = null
@@ -387,6 +436,7 @@ export function useKiosk() {
       ...s,
       screen: "idle",
       cart: null,
+      pending: {},
       order: null,
       invoice: null,
       paymentStatus: null,
@@ -398,8 +448,8 @@ export function useKiosk() {
 
   return {
     ...state,
-    addItem,
-    setQuantity,
+    setItemQuantity,
+    goToPaymentMethod,
     goTo,
     startPayment,
     startBankQrPayment,
@@ -407,4 +457,21 @@ export function useKiosk() {
     cancelPayment,
     reset,
   }
+}
+
+type CartChange = { variantId: string; lineItemId: string | null; quantity: number }
+
+// The first tapped-in quantity that differs from the cart, or null once the
+// cart matches everything the member has tapped.
+export function nextCartChange(
+  cart: HttpTypes.StoreCart | null,
+  pending: Record<string, number>
+): CartChange | null {
+  for (const [variantId, quantity] of Object.entries(pending)) {
+    const line = cart?.items?.find((i) => i.variant_id === variantId)
+    if ((line?.quantity ?? 0) !== quantity) {
+      return { variantId, lineItemId: line?.id ?? null, quantity }
+    }
+  }
+  return null
 }

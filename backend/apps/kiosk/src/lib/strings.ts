@@ -16,7 +16,7 @@ export const t = {
   currency: "Bs",
   // Added for the payment-method screen (the kit has no concept of payment methods).
   choosePayment: "¿Cómo quieres pagar?",
-  payWithLightning: "Pagar con Lightning",
+  payWithLightning: "Pagar con Bitcoin⚡",
   payWithBankQr: "Pagar con QR bancario",
   back: "Atrás",
   // Added for App.tsx's loading/retry screen and useKiosk.ts's error
@@ -26,8 +26,8 @@ export const t = {
   retry: "Reintentar",
   errorCatalog: "No pudimos conectar con la tienda. Revisa la conexión e intenta de nuevo.",
   errorOrderIncomplete: "El pago se confirmó, pero no pudimos completar el pedido. Avisa a un miembro del personal.",
-  errorLightningUnavailable: "El pago con Lightning no está disponible por el momento. Intenta de nuevo en un momento.",
-  errorInvoiceFailed: "No pudimos crear la factura Lightning. Intenta de nuevo.",
+  errorLightningUnavailable: "El pago con Bitcoin⚡ no está disponible por el momento. Intenta de nuevo en un momento.",
+  errorInvoiceFailed: "No pudimos crear la factura de Bitcoin⚡. Intenta de nuevo.",
   errorPayment: "No pudimos preparar el pago. Intenta de nuevo.",
   checkingPayment: "Verificando el pago...",
   cartReference: (id: string) => `Referencia: ${id}`,

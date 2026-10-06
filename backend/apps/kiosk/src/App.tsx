@@ -5,6 +5,7 @@ import { t } from "./lib/strings"
 import { useKiosk } from "./state/useKiosk"
 import { useIdleReset } from "./hooks/useIdleReset"
 import { useOnlineStatus } from "./hooks/useOnlineStatus"
+import { useTapFeedback } from "./hooks/useTapFeedback"
 import { IdleScreen } from "./screens/IdleScreen"
 import { ShopScreen } from "./screens/ShopScreen"
 import { Stage } from "./screens/Stage"
@@ -15,6 +16,7 @@ import { DoneScreen } from "./screens/DoneScreen"
 function App() {
   const kiosk = useKiosk()
   const isOnline = useOnlineStatus()
+  useTapFeedback()
   // Never reset while a Lightning invoice is live (the member may be paying
   // from their phone) or while a paid order is waiting on staff.
   useIdleReset(
@@ -104,9 +106,9 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
           products={kiosk.products}
           categories={kiosk.categories}
           cart={kiosk.cart}
-          onAdd={kiosk.addItem}
-          onSetQuantity={kiosk.setQuantity}
-          onPay={() => kiosk.goTo("payment-method")}
+          pending={kiosk.pending}
+          onSetQuantity={kiosk.setItemQuantity}
+          onPay={kiosk.goToPaymentMethod}
         />
       </Stage>
     )

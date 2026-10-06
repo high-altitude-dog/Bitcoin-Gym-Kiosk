@@ -83,7 +83,7 @@ export function PaymentScreen({
     return (
       <div className="screen screen--center">
         <h1>La factura venció</h1>
-        <p className="payment-note">La factura Lightning no se pagó a tiempo.</p>
+        <p className="payment-note">La factura de Bitcoin⚡ no se pagó a tiempo.</p>
         <button className="primary-button" onClick={onRetry}>
           Intentar de nuevo
         </button>
@@ -98,7 +98,7 @@ export function PaymentScreen({
     return (
       <div className="screen screen--center">
         <h1>Pagar {formatBs(cart.total)}</h1>
-        <p className="payment-note">Creando la factura Lightning...</p>
+        <p className="payment-note">Creando la factura de Bitcoin⚡...</p>
         <button className="back-button" onClick={onCancel}>
           Cancelar
         </button>
@@ -125,13 +125,13 @@ export function PaymentScreen({
     <div className="screen screen--center">
       <h1>Pagar {formatBs(invoice.bobAmount)}</h1>
       {qrDataUrl ? (
-        <img className="payment-qr" src={qrDataUrl} alt="Código QR de la factura Lightning" />
+        <img className="payment-qr" src={qrDataUrl} alt="Código QR de la factura de Bitcoin⚡" />
       ) : (
         <p className="payment-note">Generando código QR...</p>
       )}
       <p className="payment-sats">{invoice.satsAmount.toLocaleString()} sats</p>
       <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
-      <p className="payment-note">Escanea con una billetera Lightning para pagar.</p>
+      <p className="payment-note">Escanea con una billetera Bitcoin⚡ para pagar.</p>
       <button className="back-button" onClick={onCancel}>
         Cancelar
       </button>

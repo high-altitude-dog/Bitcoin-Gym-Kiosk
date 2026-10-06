@@ -8,6 +8,7 @@ export type KioskProduct = {
   thumbnail: string | null
   price: number // major units, region currency
   soldOut: boolean
+  stock: number // units available now; the "+" button stops here
 }
 
-export type KioskCart = { id: string; total: number; itemCount: number }
+export type KioskCart = { id: string | null; total: number; itemCount: number }

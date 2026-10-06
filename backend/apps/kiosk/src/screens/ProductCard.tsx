@@ -28,7 +28,7 @@ export function ProductCard({ product, qty, onQty }: { product: KioskProduct; qt
         <div className="k-stepper" aria-label={t.inOrder(qty)}>
           <button className="k-stepper__minus" onClick={() => onQty(qty - 1)} aria-label={t.remove(product.title)}>−</button>
           <span className="k-stepper__qty" aria-live="polite">{qty}</span>
-          <button className="k-stepper__plus" onClick={() => onQty(qty + 1)} aria-label={t.add(product.title)}>+</button>
+          <button className="k-stepper__plus" onClick={() => onQty(qty + 1)} disabled={qty >= product.stock} aria-label={t.add(product.title)}>+</button>
         </div>
       ) : (
         <button className="k-add" onClick={() => onQty(1)} aria-label={t.add(product.title)}>+</button>
