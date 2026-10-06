@@ -121,7 +121,7 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [x] Real payment test against the deployed backend (Oct 6, 2026): a Bs 1 Banana paid from a phone wallet (98 sats). Coinos's webhook reached `https://api.paywithbitcoin.lol/hooks/payment/pp_coinos-lightning_coinos-lightning` (200), the kiosk completed the cart 6 s later, order #1 was created with a Bs 1 capture (not the sats figure), 1 unit was reserved at Armor Gym (Medusa lowers `stocked_quantity` only on fulfilment; available went 21 → 20), and the Slack sale alert was sent (`success`). The first end-to-end paid order with the webhook working.
 - [x] Nightly Postgres backups on the VM (Oct 6, 2026): `pg_dump` + uploaded images at 07:30 UTC, 14 days kept, restore tested — see "Database backups" below
 - [ ] Daily GCP snapshot schedule on the `armor-gym-kiosk` boot disk (developer, in the Console) — the off-VM copy of the nightly dumps. Do before the pilot.
-- [x] Private git remote (Oct 7, 2026): `https://github.com/high-altitude-dog/perseus` (private), `origin`, `main` tracks it. Claude's shell user (`whistler-claude`) is logged in with `gh` as `high-altitude-dog` over HTTPS (`gh auth setup-git`), separate from the desktop user's login.
+- [x] Private git remote (Oct 7, 2026): `https://github.com/high-altitude-dog/Bitcoin-Gym-Kiosk` (private; created as `perseus`, renamed the same day), `origin`, `main` tracks it. Claude's shell user (`whistler-claude`) is logged in with `gh` as `high-altitude-dog` over HTTPS (`gh auth setup-git`), separate from the desktop user's login.
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Turn on Coinos auto-sweep and set its threshold — deliberately off for the pilot (see Decisions and non-goals); revisit once volume justifies it, kept open rather than closed as "won't do"
 - [ ] Design in "pay with cash" and "pay later" as additional payment options on the kiosk — backburner, not needed for the pilot; consider once the gym is live and the Lightning/bank-QR flow is proven out
@@ -142,7 +142,7 @@ Written Oct 1, 2026 when work moved from the Claude desktop app to Claude Code i
 - **Products:** Whey Protein Concentrate - Chocolate (Bs 10), Creatine Monohydrate (Bs 3), Banana (Bs 1). Inventory is managed, 21 units each at Armor Gym. These prices look like test values.
 - **Admin user** exists for the developer's own email (not recorded in the repo). The developer set the password. Never create or reset *that* account — this isn't a blanket rule against ever creating an admin user; if no admin user exists yet (e.g. a fresh setup), create one and ask the developer to set its password.
 - **Kiosk storefront** in `backend/apps/kiosk/` (Vite + React, `@dtc/kiosk`), with a publishable API key scoped to the Armor Gym Kiosk channel, created by `setup-armor-gym.ts` and stored in `backend/apps/kiosk/.env`.
-- Git repo at the project root, pushed to the private GitHub repo `high-altitude-dog/perseus` (since Oct 7, 2026).
+- Git repo at the project root, pushed to the private GitHub repo `high-altitude-dog/Bitcoin-Gym-Kiosk` (since Oct 7, 2026).
 
 ## Run it
 
