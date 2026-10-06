@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly Medusa backup (Armor Gym kiosk)
+
+[Timer]
+# 07:30 UTC = 03:30 in Bolivia, after the 06:00 UTC reconciliation job and
+# before the gym opens. Persistent catches up a run missed while the VM was off.
+OnCalendar=*-*-* 07:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

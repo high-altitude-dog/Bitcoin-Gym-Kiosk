@@ -1,0 +1,7 @@
+[Unit]
+Description=Back up the Medusa database and uploaded images (Armor Gym kiosk)
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/perseus-backup
