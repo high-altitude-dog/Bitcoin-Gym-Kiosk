@@ -64,7 +64,7 @@ describe("CoinosLightningProviderService", () => {
       expect(sentBody.invoice).toMatchObject({
         amount: 1000,
         memo: "payses_123",
-        webhook: "https://backend.test/hooks/payment/pp_coinos-lightning_coinos-lightning",
+        webhook: "https://backend.test/hooks/coinos",
         secret: "shared-secret",
       })
       expect(result.data).toMatchObject({ expiry_seconds: 600 })

@@ -16,7 +16,7 @@ export type PaymentMethod = "lightning" | "bank_qr" | null
 
 const PRODUCT_FIELDS =
   "*variants.calculated_price,+variants.inventory_quantity,*images,+categories.id,+categories.name"
-const POLL_INTERVAL_MS = 3_000
+const POLL_INTERVAL_MS = 500
 // Keep checking this long past the invoice's deadline before calling it
 // expired: a payment sent in the last seconds can settle, and the Coinos
 // webhook arrive, a little after the deadline.
@@ -63,7 +63,7 @@ export function useKiosk() {
   // drops its result instead of writing into the next member's session.
   const epochRef = useRef(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const completingRef = useRef(false)
+  const pollBusyRef = useRef(false)
 
   const commitCart = useCallback((cart: HttpTypes.StoreCart | null) => {
     cartRef.current = cart
@@ -197,7 +197,10 @@ export function useKiosk() {
       stopPolling()
       const epoch = epochRef.current
       pollRef.current = setInterval(async () => {
-        if (completingRef.current || epoch !== epochRef.current) return
+        // A tick still waiting on the network makes the next one skip, so
+        // slow wifi can't pile up overlapping checks or complete() calls.
+        if (pollBusyRef.current || epoch !== epochRef.current) return
+        pollBusyRef.current = true
         try {
           const { cart } = await sdk.store.cart.retrieve(cartId, {
             fields: PAYMENT_SESSION_FIELDS,
@@ -206,37 +209,34 @@ export function useKiosk() {
             (s) => s.provider_id === COINOS_LIGHTNING_PROVIDER_ID
           )
           if (session?.status === "authorized") {
-            completingRef.current = true
-            try {
-              const result = await sdk.store.cart.complete(cartId)
-              if (epoch !== epochRef.current) return
-              stopPolling()
-              invoiceRef.current = null
-              if (result.type === "order") {
-                setState((s) => ({
-                  ...s,
-                  order: result.order,
-                  screen: "done",
-                  paymentStatus: null,
-                  error: null,
-                }))
-              } else {
-                setState((s) => ({
-                  ...s,
-                  error: t.errorOrderIncomplete,
-                  screen: "payment",
-                  paymentMethod: "lightning",
-                  paymentStatus: "needs_staff",
-                }))
-              }
-            } finally {
-              completingRef.current = false
+            const result = await sdk.store.cart.complete(cartId)
+            if (epoch !== epochRef.current) return
+            stopPolling()
+            invoiceRef.current = null
+            if (result.type === "order") {
+              setState((s) => ({
+                ...s,
+                order: result.order,
+                screen: "done",
+                paymentStatus: null,
+                error: null,
+              }))
+            } else {
+              setState((s) => ({
+                ...s,
+                error: t.errorOrderIncomplete,
+                screen: "payment",
+                paymentMethod: "lightning",
+                paymentStatus: "needs_staff",
+              }))
             }
             return
           }
         } catch {
           // A network blip or a failed complete(): the next tick checks again.
           return
+        } finally {
+          pollBusyRef.current = false
         }
 
         // Only now, with the payment confirmed not to have arrived, can the
@@ -380,7 +380,7 @@ export function useKiosk() {
     epochRef.current += 1
     queueRef.current = Promise.resolve()
     stopPolling()
-    completingRef.current = false
+    pollBusyRef.current = false
     cartRef.current = null
     invoiceRef.current = null
     setState((s) => ({

@@ -15,5 +15,11 @@ export default defineMiddlewares({
         }),
       ],
     },
+    {
+      // Same body handling Medusa gives its own /hooks/payment/:provider.
+      method: ['POST'],
+      matcher: '/hooks/coinos',
+      bodyParser: { preserveRawBody: true },
+    },
   ],
 })

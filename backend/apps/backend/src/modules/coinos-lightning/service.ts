@@ -24,7 +24,7 @@ import {
 } from "@medusajs/framework/types"
 import { CoinosClient } from "./lib/coinos-client"
 import { YadioClient, sharedYadioClient } from "./lib/yadio-client"
-import { COINOS_LIGHTNING_PROVIDER_ID, CoinosLightningOptions } from "./types"
+import { CoinosLightningOptions } from "./types"
 
 type InjectedDependencies = {
   logger: Logger
@@ -68,7 +68,7 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
   }
 
   private webhookUrl(): string {
-    return `${this.options_.webhookBaseUrl.replace(/\/+$/, "")}/hooks/payment/${COINOS_LIGHTNING_PROVIDER_ID}`
+    return `${this.options_.webhookBaseUrl.replace(/\/+$/, "")}/hooks/coinos`
   }
 
   // Exposed for a store route that tells the kiosk whether to show Lightning
