@@ -34,9 +34,18 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 
 - **Anonymous pickup is fine (decided Oct 7, 2026):** whatever is at a marker can be collected by whoever comes for it; no proof of ownership (no name or code on the bag beyond the order number).
 
+- **Member's name, and staff find the member (decided Oct 7, 2026):** for now, a gym staff member finds the member when the order arrives (no SMS or WhatsApp yet). Any order with at least one item that is **not** self-serve (Type "Entrega del personal" or "Café asociado") gets a new kiosk page after Pagar and before the payment method screen: "¿Cómo te llamas? Te llevamos el pedido.", one required first-name field (1–20 characters, on-screen keyboard), Continuar. Self-serve-only orders skip it.
+  - The name is stored on the order and deleted once the order is marked delivered.
+  - It appears on: the café's "Pagado" message ("Pedido #14 · Ana · marcador 2", so the café can write it on the bag); the staff channel message for staff-delivered items and the staff alert for café arrivals ("🚶 Pedido #14 de Ana llegando al marcador 2. Buscar a Ana."); the order in the admin; the member's done screen ("Ana, te buscamos cuando llegue tu pedido").
+  - For café orders, Pagar sends the café request at once and the member types their name while the café decides; the full-screen Byte wait appears only if the café still hasn't answered.
+  - This is the kiosk's first text input (the original design had none): test the on-screen keyboard in Fully Kiosk on the real tablet.
+  - It also changes the live "Entrega del personal" flow (backend app and kiosk, not only the plugin).
+
 ## Proposed, not yet confirmed
 
-- **Arrival notice (the developer's idea, Oct 7, 2026):** the walk from the café is about 90 s, so the member can be alerted about 10 s before the order arrives, and food isn't left unattended. Trigger: a **🚶 En camino** button on the café's paid-order message, tapped as the runner leaves; the alert fires ~80 s later. Ways to reach the member, none needing typing on the kiosk:
+- **When staff are alerted to a café arrival:** at **En camino** (about 90 s notice, suggested) or at **Entregado** (on arrival).
+
+- **Notifying the member directly (deferred Oct 7, 2026; staff find the member for now):** the walk from the café is about 90 s, so the member can be alerted about 10 s before the order arrives, and food isn't left unattended. Trigger: a **🚶 En camino** button on the café's paid-order message, tapped as the runner leaves; the alert fires ~80 s later. Ways to reach the member, none needing typing on the kiosk:
   - **A. WhatsApp**, started by the member: a QR on the done screen opens WhatsApp with "Pedido #14" ready to send to the gym's number. That message is the opt-in, gives the number, and opens the 24-hour window for free-form replies (no templates). Needs a Meta Business account, a dedicated number and a webhook; verify current WhatsApp pricing.
   - **B. A live order page** from a QR (`/pedido/…`): Preparando → En camino → Llegó, with sound or vibration. No setup or personal data, but the page must stay open.
   - **C. An announcement at the gym:** the kiosk chimes and shows "🚶 Pedido #14 llegando al marcador 2" to the room.
