@@ -104,3 +104,28 @@
   font-weight: 700;
   color: var(--k-text);
 }
+
+/* Bank QR placeholder: "Pagado" stands in for the Baneco webhook until the API exists. */
+.bank-qr-actions {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 520px;
+}
+.bank-qr-cancel,
+.bank-qr-paid {
+  flex: 1;
+  padding: 20px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  border-radius: 16px;
+  border: none;
+  color: #fff;
+}
+.bank-qr-cancel { background: #d93636; }
+.bank-qr-paid { background: #1f9d4d; }
+.bank-qr-cancel:disabled,
+.bank-qr-paid:disabled { opacity: 0.5; }
+.bank-qr-cancel.is-pressed,
+.bank-qr-paid.is-pressed { transform: scale(0.95); filter: brightness(1.15); }
+.payment-error { color: #ff6b6b; margin: 0; }

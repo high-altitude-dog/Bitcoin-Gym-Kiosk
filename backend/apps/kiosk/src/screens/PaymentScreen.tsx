@@ -12,6 +12,8 @@ interface Props {
   paymentMethod: PaymentMethod
   invoice: LightningInvoice | null
   paymentStatus: PaymentStatus
+  error: string | null
+  onBankQrPaid: () => Promise<void>
   onRetry: () => void
   onCancel: () => void
 }
@@ -45,10 +47,14 @@ export function PaymentScreen({
   paymentMethod,
   invoice,
   paymentStatus,
+  error,
+  onBankQrPaid,
   onRetry,
   onCancel,
 }: Props) {
   const qrDataUrl = usePaymentQrCode(invoice?.bolt11)
+  // One confirmation at a time: a double tap must not complete twice.
+  const [confirming, setConfirming] = useState(false)
   const msLeft = useCountdown(invoice?.expiresAt ?? 0)
 
   // Paid, but the order didn't complete. No buttons: paying again or
@@ -72,9 +78,26 @@ export function PaymentScreen({
           <span>El QR aparecerá aquí</span>
         </div>
         <p className="payment-note">El QR bancario estará disponible pronto. Escanea con tu app del banco para pagar.</p>
-        <button className="back-button" onClick={onCancel}>
-          Cancelar
-        </button>
+        {error && <p className="payment-error" role="alert">{error}</p>}
+        <div className="bank-qr-actions">
+          <button className="bank-qr-cancel" onClick={onCancel} disabled={confirming}>
+            {t.cancel}
+          </button>
+          <button
+            className="bank-qr-paid"
+            disabled={confirming}
+            onClick={async () => {
+              setConfirming(true)
+              try {
+                await onBankQrPaid()
+              } finally {
+                setConfirming(false)
+              }
+            }}
+          >
+            {t.paid}
+          </button>
+        </div>
       </div>
     )
   }

@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { sdk } from "../lib/medusa"
 import { t } from "../lib/strings"
-import { COINOS_LIGHTNING_PROVIDER_ID, readLightningInvoice, type LightningInvoice } from "../lib/payment"
+import {
+  COINOS_LIGHTNING_PROVIDER_ID,
+  MANUAL_PAYMENT_PROVIDER_ID,
+  readLightningInvoice,
+  type LightningInvoice,
+} from "../lib/payment"
 
 export type Screen = "idle" | "shop" | "payment-method" | "payment" | "done"
 // "needs_staff": the payment was confirmed but the order could not be
@@ -415,6 +420,31 @@ export function useKiosk() {
     }
   }, [ensureShippingMethod, commitCart, settleCart])
 
+  // Stand-in for the Baneco webhook: the "Pagado" button records the bank QR
+  // payment with Medusa's manual provider and completes the order. Nothing
+  // checks that the money arrived, so staff must confirm it in the bank app
+  // (the Slack sale alert is the prompt). Replace with the real Baneco
+  // confirmation when the API is available.
+  const confirmBankQrPaid = useCallback(async () => {
+    const cart = cartRef.current
+    if (!cart) return
+    const epoch = epochRef.current
+    try {
+      await sdk.store.payment.initiatePaymentSession(cart, { provider_id: MANUAL_PAYMENT_PROVIDER_ID })
+      const result = await sdk.store.cart.complete(cart.id)
+      if (epoch !== epochRef.current) return
+      if (result.type !== "order") throw new Error("cart did not complete")
+      // Any Lightning invoice from earlier in this visit no longer has a
+      // session behind it, so stop watching it.
+      stopPolling()
+      invoiceRef.current = null
+      setState((s) => ({ ...s, order: result.order, invoice: null, paymentStatus: null, error: null, screen: "done" }))
+    } catch {
+      if (epoch !== epochRef.current) return
+      setState((s) => ({ ...s, error: t.errorBankQrConfirm }))
+    }
+  }, [stopPolling])
+
   // Deliberately keeps a live Lightning invoice and its polling running: the
   // member may already be paying from their phone, and Coinos can't cancel
   // the invoice anyway. If it gets paid, the order completes and the kiosk
@@ -453,6 +483,7 @@ export function useKiosk() {
     goTo,
     startPayment,
     startBankQrPayment,
+    confirmBankQrPaid,
     retryPayment,
     cancelPayment,
     reset,

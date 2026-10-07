@@ -89,6 +89,8 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
         paymentMethod={kiosk.paymentMethod}
         invoice={kiosk.invoice}
         paymentStatus={kiosk.paymentStatus}
+        error={kiosk.error}
+        onBankQrPaid={kiosk.confirmBankQrPaid}
         onRetry={kiosk.retryPayment}
         onCancel={kiosk.cancelPayment}
       />

@@ -29,6 +29,9 @@ export const t = {
   errorLightningUnavailable: "El pago con Bitcoin⚡ no está disponible por el momento. Intenta de nuevo en un momento.",
   errorInvoiceFailed: "No pudimos crear la factura de Bitcoin⚡. Intenta de nuevo.",
   errorPayment: "No pudimos preparar el pago. Intenta de nuevo.",
+  paid: "Pagado",
+  cancel: "Cancelar",
+  errorBankQrConfirm: "No pudimos registrar el pago. Intenta de nuevo o avisa a un miembro del personal.",
   checkingPayment: "Verificando el pago...",
   cartReference: (id: string) => `Referencia: ${id}`,
 } as const

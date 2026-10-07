@@ -1,6 +1,9 @@
 // Must match COINOS_LIGHTNING_PROVIDER_ID in
 // backend/apps/backend/src/modules/coinos-lightning/types.ts.
 export const COINOS_LIGHTNING_PROVIDER_ID = "pp_coinos-lightning_coinos-lightning"
+// Medusa's built-in provider: records a payment without charging anything.
+// Used by the bank QR "Pagado" button until the Baneco API exists.
+export const MANUAL_PAYMENT_PROVIDER_ID = "pp_system_default"
 
 // Shape of the payment session `data` coinos-lightning's initiatePayment
 // returns (see that module's service.ts). The kiosk only reads these fields;
