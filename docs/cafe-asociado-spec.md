@@ -43,6 +43,5 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 
 ## Open
 
-- **Payment to the café:** how and how often the gym pays the café for its items (affects what the café needs to see: a daily summary?).
 - **Problems after payment:** the café accepted and the member paid, but something still goes wrong (spilled coffee, never delivered). Who handles it, and is there a "problem" button? Rare now that the café confirms first.
-- **Pricing:** who sets the kiosk price of café items, and is there a gym margin?
+- *Out of scope (decided Oct 7, 2026):* the commercial terms between the gym and the café (kiosk vs counter price, the gym's margin, how and how often the café is paid) are agreed outside the software. Café prices are set in the admin like any other product.
