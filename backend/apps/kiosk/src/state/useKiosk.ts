@@ -22,6 +22,9 @@ export type PaymentMethod = "lightning" | "bank_qr" | null
 const PRODUCT_FIELDS =
   "*variants.calculated_price,+variants.inventory_quantity,*images,+categories.id,+categories.name"
 const POLL_INTERVAL_MS = 500
+// Byte's magic hoops stay on screen at least this long before the QR, so a
+// fast invoice doesn't make him flash on and off.
+const MIN_BYTE_MS = 1500
 // Keep checking this long past the invoice's deadline before calling it
 // expired: a payment sent in the last seconds can settle, and the Coinos
 // webhook arrive, a little after the deadline.
@@ -320,7 +323,7 @@ export function useKiosk() {
   }, [])
 
   const initiateLightningPayment = useCallback(
-    async (cart: HttpTypes.StoreCart) => {
+    async (cart: HttpTypes.StoreCart, byteSince = Date.now()) => {
       const epoch = epochRef.current
       stopPolling()
       invoiceRef.current = null
@@ -356,6 +359,9 @@ export function useKiosk() {
         if (!invoice) {
           throw new Error("coinos-lightning did not return invoice data")
         }
+        const wait = MIN_BYTE_MS - (Date.now() - byteSince)
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+        if (epoch !== epochRef.current) return
 
         invoiceRef.current = invoice
         cartRef.current = cart
@@ -386,9 +392,20 @@ export function useKiosk() {
       return
     }
 
+    // Byte from the tap onwards: the shipping step, the rate check and the
+    // invoice all happen behind him.
+    const byteSince = Date.now()
+    setState((s) => ({
+      ...s,
+      error: null,
+      invoice: null,
+      paymentStatus: null,
+      paymentMethod: "lightning",
+      screen: "payment",
+    }))
     try {
       const withShipping = await ensureShippingMethod(cart)
-      await initiateLightningPayment(withShipping)
+      await initiateLightningPayment(withShipping, byteSince)
     } catch {
       setState((s) => ({ ...s, error: t.errorInvoiceFailed, screen: "payment-method" }))
     }

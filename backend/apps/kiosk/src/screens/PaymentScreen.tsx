@@ -6,6 +6,7 @@ import { t } from "../lib/strings"
 import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
+import { ByteLoader } from "./ByteLoader"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
 interface Props {
@@ -120,9 +121,8 @@ export function PaymentScreen({
 
   if (!invoice) {
     return (
-      <div className="screen screen--center">
-        <h1>Pagar {formatBs(cart.total)}</h1>
-        <p className="payment-note">Creando la factura de Bitcoin⚡...</p>
+      <div className="screen screen--center screen--black">
+        <ByteLoader label="Creando la factura de Bitcoin⚡..." />
         <button className="back-button" onClick={onCancel}>
           Cancelar
         </button>

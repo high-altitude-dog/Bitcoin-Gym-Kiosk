@@ -147,3 +147,31 @@
 .bank-qr-cancel.is-pressed,
 .bank-qr-paid.is-pressed { transform: scale(0.95); filter: brightness(1.15); }
 .payment-error { color: #ff6b6b; margin: 0; }
+
+/* Byte's magic hoops: the art's black ground is baked in, so the screen
+   behind it is pure black, not the kiosk's dark grey. */
+.screen--black {
+  background: #000;
+}
+
+.byte-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.byte-loader__art {
+  display: block;
+  width: 100%;
+  max-width: 606px;
+  height: auto;
+  background: #000;
+}
+
+.byte-loader__label {
+  margin: 0;
+  color: var(--k-text-2);
+  font-weight: 600;
+}

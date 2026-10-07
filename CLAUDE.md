@@ -269,6 +269,10 @@ Each product's **Type** field in the admin decides how it reaches the member (`s
 - `src/scripts/fulfill-existing-orders.ts`: one-off backfill for orders placed before this existed. Self-serve items only, no Slack, safe to re-run.
 - Verified locally with real orders through the kiosk (a mixed order: bananas fulfilled and stock lowered, staff and café messages sent to their channels, all recorded as `success`), the backfill (twice: second run did nothing, sent nothing), and 45 unit tests.
 
+## Kiosk: Byte while the invoice is created (Oct 7, 2026)
+
+Tapping "Pagar con Bitcoin⚡" shows Byte's magic hoops (Second's mascot, used with permission; from the developer's "Byte Magic Hoops" artifact, https://claude.ai/artifact/Fb7zvUz3tYMsYavsFmJzZ7) on a pure black screen until the QR is ready, for at least 1.5 s (`MIN_BYTE_MS` in `useKiosk.ts`) so a fast invoice doesn't make him flash. `ByteLoader.tsx` is reusable (the café wait will use it). The art is the on-black GIF converted unaltered to a looping WebM (`public/kiosk/byte/`, 232 KB vs the GIF's 516 KB; a video always starts at frame 0, a cached GIF may not), with the on-black still frame for reduced motion. WebM rather than MP4 because the headless test browser (open-source Chromium) can't play H.264; Android plays both. Added `webm` to the PWA precache patterns.
+
 ## Deploying to the VM (Oct 3, 2026)
 
 The Medusa backend is live on `armor-gym-kiosk` (`34.176.250.72`), reachable at `http://34.176.250.72:9000` (admin at `/app`). Done via SSH from Claude Code, not VS Code Remote-SSH (that's still how the developer would connect for ongoing work — see "SSH access" below). The kiosk app itself is **not** deployed yet; only the backend. What follows is the actual runbook, written from what worked, plus every gotcha hit along the way so the next deploy (or a redeploy after a Baneco/HTTPS change) doesn't rediscover them.
