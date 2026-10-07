@@ -125,8 +125,8 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Turn on Coinos auto-sweep and set its threshold — deliberately off for the pilot (see Decisions and non-goals); revisit once volume justifies it, kept open rather than closed as "won't do"
 - [ ] Audit the kiosk against the Bitcoin Design Guide (https://bitcoin.design): payment flow, wording (e.g. "Bitcoin⚡" vs "Lightning"; the invoice screen now says "Escanea con billetera Bitcoin Lightning"), QR and invoice presentation, amounts in sats vs Bs, and error/expiry states. Added Oct 7, 2026; not started.
-- [ ] Auto-fulfil self-serve orders (proposed Oct 7, 2026, not yet approved): members take items from jars/baskets, so a subscriber on `order.placed` would create the fulfilment from Armor Gym and mark it delivered. Also makes Medusa reduce `stocked_quantity` on each sale (today it only reserves). Optionally backfill existing VM orders. Needs a backend redeploy.
-- [ ] Third-party items from a sandwich/coffee shop, delivered to the gym (planned, not started). Design: a separate stock location named **"Café asociado"** (decided Oct 7, 2026) plus its own shipping profile; those items stay "Not fulfilled" until staff mark them delivered, and their part of each order is sent to the shop over Slack. Open questions: how the delivery finds the member (order number at the front desk vs asking for a name), how the shop joins Slack (shared channel vs their own webhook), and hiding these items outside the shop's hours.
+- [x] Fulfilment by product Type (Oct 7, 2026): self-serve items fulfilled and marked delivered automatically; staff and café items sent to their Slack channels — see "Fulfilment by product Type" below
+- [ ] Third-party items from a sandwich/coffee shop, delivered to the gym (planned, not started). The product Type "Café asociado" and its Slack channel are in place (see "Fulfilment by product Type"); still to do: a separate stock location named **"Café asociado"** for the café's availability, and the café's phone page to update it (availability only vs also items/prices, private link vs password — undecided). Open questions: how the delivery finds the member (order number at the front desk vs asking for a name), how the shop joins Slack (shared channel vs their own webhook), and hiding these items outside the shop's hours.
 - [ ] Design in "pay with cash" and "pay later" as additional payment options on the kiosk — backburner, not needed for the pilot; consider once the gym is live and the Lightning/bank-QR flow is proven out
 - [x] Slack alerts for sales, low stock, paid-but-no-order and reconciliation mismatches (Oct 4, 2026; see "Slack alerts" below)
 - [ ] Consider a separate Coinos account for local development: the shared account means every local test payment shows up as a reconciliation mismatch on the VM
@@ -253,6 +253,20 @@ The developer's first screen recording on the real Megapad showed about a second
 - Visible text says "Bitcoin⚡" instead of "Lightning". The salteña doodle beside the church on both wall images was replaced with a paw print in the wall's own paw style.
 - Verified with headless tests against the local backend (with a simulated 1 s server) and against the deployed site. Not yet felt on the real tablet.
 - **Local dev trap:** `backend/apps/kiosk/.env` points at the old `http://34.176.250.72:9000` (closed) with a key that isn't valid locally. For local testing, export `VITE_MEDUSA_BACKEND_URL=http://localhost:9000` and the local "Armor Gym Kiosk storefront" key (from the local `api_key` table) before `npx vite`.
+
+## Fulfilment by product Type (Oct 7, 2026)
+
+Each product's **Type** field in the admin decides how it reaches the member (`src/lib/fulfillment-mode.ts`). `setup-armor-gym.ts` creates the three types.
+
+- **Autoservicio**, or no type at all: taken from the jars and baskets. On `order.placed`, `src/subscribers/order-placed-fulfillment.ts` creates the fulfilment and marks it delivered, which is also what makes Medusa lower `stocked_quantity` (a sale alone only reserves).
+- **Entrega del personal**: left "Not fulfilled"; a Slack message goes to the staff channel (`SLACK_STAFF_WEBHOOK_URL`) and staff mark it delivered in the admin.
+- **Café asociado**: left "Not fulfilled"; the café's part of the order goes to the café's channel (`SLACK_CAFE_WEBHOOK_URL`) without prices or an admin link, asking them to deliver to the front desk with the order number. Staff mark it delivered on arrival.
+- Mixed orders show as partially fulfilled until the rest is delivered. Order lines keep a snapshot of the type, so changing a product's type later doesn't change old orders.
+- Chose Type over shipping profiles: profiles would have needed one shipping method per profile in every cart (Medusa's `validateShippingStep`), i.e. a checkout change; Type needs none. Patching that Medusa check was rejected (overwritten by every install, and it's in the path of every sale).
+- **Slack routing:** `notifySlack` takes a `destination` (kiosk/staff/cafe), carried in the notification's `to`; the provider picks the matching webhook. Staff and café fall back to the kiosk channel, marked, when their webhook isn't set. Slack channels: `#kiosk-notifications` (alerts), `#cafe-test` (café), and a staff channel; all private.
+- **Medusa quirk:** asking `query.graph` for `items.quantity` together with an `items.detail.*` field drops `quantity` (2.21.2). Use `items.*`. The planner throws on a missing quantity rather than letting NaN reach the database (that's how this was found, on the first real local order).
+- `src/scripts/fulfill-existing-orders.ts`: one-off backfill for orders placed before this existed. Self-serve items only, no Slack, safe to re-run.
+- Verified locally with real orders through the kiosk (a mixed order: bananas fulfilled and stock lowered, staff and café messages sent to their channels, all recorded as `success`), the backfill (twice: second run did nothing, sent nothing), and 45 unit tests.
 
 ## Deploying to the VM (Oct 3, 2026)
 

@@ -110,6 +110,8 @@ module.exports = defineConfig({
                   options: {
                     channels: ['slack'],
                     webhook_url: process.env.SLACK_WEBHOOK_URL,
+                    staff_webhook_url: process.env.SLACK_STAFF_WEBHOOK_URL || undefined,
+                    cafe_webhook_url: process.env.SLACK_CAFE_WEBHOOK_URL || undefined,
                     label: process.env.NODE_ENV === 'production' ? '' : '[prueba] ',
                   },
                 },

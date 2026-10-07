@@ -6,6 +6,7 @@ import {
 } from "@medusajs/framework/utils";
 import {
   createApiKeysWorkflow,
+  createProductTypesWorkflow,
   createRegionsWorkflow,
   createSalesChannelsWorkflow,
   createShippingOptionsWorkflow,
@@ -18,6 +19,7 @@ import {
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows";
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types";
+import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
 
 const GYM_NAME = "Armor Gym";
 const REGION_NAME = "Bolivia";
@@ -213,6 +215,22 @@ export default async function setupArmorGym({ container }: ExecArgs) {
     logger.info(
       `Linked ${missingProfile.length} product(s) to the default shipping profile.`
     );
+  }
+
+  // Product types choose how each product is handed over (see
+  // lib/fulfillment-mode.ts). Staff pick one from the product's Type field in
+  // the admin; a product with no type is treated as self-serve.
+  const { data: existingTypes } = await query.graph({
+    entity: "product_type",
+    fields: ["value"],
+  });
+  const haveTypes = new Set((existingTypes as { value: string }[]).map((t) => t.value));
+  const missingTypes = Object.values(FULFILLMENT_TYPES).filter((v) => !haveTypes.has(v));
+  if (missingTypes.length) {
+    await createProductTypesWorkflow(container).run({
+      input: { product_types: missingTypes.map((value) => ({ value })) },
+    });
+    logger.info(`Created product type(s): ${missingTypes.join(", ")}.`);
   }
 
   // Store: support BOB as the default currency, keep the gym's location default.

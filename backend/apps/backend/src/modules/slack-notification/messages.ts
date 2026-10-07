@@ -28,13 +28,23 @@ export type ReconciliationMismatchData = {
   captured_without_coinos: string[]
 }
 
+export type HandoverOrderData = {
+  display_id: number
+  items: { title: string; quantity: number }[]
+  admin_url?: string | null
+}
+
 export const SLACK_TEMPLATES = [
   "order-placed",
   "low-stock",
   "paid-without-order",
   "reconciliation-mismatch",
+  "staff-order",
+  "cafe-order",
 ] as const
 export type SlackTemplate = (typeof SLACK_TEMPLATES)[number]
+
+export type SlackDestination = "kiosk" | "staff" | "cafe"
 
 const MAX_LISTED = 10
 
@@ -116,6 +126,27 @@ export function reconciliationMismatchMessage(data: ReconciliationMismatchData):
   return lines.join("\n")
 }
 
+// Items staff hand over (product Type "Entrega del personal").
+export function staffOrderMessage(data: HandoverOrderData): string {
+  const lines = [
+    `*Pedido #${data.display_id} para entregar*`,
+    ...listed(data.items, (i) => `• ${i.quantity} × ${escapeSlack(i.title)}`),
+    `Marcarlo como entregado en el admin al entregarlo.`,
+  ]
+  if (data.admin_url) lines.push(`<${data.admin_url}|Ver pedido en el admin>`)
+  return lines.join("\n")
+}
+
+// Items the partner café makes and delivers (product Type "Café asociado").
+// No prices or admin link: the café has no admin access.
+export function cafeOrderMessage(data: HandoverOrderData): string {
+  return [
+    `*Nuevo pedido #${data.display_id}* del kiosko de Armor Gym`,
+    ...listed(data.items, (i) => `• ${i.quantity} × ${escapeSlack(i.title)}`),
+    `Entregar en la recepción de Armor Gym con el número de pedido #${data.display_id}.`,
+  ].join("\n")
+}
+
 export function renderSlackMessage(template: string, data: Record<string, unknown>): string {
   switch (template as SlackTemplate) {
     case "order-placed":
@@ -126,6 +157,10 @@ export function renderSlackMessage(template: string, data: Record<string, unknow
       return paidWithoutOrderMessage(data as unknown as PaidWithoutOrderData)
     case "reconciliation-mismatch":
       return reconciliationMismatchMessage(data as unknown as ReconciliationMismatchData)
+    case "staff-order":
+      return staffOrderMessage(data as unknown as HandoverOrderData)
+    case "cafe-order":
+      return cafeOrderMessage(data as unknown as HandoverOrderData)
     default:
       throw new Error(`slack-notification: unknown template "${template}"`)
   }

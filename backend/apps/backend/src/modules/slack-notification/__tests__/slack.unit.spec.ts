@@ -8,6 +8,8 @@ import {
   paidWithoutOrderMessage,
   reconciliationMismatchMessage,
   renderSlackMessage,
+  staffOrderMessage,
+  cafeOrderMessage,
 } from "../messages"
 
 describe("slack messages (Spanish)", () => {
@@ -117,5 +119,56 @@ describe("SlackNotificationProviderService", () => {
 
   it("refuses to start without a webhook URL", () => {
     expect(() => SlackNotificationProviderService.validateOptions({})).toThrow("webhook_url is required")
+  })
+})
+
+describe("staff and café hand-over messages", () => {
+  const data = { display_id: 21, items: [{ title: "Sándwich <jamón>", quantity: 2 }], admin_url: "http://b.test/app/orders/o1" }
+
+  it("tells staff what to hand over, with an admin link", () => {
+    const text = staffOrderMessage(data)
+    expect(text).toContain("*Pedido #21 para entregar*")
+    expect(text).toContain("• 2 × Sándwich &lt;jamón&gt;")
+    expect(text).toContain("<http://b.test/app/orders/o1|Ver pedido en el admin>")
+  })
+
+  it("tells the café what to deliver, without prices or admin link", () => {
+    const text = cafeOrderMessage(data)
+    expect(text).toContain("*Nuevo pedido #21* del kiosko de Armor Gym")
+    expect(text).toContain("número de pedido #21")
+    expect(text).not.toContain("http")
+    expect(text).not.toContain("Bs")
+  })
+})
+
+describe("slack provider routing", () => {
+  const sent: { url: string; text: string }[] = []
+  beforeEach(() => {
+    sent.length = 0
+    global.fetch = jest.fn(async (url: any, init: any) => {
+      sent.push({ url: String(url), text: JSON.parse(init.body).text })
+      return { ok: true, text: async () => "ok" } as any
+    }) as any
+  })
+  const logger = { warn: jest.fn() } as any
+  const msg = (to: string) => ({ to, channel: "slack", template: "staff-order", data: { display_id: 1, items: [] } }) as any
+
+  it("sends staff and café messages to their own webhooks when set", async () => {
+    const p = new SlackNotificationProviderService({ logger }, { webhook_url: "K", staff_webhook_url: "S", cafe_webhook_url: "C" })
+    await p.send(msg("staff"))
+    await p.send(msg("cafe"))
+    await p.send(msg("kiosk"))
+    await p.send(msg("slack")) // records from before destinations existed
+    expect(sent.map((s) => s.url)).toEqual(["S", "C", "K", "K"])
+    expect(sent[0].text.startsWith("*Pedido")).toBe(true)
+  })
+
+  it("falls back to the kiosk channel, marked, when a channel isn't configured", async () => {
+    const p = new SlackNotificationProviderService({ logger }, { webhook_url: "K" })
+    await p.send(msg("staff"))
+    await p.send(msg("cafe"))
+    expect(sent.map((s) => s.url)).toEqual(["K", "K"])
+    expect(sent[0].text).toContain("para el personal")
+    expect(sent[1].text).toContain("para el Café asociado")
   })
 })

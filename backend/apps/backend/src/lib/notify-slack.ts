@@ -1,8 +1,12 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import type { SlackTemplate } from "../modules/slack-notification/messages"
+import type { SlackDestination, SlackTemplate } from "../modules/slack-notification/messages"
 
 type NotifySlackInput = {
+  // Which channel: the kiosk's alert channel (default), the staff channel or
+  // the café's. Staff and café fall back to the kiosk channel until their
+  // own webhook is configured.
+  destination?: SlackDestination
   template: SlackTemplate
   data: Record<string, unknown>
   // Same key = same message: a redelivered event or a re-run job won't post
@@ -13,7 +17,7 @@ type NotifySlackInput = {
   resourceType?: string
 }
 
-// Sends one alert to the kiosk's Slack channel. Never throws: an alert is
+// Sends one alert to Slack. Never throws: an alert is
 // never worth failing whatever triggered it (a sale, a scheduled job).
 export async function notifySlack(container: MedusaContainer, input: NotifySlackInput): Promise<void> {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
@@ -23,7 +27,7 @@ export async function notifySlack(container: MedusaContainer, input: NotifySlack
   try {
     const notifications = container.resolve(Modules.NOTIFICATION)
     await notifications.createNotifications({
-      to: "slack",
+      to: input.destination ?? "kiosk",
       channel: "slack",
       template: input.template,
       data: input.data,
