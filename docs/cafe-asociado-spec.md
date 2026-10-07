@@ -28,6 +28,10 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
   - **"Abrir ahora"** outside the normal hours goes through the same check-in (availability starts from Agotado) and counts as that day's check-in.
 - **Café updates its own availability:** the café needs a way to say what it can sell, from its own premises (not through the Medusa admin, whose permissions can't be limited to the café's products).
 
+- **Built as a Medusa plugin (decided Oct 7, 2026):** a local workspace package (e.g. `backend/packages/cafe-asociado`, `@dtc/medusa-plugin-cafe-asociado`), not published to npm, built by `build.sh` before the backend. It holds the café's data and migrations, the Slack app (button endpoint, panel, messages), the scheduled jobs, the store routes the kiosk calls, and marker assignment. The kiosk screens stay in the kiosk app; payments, the general alerts and self-serve/staff fulfilment stay in the backend app (only the café branch moves into the plugin). First step: prove an empty workspace plugin builds and loads in this Turborepo before writing café code.
+- **On/off switch:** `CAFE_ASOCIADO_ENABLED` in `.env` registers the plugin in `medusa-config.ts`. Changing it means a rebuild and restart (a few minutes). The owner switches it, and only when no café orders are waiting for an answer or for delivery (no drain procedure needed). Switching off keeps the plugin's data, so switching back on resumes; removing it for good also needs its down migrations.
+  - **Safe when off:** the kiosk shows café items only if the plugin's status route says the café is open (no route = hidden), and checkout refuses a café item if the plugin is off, instead of treating it as self-serve.
+
 ## Proposed, not yet confirmed
 
 - **Where the marker shows:** in the café's "Pagado" message, on the member's done screen ("Tu pedido del café llegará al marcador 2 en ~6 min"), and on the order in the admin.
