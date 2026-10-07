@@ -4,7 +4,10 @@ import { t } from "../lib/strings"
 export function IdleScreen({ onStart }: { onStart: () => void }) {
   return (
     <button className="k-idle" onClick={onStart} aria-label={t.tapToStart}>
-      <span className="k-idle__cta">{t.tapToStart}</span>
+      <span className="k-idle__cta">
+        <span className="k-idle__hand" aria-hidden="true">👆</span>
+        {t.tapToStart}
+      </span>
     </button>
   )
 }

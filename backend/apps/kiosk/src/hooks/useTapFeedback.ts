@@ -75,10 +75,13 @@ function createClick() {
       const osc = ac.createOscillator()
       const gain = ac.createGain()
       // Gain 0.7 (was 0.35): the same tick, twice as loud (+6 dB). A
-      // louder square-wave version was tried and rejected as harsh.
+      // louder square-wave version was tried and rejected as harsh. The
+      // pitch varies by up to ±5% per tap so repeated taps sound less
+      // mechanical.
+      const pitch = 1 + (Math.random() * 2 - 1) * 0.05
       osc.type = "triangle"
-      osc.frequency.setValueAtTime(1500, now)
-      osc.frequency.exponentialRampToValueAtTime(600, now + 0.03)
+      osc.frequency.setValueAtTime(1500 * pitch, now)
+      osc.frequency.exponentialRampToValueAtTime(600 * pitch, now + 0.03)
       gain.gain.setValueAtTime(0.7, now)
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04)
       osc.connect(gain).connect(ac.destination)
