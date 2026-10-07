@@ -32,7 +32,15 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 - **On/off switch:** `CAFE_ASOCIADO_ENABLED` in `.env` registers the plugin in `medusa-config.ts`. Changing it means a rebuild and restart (a few minutes). The owner switches it, and only when no café orders are waiting for an answer or for delivery (no drain procedure needed). Switching off keeps the plugin's data, so switching back on resumes; removing it for good also needs its down migrations.
   - **Safe when off:** the kiosk shows café items only if the plugin's status route says the café is open (no route = hidden), and checkout refuses a café item if the plugin is off, instead of treating it as self-serve.
 
+- **Anonymous pickup is fine (decided Oct 7, 2026):** whatever is at a marker can be collected by whoever comes for it; no proof of ownership (no name or code on the bag beyond the order number).
+
 ## Proposed, not yet confirmed
+
+- **Arrival notice (the developer's idea, Oct 7, 2026):** the walk from the café is about 90 s, so the member can be alerted about 10 s before the order arrives, and food isn't left unattended. Trigger: a **🚶 En camino** button on the café's paid-order message, tapped as the runner leaves; the alert fires ~80 s later. Ways to reach the member, none needing typing on the kiosk:
+  - **A. WhatsApp**, started by the member: a QR on the done screen opens WhatsApp with "Pedido #14" ready to send to the gym's number. That message is the opt-in, gives the number, and opens the 24-hour window for free-form replies (no templates). Needs a Meta Business account, a dedicated number and a webhook; verify current WhatsApp pricing.
+  - **B. A live order page** from a QR (`/pedido/…`): Preparando → En camino → Llegó, with sound or vibration. No setup or personal data, but the page must stay open.
+  - **C. An announcement at the gym:** the kiosk chimes and shows "🚶 Pedido #14 llegando al marcador 2" to the room.
+  - Suggested: C + B for the pilot, A later. Open: does the gym have a WhatsApp Business number; which go into the pilot.
 
 - **Where the marker shows:** in the café's "Pagado" message, on the member's done screen ("Tu pedido del café llegará al marcador 2 en ~6 min"), and on the order in the admin.
 - **Marker still taken:** if the cycle reaches a marker whose previous café order isn't marked delivered yet, warn in the café and staff channels.
