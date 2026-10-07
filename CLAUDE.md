@@ -124,6 +124,7 @@ Start Baneco access first, because it depends on the bank and takes the longest.
 - [x] Private git remote (Oct 7, 2026): `https://github.com/high-altitude-dog/Bitcoin-Gym-Kiosk` (private; created as `perseus`, renamed the same day), `origin`, `main` tracks it. Claude's shell user (`whistler-claude`) is logged in with `gh` as `high-altitude-dog` over HTTPS (`gh auth setup-git`), separate from the desktop user's login.
 - [ ] Pilot with Lightning only, then add the Baneco provider when credentials arrive
 - [ ] Turn on Coinos auto-sweep and set its threshold — deliberately off for the pilot (see Decisions and non-goals); revisit once volume justifies it, kept open rather than closed as "won't do"
+- [ ] Audit the kiosk against the Bitcoin Design Guide (https://bitcoin.design): payment flow, wording (e.g. "Bitcoin⚡" vs "Lightning", and asking for a "billetera Bitcoin⚡" when only Lightning wallets can pay), QR and invoice presentation, amounts in sats vs Bs, and error/expiry states. Added Oct 7, 2026; not started.
 - [ ] Design in "pay with cash" and "pay later" as additional payment options on the kiosk — backburner, not needed for the pilot; consider once the gym is live and the Lightning/bank-QR flow is proven out
 - [x] Slack alerts for sales, low stock, paid-but-no-order and reconciliation mismatches (Oct 4, 2026; see "Slack alerts" below)
 - [ ] Consider a separate Coinos account for local development: the shared account means every local test payment shows up as a reconciliation mismatch on the VM
