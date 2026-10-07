@@ -43,5 +43,5 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 
 ## Open
 
-- **Problems after payment:** the café accepted and the member paid, but something still goes wrong (spilled coffee, never delivered). Who handles it, and is there a "problem" button? Rare now that the café confirms first.
 - *Out of scope (decided Oct 7, 2026):* the commercial terms between the gym and the café (kiosk vs counter price, the gym's margin, how and how often the café is paid) are agreed outside the software. Café prices are set in the admin like any other product.
+- *Out of scope (decided Oct 7, 2026):* problems after payment (an order paid but not delivered, wrong or spilled) and who carries the loss are handled between the gym, the café and the member outside the software. The café's Entregado tap marks delivery; it isn't treated as proof in a dispute, and there is no "problem" button.
