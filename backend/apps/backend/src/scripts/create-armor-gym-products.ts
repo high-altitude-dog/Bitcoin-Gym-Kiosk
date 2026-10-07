@@ -9,8 +9,11 @@ import {
 import {
   createInventoryLevelsWorkflow,
   createProductsWorkflow,
+  updateProductsWorkflow,
   uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows";
+
+import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
 
 const GYM_NAME = "Armor Gym";
 const REGION_NAME = "Bolivia";
@@ -148,6 +151,29 @@ export default async function createArmorGymProducts({ container }: ExecArgs) {
     logger.info(`Created ${created.length} product(s): ${created.map((p) => p.title).join(", ")}`);
   } else {
     logger.info("Every product in the catalogue already exists.");
+  }
+
+  // Type: the catalogue is all self-serve (taken from the jars and baskets).
+  // Only sets a missing type, never overwrites one staff chose in the admin.
+  // The type itself is created by setup-armor-gym.ts, which runs first.
+  const { data: autoTypes } = await query.graph({
+    entity: "product_type",
+    fields: ["id"],
+    filters: { value: FULFILLMENT_TYPES.auto },
+  });
+  const { data: typed } = await query.graph({
+    entity: "product",
+    fields: ["id", "title", "type_id"],
+    filters: { handle: PRODUCTS.map((p) => p.handle) },
+  });
+  const untyped = (typed as { id: string; title: string; type_id: string | null }[]).filter((p) => !p.type_id);
+  if (!autoTypes.length) {
+    logger.warn(`Product type "${FULFILLMENT_TYPES.auto}" not found: run setup-armor-gym.ts first.`);
+  } else if (untyped.length) {
+    await updateProductsWorkflow(container).run({
+      input: { selector: { id: untyped.map((p) => p.id) }, update: { type_id: autoTypes[0].id } },
+    });
+    logger.info(`Set type "${FULFILLMENT_TYPES.auto}" on: ${untyped.map((p) => p.title).join(", ")}.`);
   }
 
   // Stock: 21 units per catalogue product at this gym's location

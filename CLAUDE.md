@@ -265,6 +265,7 @@ Each product's **Type** field in the admin decides how it reaches the member (`s
 - Chose Type over shipping profiles: profiles would have needed one shipping method per profile in every cart (Medusa's `validateShippingStep`), i.e. a checkout change; Type needs none. Patching that Medusa check was rejected (overwritten by every install, and it's in the path of every sale).
 - **Slack routing:** `notifySlack` takes a `destination` (kiosk/staff/cafe), carried in the notification's `to`; the provider picks the matching webhook. Staff and café fall back to the kiosk channel, marked, when their webhook isn't set. Slack channels: `#kiosk-notifications` (alerts), `#cafe-test` (café), and a staff channel; all private.
 - **Medusa quirk:** asking `query.graph` for `items.quantity` together with an `items.detail.*` field drops `quantity` (2.21.2). Use `items.*`. The planner throws on a missing quantity rather than letting NaN reach the database (that's how this was found, on the first real local order).
+- The 3 catalogue products have Type **Autoservicio** (set Oct 7, 2026 by `create-armor-gym-products.ts`, which sets it only where a product has no type).
 - `src/scripts/fulfill-existing-orders.ts`: one-off backfill for orders placed before this existed. Self-serve items only, no Slack, safe to re-run.
 - Verified locally with real orders through the kiosk (a mixed order: bananas fulfilled and stock lowered, staff and café messages sent to their channels, all recorded as `success`), the backfill (twice: second run did nothing, sent nothing), and 45 unit tests.
 
