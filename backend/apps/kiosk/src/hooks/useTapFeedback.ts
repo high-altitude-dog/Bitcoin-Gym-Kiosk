@@ -74,17 +74,16 @@ function createClick() {
       const now = ac.currentTime
       const osc = ac.createOscillator()
       const gain = ac.createGain()
-      // Square wave, near full volume and a little longer: about 12 dB
-      // louder than the first version, which was too quiet on the tablet's
-      // speaker. Its harmonics sit where small speakers are loudest.
-      osc.type = "square"
-      osc.frequency.setValueAtTime(1800, now)
-      osc.frequency.exponentialRampToValueAtTime(900, now + 0.04)
-      gain.gain.setValueAtTime(0.8, now)
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06)
+      // Gain 0.7 (was 0.35): the same tick, twice as loud (+6 dB). A
+      // louder square-wave version was tried and rejected as harsh.
+      osc.type = "triangle"
+      osc.frequency.setValueAtTime(1500, now)
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.03)
+      gain.gain.setValueAtTime(0.7, now)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04)
       osc.connect(gain).connect(ac.destination)
       osc.start(now)
-      osc.stop(now + 0.07)
+      osc.stop(now + 0.05)
     },
     unlock() {
       const ac = context()
