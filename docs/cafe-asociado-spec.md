@@ -19,6 +19,7 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
   6. Cancelled by the café, or **no answer within about 2 minutes**: the kiosk says the café can't take the order right now; the member can buy the rest without the café items, or go back. On a timeout the café's message changes to "Sin respuesta – pedido no realizado".
   7. Delivered: the café taps **Entregado** on the paid message. That marks the café items delivered in Medusa and frees the marker; gym staff don't need the admin for it.
 - **Slack interactivity:** the buttons need a Slack app with Interactivity enabled, pointing at the backend, and a signing secret in `.env` so the backend can check each tap really came from Slack.
+- **Opening hours (decided Oct 7, 2026):** set hours plus a manual switch. Default hours **Tuesday to Saturday, 08:00–17:00 La Paz time** (`America/La_Paz`, UTC−4, no daylight saving); closed Sunday and Monday. Outside them, café items can't be ordered on the kiosk. The café can also close early ("Cerrar por hoy", reopening automatically at the next opening time).
 - **Café updates its own availability:** the café needs a way to say what it can sell, from its own premises (not through the Medusa admin, whose permissions can't be limited to the café's products).
 
 ## Proposed, not yet confirmed
@@ -26,13 +27,14 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 - **Where the marker shows:** in the café's "Pagado" message, on the member's done screen ("Tu pedido del café llegará al marcador 2 en ~6 min"), and on the order in the admin.
 - **Marker still taken:** if the cycle reaches a marker whose previous café order isn't marked delivered yet, warn in the café and staff channels.
 - **Assigning the marker:** at order creation (Medusa's order-completion hook, to be confirmed in 2.21.2), so the done screen can show it; concurrent orders can't get the same marker (lock).
-- **Availability page:** a small phone page for the café, in Spanish, listing only its products with a Disponible/Agotado switch and an optional count; stored as stock at a "Café asociado" stock location, so the kiosk's existing "Agotado" handling applies.
+- **Café controls in Slack (recommended, replaces the phone page):** a control panel pinned in the café's channel and kept up to date by the backend: open/closed state with the hours, "Cerrar por hoy" / "Abrir", and per item **Agotado / Disponible** plus **Cantidad…** (a count that goes down with each sale and switches the item to Agotado at 0). Shows who changed what and when. Updates itself at opening and closing time. Needs a Slack bot token (to edit the panel and the order messages, e.g. "Aceptado · 6 min · Ana", "Entregado ✓"), Interactivity and the signing secret. Slack membership is the café's sign-in. Availability is stored as stock at a "Café asociado" stock location, so the kiosk's existing "Agotado" handling applies.
+- *Alternative, if Slack isn't used for this:* a small phone page for the café with the same switches, signed in by private link or password.
+- **Café closed on the kiosk:** show café items greyed out with "Café cerrado · abre el martes a las 8:00" (suggested, so members learn the café and its hours) rather than hiding them.
 
 ## Open
 
-- **Availability page scope:** availability only, or also adding items and changing prices?
-- **Café sign-in:** a private bookmarked link, or a username and password?
-- **Opening hours:** hide café items on the kiosk outside the café's hours? Fixed hours, or the café switches itself on and off?
+- **Changing the hours:** can the café change its default hours from the Slack panel ("Horario…"), or only the gym?
+- **Adding items and prices:** stay with the gym in the admin, or can the café do it too?
 - **Payment to the café:** how and how often the gym pays the café for its items (affects what the café needs to see: a daily summary?).
 - **Problems after payment:** the café accepted and the member paid, but something still goes wrong (spilled coffee, never delivered). Who handles it, and is there a "problem" button? Rare now that the café confirms first.
 - **Animation file:** the byte-kit's `byte-magic-hoops-transparent.gif` is needed (not on this machine yet).
