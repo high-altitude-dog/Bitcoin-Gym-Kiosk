@@ -78,6 +78,15 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
   **Check it works**
   15. A test order end to end on an opening day: check-in, request, accept, pay, En camino, staff alert every 45 s with sound on the laptop, Entregado.
 
+- **Staff notes on every activation (decided Oct 7, 2026):** each time the plugin is switched on (first time, or after being off; not on ordinary restarts or deploys, which the plugin tells apart by remembering its previous state), the staff channel gets the staff notes with a **✅ Entendido** (Understood) button. The café stays off until a staff member taps it: café items unavailable on the kiosk, no check-in sent to the café. The message then shows who acknowledged and when, and that's recorded. Reminder if nobody acknowledges within an hour. The notes' text lives in one place in the plugin, so it can be edited. Draft:
+  > 📋 **Café asociado activado. Antes de empezar:** (Café asociado activated. Before you start:)
+  > • Portátil de recepción: Slack abierto, sin "No molestar". (Front-desk laptop: Slack open, "Do not disturb" off.)
+  > • **Sube el volumen** del portátil y comprueba que no esté en silencio. (**Turn the laptop's volume up** and check it isn't muted.)
+  > • **Desactiva el ahorro de energía**: el portátil no debe suspenderse mientras el gimnasio esté abierto. (**Turn power saving off**: the laptop must not sleep while the gym is open.)
+  > • Cuando llegue un pedido a un marcador, recibirán un aviso cada 45 s hasta pulsar **✅ Entregado** o **❓ No se encontró**. (When an order arrives at a marker, you'll get an alert every 45 s until you press ✅ Delivered or ❓ Not found.)
+  > • Busquen al socio por su nombre y entréguenle el pedido. (Find the member by their name and hand them the order.)
+  > [ ✅ Entendido ] (Understood)
+
 ## Proposed, not yet confirmed
 
 
