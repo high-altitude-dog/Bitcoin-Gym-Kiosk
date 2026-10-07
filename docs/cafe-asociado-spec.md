@@ -62,5 +62,10 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 
 ## Open
 
+- **Watching Slack at the café:** who keeps an eye on the channel during opening hours, and on what device (a dedicated phone or tablet on the counter, with loud notifications)? Is a 2-minute answer realistic when the café has its own queue?
+- **Uncollected orders:** how long may an order wait at a marker before it counts as abandoned (perishables, hot drinks), and what happens to it then?
+- **Training:** who trains new café staff on the Slack flow, and should there be a one-page guide in Spanish (could be pinned in the café's channel)?
+- **Allergens and ingredients:** should café items show ingredients or allergens on the kiosk? Bolivian labelling rules may apply when the gym is the seller.
+- **Pilot success:** what measures decide whether the café stays (e.g. share of requests accepted, answer time, delivery time, weekly café sales), who reviews them, and after how long? Most of these can be reported automatically.
 - *Out of scope (decided Oct 7, 2026):* the commercial terms between the gym and the café (kiosk vs counter price, the gym's margin, how and how often the café is paid) are agreed outside the software. Café prices are set in the admin like any other product.
 - *Out of scope (decided Oct 7, 2026):* problems after payment (an order paid but not delivered, wrong or spilled) and who carries the loss are handled between the gym, the café and the member outside the software. The café's Entregado tap marks delivery; it isn't treated as proof in a dispute, and there is no "problem" button.
