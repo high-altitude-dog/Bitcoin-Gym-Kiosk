@@ -146,13 +146,16 @@ export function PaymentScreen({
 
   return (
     <div className="screen screen--center">
-      <h1>Pagar {formatBs(invoice.bobAmount)}</h1>
+      {/* The amount being charged (sats) leads; the Bs price follows, smaller. */}
+      <div className="payment-amounts">
+        <p className="payment-sats">{invoice.satsAmount.toLocaleString("es-BO")} sats</p>
+        <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
+      </div>
       {qrDataUrl ? (
         <img className="payment-qr" src={qrDataUrl} alt="Código QR de la factura de Bitcoin⚡" />
       ) : (
         <p className="payment-note">Generando código QR...</p>
       )}
-      <p className="payment-sats">{invoice.satsAmount.toLocaleString()} sats</p>
       <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
       <p className="payment-note">Escanea con una billetera Bitcoin⚡ para pagar.</p>
       <button className="back-button" onClick={onCancel}>

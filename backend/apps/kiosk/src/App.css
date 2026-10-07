@@ -85,10 +85,22 @@
   background: transparent;
 }
 
+.payment-amounts p {
+  margin: 0;
+}
+
 .payment-sats {
-  font-size: 1.2rem;
+  font-size: 3rem;
   font-weight: 700;
+  line-height: 1.1;
   color: var(--k-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-bs {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--k-text-2);
 }
 
 /* No warning-red accent in this design (the kit's rule: "product photos are
