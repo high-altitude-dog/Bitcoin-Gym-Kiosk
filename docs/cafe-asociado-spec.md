@@ -42,6 +42,8 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
   - This is the kiosk's first text input (the original design had none): test the on-screen keyboard in Fully Kiosk on the real tablet.
   - It also changes the live "Entrega del personal" flow (backend app and kiosk, not only the plugin).
 
+- **No minimum order and no delivery fee (decided Oct 7, 2026):** any order with café items is delivered, whatever its value.
+
 ## Proposed, not yet confirmed
 
 
