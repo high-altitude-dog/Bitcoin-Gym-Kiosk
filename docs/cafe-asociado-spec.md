@@ -17,7 +17,9 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
   4. Accepted: the kiosk shows "El café lo tiene listo en ~N min" and continues to payment (the Lightning invoice is created only now, so the rate is fresh and its 10 minutes start after the wait).
   5. Paid: the order is created, gets the next marker, and the café gets a second message that needs no tap: "**Pagado** – preparar y dejar junto al **marcador N**". Only paid orders use a marker.
   6. Cancelled by the café, or **no answer within about 2 minutes**: the kiosk says the café can't take the order right now; the member can buy the rest without the café items, or go back. On a timeout the café's message changes to "Sin respuesta – pedido no realizado".
-  7. Delivered: the café taps **Entregado** on the paid message. That marks the café items delivered in Medusa and frees the marker; gym staff don't need the admin for it.
+  7. On its way: the **runner presses nothing** (no phone needed; they just carry the order over, leave it at the marker and go back). Whoever is at the café counter taps **🚶 En camino** on the paid message as the runner walks out. If nobody taps it, it fires automatically at the promised time (the accepted estimate after acceptance), so the gym is never left unwarned.
+  8. Handed over: **gym staff** tap **✅ Entregado a Ana** on their alert once the member has the food. That marks the café items delivered in Medusa and frees the marker. No admin needed.
+  9. Not handed over: if there's no "Entregado a Ana" about **10 minutes** after En camino (suggested; to confirm), the staff channel gets a reminder.
 - **Slack interactivity:** the buttons need a Slack app with Interactivity enabled, pointing at the backend, and a signing secret in `.env` so the backend can check each tap really came from Slack.
 - **Opening hours (decided Oct 7, 2026):** set hours plus a manual switch. Default hours **Tuesday to Saturday, 08:00–17:00 La Paz time** (`America/La_Paz`, UTC−4, no daylight saving); closed Sunday and Monday. Outside them, café items can't be ordered on the kiosk. The café can also close early ("Cerrar por hoy", reopening automatically at the next opening time).
 - **Morning check-in (decided Oct 7, 2026):** catches new or partly trained staff and late starts.
@@ -38,7 +40,7 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
   - The name is stored on the order and deleted once the order is marked delivered.
   - It appears on: the café's "Pagado" message ("Pedido #14 · Ana · marcador 2", so the café can write it on the bag); the staff channel message for staff-delivered items and the staff alert for café arrivals ("🚶 Pedido #14 de Ana llegando al marcador 2. Buscar a Ana."); the order in the admin; the member's done screen ("Ana, te buscamos cuando llegue tu pedido").
   - For café orders, Pagar sends the café request at once and the member types their name while the café decides; the full-screen Byte wait appears only if the café still hasn't answered.
-  - **Staff are alerted at En camino** (decided): when the café taps En camino, the staff channel gets "🚶 Pedido #14 de Ana llegando al marcador 2. Buscar a Ana.", about 90 s before arrival, so staff can find the member before the food arrives.
+  - **Staff are alerted at En camino** (decided): when the café counter taps En camino (or it fires automatically), the staff channel gets "🚶 Pedido #14 de Ana llegando al marcador 2. Buscar a Ana." with a **✅ Entregado a Ana** button, about 90 s before arrival, so staff can find the member before the food arrives.
   - This is the kiosk's first text input (the original design had none): test the on-screen keyboard in Fully Kiosk on the real tablet.
   - It also changes the live "Entrega del personal" flow (backend app and kiosk, not only the plugin).
 
