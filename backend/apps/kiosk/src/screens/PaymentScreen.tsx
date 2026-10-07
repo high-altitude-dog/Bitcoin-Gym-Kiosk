@@ -5,6 +5,7 @@ import { formatBs } from "../lib/money"
 import { t } from "../lib/strings"
 import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
+import { KIOSK } from "../lib/stageConfig"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
 interface Props {
@@ -156,6 +157,7 @@ export function PaymentScreen({
       ) : (
         <p className="payment-note">Generando código QR...</p>
       )}
+      <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
       <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
       <p className="payment-note">Escanea con billetera Bitcoin Lightning</p>
       <button className="back-button" onClick={onCancel}>
