@@ -49,6 +49,35 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 
 - **No minimum order and no delivery fee (decided Oct 7, 2026):** any order with café items is delivered, whatever its value.
 
+- **Setup checklist ships with the plugin (decided Oct 7, 2026):** the plugin's README has a "Setup" section with this list (draft below, kept up to date as the design changes):
+
+  **Slack (once, by the gym owner)**
+  1. Create the private channels: the café's channel and the staff channel (the alert channel `#kiosk-notifications` already exists). Every channel private; café staff join only the café's channel.
+  2. In the Slack app's settings: add a **bot token** (`chat:write` and pinning scopes), turn on **Interactivity** with the request URL `https://<api domain>/hooks/slack`, and copy the **signing secret**. Invite the app to the café and staff channels.
+  3. Put the secrets in the backend's `.env` (never in chat or code): bot token, signing secret, café and staff channel IDs, and `CAFE_ASOCIADO_ENABLED=true`. Rebuild and restart.
+
+  **Medusa admin (once, then per new item)**
+  4. Run `setup-armor-gym.ts` (creates the product Types) and the plugin's migrations.
+  5. Create the "Café asociado" stock location and link it to the kiosk's sales channel.
+  6. For each café product: Type "Café asociado", photo, price, stock at the "Café asociado" location.
+
+  **Front-desk laptop (staff alerts)**
+  7. Slack desktop app, logged in, open at login.
+  8. Staff channel notifications on "All new messages", with a sound (Slack Preferences → Notifications).
+  9. OS notifications and sounds allowed for Slack; no Focus/Do Not Disturb (OS or Slack) during gym hours.
+  10. Never sleeps while the gym is open (plugged in, sleep disabled); volume up and unmuted, checked at each shift start.
+
+  **At the café**
+  11. A device on the counter with Slack, the café channel set to notify on every message with a sound.
+  12. Staff briefed on the flow: morning check-in, accepting with a time, En camino; the runner presses nothing. (Training guide: open question.)
+
+  **At the gym**
+  13. Five numbered wooden markers (1–5) placed where the runner can reach them and staff can see them.
+  14. Kiosk tablet: test the on-screen keyboard (name page) in Fully Kiosk.
+
+  **Check it works**
+  15. A test order end to end on an opening day: check-in, request, accept, pay, En camino, staff alert every 45 s with sound on the laptop, Entregado.
+
 ## Proposed, not yet confirmed
 
 
