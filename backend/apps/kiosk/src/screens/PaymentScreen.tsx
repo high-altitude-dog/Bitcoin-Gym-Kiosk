@@ -157,7 +157,7 @@ export function PaymentScreen({
         <p className="payment-note">Generando código QR...</p>
       )}
       <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
-      <p className="payment-note">Escanea con una billetera Bitcoin⚡ para pagar.</p>
+      <p className="payment-note">Escanea con billetera Bitcoin Lightning</p>
       <button className="back-button" onClick={onCancel}>
         Cancelar
       </button>
