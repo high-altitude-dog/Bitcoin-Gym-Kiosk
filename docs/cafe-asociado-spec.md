@@ -20,11 +20,15 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
   7. Delivered: the café taps **Entregado** on the paid message. That marks the café items delivered in Medusa and frees the marker; gym staff don't need the admin for it.
 - **Slack interactivity:** the buttons need a Slack app with Interactivity enabled, pointing at the backend, and a signing secret in `.env` so the backend can check each tap really came from Slack.
 - **Opening hours (decided Oct 7, 2026):** set hours plus a manual switch. Default hours **Tuesday to Saturday, 08:00–17:00 La Paz time** (`America/La_Paz`, UTC−4, no daylight saving); closed Sunday and Monday. Outside them, café items can't be ordered on the kiosk. The café can also close early ("Cerrar por hoy", reopening automatically at the next opening time).
+- **Morning check-in (decided Oct 7, 2026):** catches new or partly trained staff and late starts.
+  - **Availability resets every morning** (many items are perishable): at 7:45 every café item is set to Agotado and its count cleared, so nothing from yesterday is sold by mistake.
+  - **7:45 on opening days:** the café's channel gets the check-in message listing every café item with **Disponible** / **Cantidad…** buttons, and **✅ Listos para recibir pedidos**. Whoever opens marks today's items, then taps Listos. If they tap Listos with nothing available, the message asks them to confirm that ("¿Abrir sin productos disponibles?").
+  - **From 8:00**, café items stay closed until Listos is tapped: greyed out on the kiosk ("El café abre pronto"), 🟡 Esperando confirmación on the panel. After the tap, the message shows who confirmed and when, and that's recorded.
+  - **No confirmation:** reminder with `@here` in the café channel at **8:15**; heads-up in the staff channel at **8:30**, so someone at the gym can call or walk over.
+  - **"Abrir ahora"** outside the normal hours goes through the same check-in (availability starts from Agotado) and counts as that day's check-in.
 - **Café updates its own availability:** the café needs a way to say what it can sell, from its own premises (not through the Medusa admin, whose permissions can't be limited to the café's products).
 
 ## Proposed, not yet confirmed
-
-- **Morning check-in:** on opening days the café's channel gets a message at 7:45 listing today's availability with a **✅ Listos para recibir pedidos** button. From 8:00 café items stay closed (greyed out on the kiosk: "El café abre pronto"; panel: 🟡 Esperando confirmación) until someone taps it; the message then shows who confirmed and when, and that's recorded. No confirmation: reminder with `@here` in the café channel at 8:15, heads-up in the staff channel at 8:30. "Abrir ahora" outside hours counts as that day's check-in. Purpose: catches new or partly trained staff and late starts, and makes whoever opens look at availability first. Open: does availability carry over from the previous day (suggested) or reset each morning; are 7:45 / 8:15 / 8:30 right?
 
 - **Where the marker shows:** in the café's "Pagado" message, on the member's done screen ("Tu pedido del café llegará al marcador 2 en ~6 min"), and on the order in the admin.
 - **Marker still taken:** if the cycle reaches a marker whose previous café order isn't marked delivered yet, warn in the café and staff channels.
