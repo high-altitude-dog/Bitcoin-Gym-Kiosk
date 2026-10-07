@@ -73,9 +73,9 @@
   padding: 8px;
 }
 
-/* Bitcoin Lightning logo, the same width as the QR above it. */
+/* Bitcoin Lightning logo, a quarter of the QR's width. */
 .payment-logo {
-  width: 276px;
+  width: 69px;
   height: auto;
 }
 
