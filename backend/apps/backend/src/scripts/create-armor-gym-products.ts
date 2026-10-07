@@ -45,6 +45,14 @@ const PRODUCTS = [
     priceBs: 1,
     imageFile: "1790827204223-banana.jpg",
   },
+  {
+    // Added Oct 7, 2026. Photo cropped from the brand's promo poster
+    // (~/Documents/qkies.jpeg); swap in a plain product photo when there is one.
+    title: "Qkies Galetta",
+    handle: "qkies-galetta",
+    priceBs: 2,
+    imageFile: "qkies-galleta.webp",
+  },
 ] as const;
 
 const MIME_TYPES: Record<string, string> = {
