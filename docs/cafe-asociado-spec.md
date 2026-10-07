@@ -13,7 +13,7 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 - **Ordering flow (decided Oct 7, 2026):** the café confirms *before* the member pays, so a cancellation never needs a refund (a Lightning refund needs an invoice from an anonymous member who may have left; a bank QR refund is a manual transfer).
   1. The member taps Pagar on a cart that contains café items.
   2. The café's Slack channel gets "¿Puedes preparar esto?" with the items and buttons **3, 4, 5, 6, 7, 8, 9, 10 min** and a red **Cancelar**. Tapping a time accepts the order and sets the estimate in one tap.
-  3. Meanwhile the kiosk shows Byte's **magic hoops** animation (`byte-magic-hoops`, transparent version, from the byte-kit). The idle reset is paused.
+  3. Meanwhile the kiosk shows Byte's **magic hoops** animation. The idle reset is paused. File: `byte-magic-hoops-on-black.gif` (606×326, 63 frames × 40 ms, 2.52 s loop) from the developer's "Byte Magic Hoops" artifact (https://claude.ai/artifact/Fb7zvUz3tYMsYavsFmJzZ7), with `byte-magic-hoops-on-black-still.png` for reduced motion. The GIF's black ground is baked in, so the waiting screen is pure black (or Byte sits on a black panel); the transparent version is unusable on dark screens (its black linework disappears). Keep the art unaltered: no recolouring, cropping or flipping.
   4. Accepted: the kiosk shows "El café lo tiene listo en ~N min" and continues to payment (the Lightning invoice is created only now, so the rate is fresh and its 10 minutes start after the wait).
   5. Paid: the order is created, gets the next marker, and the café gets a second message that needs no tap: "**Pagado** – preparar y dejar junto al **marcador N**". Only paid orders use a marker.
   6. Cancelled by the café, or **no answer within about 2 minutes**: the kiosk says the café can't take the order right now; the member can buy the rest without the café items, or go back. On a timeout the café's message changes to "Sin respuesta – pedido no realizado".
@@ -23,6 +23,8 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 - **Café updates its own availability:** the café needs a way to say what it can sell, from its own premises (not through the Medusa admin, whose permissions can't be limited to the café's products).
 
 ## Proposed, not yet confirmed
+
+- **Morning check-in:** on opening days the café's channel gets a message at 7:45 listing today's availability with a **✅ Listos para recibir pedidos** button. From 8:00 café items stay closed (greyed out on the kiosk: "El café abre pronto"; panel: 🟡 Esperando confirmación) until someone taps it; the message then shows who confirmed and when, and that's recorded. No confirmation: reminder with `@here` in the café channel at 8:15, heads-up in the staff channel at 8:30. "Abrir ahora" outside hours counts as that day's check-in. Purpose: catches new or partly trained staff and late starts, and makes whoever opens look at availability first. Open: does availability carry over from the previous day (suggested) or reset each morning; are 7:45 / 8:15 / 8:30 right?
 
 - **Where the marker shows:** in the café's "Pagado" message, on the member's done screen ("Tu pedido del café llegará al marcador 2 en ~6 min"), and on the order in the admin.
 - **Marker still taken:** if the cycle reaches a marker whose previous café order isn't marked delivered yet, warn in the café and staff channels.
@@ -35,5 +37,4 @@ Items made by a partner sandwich and coffee shop about 100 m from Armor Gym, sol
 
 - **Payment to the café:** how and how often the gym pays the café for its items (affects what the café needs to see: a daily summary?).
 - **Problems after payment:** the café accepted and the member paid, but something still goes wrong (spilled coffee, never delivered). Who handles it, and is there a "problem" button? Rare now that the café confirms first.
-- **Animation file:** the byte-kit's `byte-magic-hoops-transparent.gif` is needed (not on this machine yet).
 - **Pricing:** who sets the kiosk price of café items, and is there a gym margin?
