@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
-import { sdk } from "../lib/medusa"
+import { isHttpError, sdk } from "../lib/medusa"
+import { toKioskCart } from "../lib/kioskMapping"
 import { t } from "../lib/strings"
 import {
   COINOS_LIGHTNING_PROVIDER_ID,
@@ -29,6 +30,9 @@ const MIN_BYTE_MS = 1500
 // expired: a payment sent in the last seconds can settle, and the Coinos
 // webhook arrive, a little after the deadline.
 const EXPIRY_GRACE_MS = 60_000
+// A cart change that times out or loses its connection is retried this many
+// times (after reloading the cart) before its taps are given up.
+const MAX_SYNC_RETRIES = 1
 const PAYMENT_SESSION_FIELDS =
   "+payment_collection.payment_sessions.status,+payment_collection.payment_sessions.provider_id"
 
@@ -45,6 +49,9 @@ interface KioskState {
   invoice: LightningInvoice | null
   paymentStatus: PaymentStatus
   paymentMethod: PaymentMethod
+  // The payment button tapped while taps were still being saved: it shows
+  // "Guardando tu pedido…" until they are.
+  savingFor: PaymentMethod
   loading: boolean
   error: string | null
 }
@@ -61,6 +68,7 @@ export function useKiosk() {
     invoice: null,
     paymentStatus: null,
     paymentMethod: null,
+    savingFor: null,
     loading: true,
     error: null,
   })
@@ -73,6 +81,13 @@ export function useKiosk() {
   const queueRef = useRef<Promise<unknown>>(Promise.resolve())
   const pendingRef = useRef<Record<string, number>>({})
   const syncQueuedRef = useRef(false)
+  // Counts the times unsent taps were given up. "Pagar" notes the count, and
+  // a payment button that finds it changed stops to show the real total.
+  const droppedTapsRef = useRef(0)
+  const dropsAtPagarRef = useRef(0)
+  // Bumped on every screen change the member makes, so a payment button
+  // still waiting for the cart drops out if the member has moved on.
+  const navRef = useRef(0)
   // Bumped by reset(): work started for the previous member checks it and
   // drops its result instead of writing into the next member's session.
   const epochRef = useRef(0)
@@ -154,24 +169,31 @@ export function useKiosk() {
     [commitCart]
   )
 
+  const dropUnsentTaps = useCallback(() => {
+    pendingRef.current = {}
+    droppedTapsRef.current += 1
+    setState((s) => ({ ...s, pending: {} }))
+  }, [])
+
   // Sends the tapped-in quantities to Medusa one change at a time, until the
   // cart matches what the member sees. Taps that land while a request is in
   // flight are picked up by the same loop, so a burst of taps costs one
   // request per product, not one per tap. Each change takes about a second
-  // on the server, which is why the screen doesn't wait for it.
+  // from the tablet, which is why the screen doesn't wait for it.
   const syncCart = useCallback(
     async (isCurrent: () => boolean) => {
       syncQueuedRef.current = false
-      try {
-        for (;;) {
-          if (!isCurrent()) return
-          const cart = cartRef.current
-          const change = nextCartChange(cart, pendingRef.current)
-          if (!change) {
-            pendingRef.current = {}
-            setState((s) => ({ ...s, pending: {} }))
-            return
-          }
+      let retries = 0
+      for (;;) {
+        if (!isCurrent()) return
+        const cart = cartRef.current
+        const change = nextCartChange(cart, pendingRef.current)
+        if (!change) {
+          pendingRef.current = {}
+          setState((s) => ({ ...s, pending: {} }))
+          return
+        }
+        try {
           if (!cart) {
             const { cart: created } = await sdk.store.cart.create({ region_id: regionRef.current?.id })
             if (isCurrent()) commitCart(created)
@@ -188,18 +210,32 @@ export function useKiosk() {
           }
           if (!updated) throw new Error("cart change returned no cart")
           if (isCurrent()) commitCart(updated)
+        } catch (err) {
+          if (!isCurrent()) return
+          // Timed out or no connection: the change may or may not have
+          // reached Medusa (a reply lost on the wifi looks the same as a
+          // request that never left). Each change sets an absolute quantity,
+          // so reload the cart and carry on from what it really holds;
+          // sending a change twice is harmless. Medusa refusing a change
+          // (an error status, e.g. not enough stock) is final.
+          if (!isHttpError(err) && retries < MAX_SYNC_RETRIES && cart) {
+            retries += 1
+            try {
+              const { cart: fresh } = await sdk.store.cart.retrieve(cart.id)
+              if (isCurrent()) commitCart(fresh)
+              continue
+            } catch {
+              // Still no connection: give up below.
+            }
+          }
+          // Drop the unsent taps; enqueue() then reloads the cart so the
+          // screen shows what it really holds.
+          dropUnsentTaps()
+          throw err
         }
-      } catch (err) {
-        // Drop the unsent taps; enqueue() then reloads the cart so the
-        // screen shows what it really holds.
-        if (isCurrent()) {
-          pendingRef.current = {}
-          setState((s) => ({ ...s, pending: {} }))
-        }
-        throw err
       }
     },
-    [commitCart]
+    [commitCart, dropUnsentTaps]
   )
 
   const setItemQuantity = useCallback(
@@ -223,18 +259,51 @@ export function useKiosk() {
     } while (queue !== queueRef.current)
   }, [])
 
-  // "Pagar" waits for the cart to settle, so the payment-method screen shows
-  // the total Medusa will actually charge.
-  const goToPaymentMethod = useCallback(async () => {
-    const epoch = epochRef.current
-    await settleCart()
-    if (epoch !== epochRef.current || !cartRef.current?.items?.length) return
-    setState((s) => ({ ...s, error: null, screen: "payment-method" }))
-  }, [settleCart])
+  // "Pagar" opens the payment-method screen at once, with the order bar's
+  // total (the cart plus taps still being saved). It used to wait for the
+  // cart to finish saving first, and a reply lost on the gym wifi then left
+  // the tap doing nothing at all. The payment buttons wait instead.
+  const goToPaymentMethod = useCallback(() => {
+    if (toKioskCart(cartRef.current, pendingRef.current, []).itemCount <= 0) return
+    navRef.current += 1
+    dropsAtPagarRef.current = droppedTapsRef.current
+    setState((s) => ({ ...s, error: null, savingFor: null, screen: "payment-method" }))
+  }, [])
 
   const goTo = useCallback((screen: Screen) => {
-    setState((s) => ({ ...s, screen }))
+    navRef.current += 1
+    setState((s) => ({ ...s, savingFor: null, screen }))
   }, [])
+
+  // The payment buttons wait here for taps still being saved, so the payment
+  // is for the cart the member sees. Returns that cart, or null if the
+  // member moved on, or a tap couldn't be saved (the screen then shows the
+  // total Medusa really holds and asks them to check it).
+  const settleForPayment = useCallback(
+    async (method: "lightning" | "bank_qr") => {
+      const epoch = epochRef.current
+      const nav = navRef.current
+      // Only show "Guardando tu pedido…" if there is something left to
+      // save, so a normal tap doesn't flash it.
+      const saving = Object.keys(pendingRef.current).length > 0
+      setState((s) => ({ ...s, error: null, savingFor: saving ? method : null }))
+      await settleCart()
+      if (epoch !== epochRef.current || nav !== navRef.current) return null
+      if (saving) setState((s) => ({ ...s, savingFor: null }))
+      if (droppedTapsRef.current !== dropsAtPagarRef.current) {
+        dropsAtPagarRef.current = droppedTapsRef.current
+        setState((s) => ({ ...s, error: t.errorCartSync }))
+        return null
+      }
+      const cart = cartRef.current
+      if (!cart?.items?.length) {
+        setState((s) => ({ ...s, screen: "shop" }))
+        return null
+      }
+      return cart
+    },
+    [settleCart]
+  )
 
   // Polls the cart's payment session rather than repeatedly calling
   // cart.complete(): completing the cart creates the order and reserves
@@ -376,10 +445,7 @@ export function useKiosk() {
   )
 
   const startPayment = useCallback(async () => {
-    // Let any taps still in flight land first, so the invoice is for the
-    // cart the member actually sees.
-    await settleCart()
-    const cart = cartRef.current
+    const cart = await settleForPayment("lightning")
     if (!cart) return
 
     // Coinos can't cancel an invoice, so one replaced by a new invoice stays
@@ -409,7 +475,7 @@ export function useKiosk() {
     } catch {
       setState((s) => ({ ...s, error: t.errorInvoiceFailed, screen: "payment-method" }))
     }
-  }, [ensureShippingMethod, initiateLightningPayment, settleCart])
+  }, [ensureShippingMethod, initiateLightningPayment, settleForPayment])
 
   const retryPayment = useCallback(async () => {
     const cart = cartRef.current
@@ -422,8 +488,7 @@ export function useKiosk() {
   // live Lightning invoice and its polling alone: if the member already paid
   // that invoice, the order still completes.
   const startBankQrPayment = useCallback(async () => {
-    await settleCart()
-    const cart = cartRef.current
+    const cart = await settleForPayment("bank_qr")
     if (!cart) return
     const epoch = epochRef.current
     try {
@@ -435,7 +500,7 @@ export function useKiosk() {
       if (epoch !== epochRef.current) return
       setState((s) => ({ ...s, error: t.errorPayment, screen: "payment-method" }))
     }
-  }, [ensureShippingMethod, commitCart, settleCart])
+  }, [ensureShippingMethod, commitCart, settleForPayment])
 
   // Stand-in for the Baneco webhook: the "Pagado" button records the bank QR
   // payment with Medusa's manual provider and completes the order. Nothing
@@ -488,6 +553,7 @@ export function useKiosk() {
       invoice: null,
       paymentStatus: null,
       paymentMethod: null,
+      savingFor: null,
       error: null,
     }))
     loadCatalog()

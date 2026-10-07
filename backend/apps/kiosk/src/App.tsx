@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react"
 import "./App.css"
 import "./kiosk.css"
+import { toKioskCart, toKioskProduct } from "./lib/kioskMapping"
 import { t } from "./lib/strings"
 import { useKiosk } from "./state/useKiosk"
 import { useIdleReset } from "./hooks/useIdleReset"
@@ -70,10 +71,12 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
     )
   }
 
-  if (kiosk.screen === "payment-method" && kiosk.cart) {
+  // No cart needed yet: "Pagar" can come before Medusa has created it.
+  if (kiosk.screen === "payment-method") {
     return (
       <PaymentMethodScreen
-        cart={kiosk.cart}
+        total={shownTotal(kiosk)}
+        savingFor={kiosk.savingFor}
         error={kiosk.error}
         onLightning={kiosk.startPayment}
         onBankQr={kiosk.startBankQrPayment}
@@ -124,3 +127,9 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
 }
 
 export default App
+
+// The order bar's total: the cart plus taps not yet saved.
+function shownTotal(kiosk: ReturnType<typeof useKiosk>): number {
+  const products = kiosk.products.map(toKioskProduct).filter((p) => p !== null)
+  return toKioskCart(kiosk.cart, kiosk.pending, products).total
+}

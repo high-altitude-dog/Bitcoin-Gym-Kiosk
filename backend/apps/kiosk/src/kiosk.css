@@ -54,42 +54,31 @@
   box-shadow: 0 16px 48px rgb(0 0 0 / 0.5);
   animation: k-bob 2.4s ease-in-out infinite;
 }
-/* two rings that ripple outward from the button, half a cycle apart */
-.k-idle__cta::before,
-.k-idle__cta::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  border: 6px solid var(--k-action);
-  pointer-events: none;
-  animation: k-ripple 2.4s ease-out infinite;
-}
-.k-idle__cta::after { animation-delay: 1.2s; }
-/* a finger that taps the button once per cycle */
-.k-idle__hand {
-  font-size: 72px;
-  line-height: 1;
-  display: inline-block;
-  transform-origin: 50% 100%;
-  animation: k-tap 2.4s ease-in-out infinite;
+/* Byte on his ball pokes out of the left end of the pill and rocks on it.
+   The art is 800x800 with wide transparent margins; object-view-box crops
+   to the drawing (Chrome 104+, which the tablet's WebView is well past). */
+.k-idle__byte {
+  width: 255px;
+  height: 340px;
+  object-fit: contain;
+  object-view-box: inset(8% 26% 14% 16%);
+  margin: -150px -10px -50px -40px;
+  transform-origin: 50% 85%;
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35));
+  animation: k-rock 2.4s ease-in-out infinite;
 }
 @keyframes k-bob {
   0%, 100% { transform: translate(-50%, -50%) scale(1); }
   50% { transform: translate(-50%, -50%) scale(1.05); }
 }
-@keyframes k-ripple {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.18, 1.7); opacity: 0; }
-}
-@keyframes k-tap {
-  0%, 60%, 100% { transform: translateY(0) scale(1); }
-  70% { transform: translateY(10px) scale(0.88); }
-  80% { transform: translateY(0) scale(1); }
+@keyframes k-rock {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-7deg) translateY(-6px); }
+  50% { transform: rotate(0deg) translateY(4px) scale(1.02, 0.97); }
+  75% { transform: rotate(7deg) translateY(-6px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .k-idle__cta, .k-idle__hand { animation: none; }
-  .k-idle__cta::before, .k-idle__cta::after { animation: none; opacity: 0; }
+  .k-idle__cta, .k-idle__byte { animation: none; }
 }
 
 /* ---------------------------------------------------------------- header */
@@ -340,6 +329,11 @@
   font: var(--k-pay);
   font-size: 40px;
 }
+/* While a tapped button waits for the cart to save, the other one dims. */
+.k-method__option:disabled { opacity: 0.4; cursor: default; }
+.k-method__option[aria-busy="true"] { opacity: 1; animation: k-saving 1.2s ease-in-out infinite; }
+@keyframes k-saving { 50% { opacity: 0.7; } }
+@media (prefers-reduced-motion: reduce) { .k-method__option[aria-busy="true"] { animation: none; } }
 .k-method__option--secondary {
   background: var(--k-card);
   color: var(--k-text);
