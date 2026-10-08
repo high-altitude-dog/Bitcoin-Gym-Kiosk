@@ -15,6 +15,8 @@ import {
   linkSalesChannelsToApiKeyWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
   updateProductsWorkflow,
+  updateSalesChannelsWorkflow,
+  updateShippingProfilesWorkflow,
   updateRegionsWorkflow,
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows";
@@ -23,7 +25,11 @@ import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
 
 const GYM_NAME = "Armor Gym";
 const REGION_NAME = "Bolivia";
-const CHANNEL_NAME = `${GYM_NAME} Kiosk`;
+// The kiosk sales channel and the default shipping profile are both named
+// after the gym, so staff see a single "Armor Gym" in the product form. The
+// channel was called "Armor Gym Kiosk" until Oct 9, 2026; it is renamed in place.
+const CHANNEL_NAME = GYM_NAME;
+const LEGACY_CHANNEL_NAME = `${GYM_NAME} Kiosk`;
 
 // Adds the Bolivia region (BOB), this gym's stock location and kiosk sales
 // channel. Safe to re-run: each piece is created only if it is missing.
@@ -103,6 +109,16 @@ export default async function setupArmorGym({ container }: ExecArgs) {
   // Kiosk sales channel, tied to this gym's stock.
   let channel = await find("sales_channel", { name: CHANNEL_NAME });
   if (!channel) {
+    const legacy = await find("sales_channel", { name: LEGACY_CHANNEL_NAME });
+    if (legacy) {
+      await updateSalesChannelsWorkflow(container).run({
+        input: { selector: { id: legacy.id }, update: { name: CHANNEL_NAME } },
+      });
+      channel = legacy;
+      logger.info(`Renamed sales channel ${LEGACY_CHANNEL_NAME} to ${CHANNEL_NAME}.`);
+    }
+  }
+  if (!channel) {
     const { result } = await createSalesChannelsWorkflow(container).run({
       input: {
         salesChannelsData: [
@@ -118,7 +134,7 @@ export default async function setupArmorGym({ container }: ExecArgs) {
   }
 
   // Publishable API key for the kiosk storefront, scoped to this channel.
-  const KIOSK_KEY_TITLE = `${CHANNEL_NAME} storefront`;
+  const KIOSK_KEY_TITLE = `${LEGACY_CHANNEL_NAME} storefront`; // the key keeps its original title
   const { data: existingKeys } = await query.graph({
     entity: "api_key",
     fields: ["id", "token", "sales_channels.id"],
@@ -146,6 +162,20 @@ export default async function setupArmorGym({ container }: ExecArgs) {
     logger.info(`Linked sales channel ${CHANNEL_NAME} to the kiosk publishable key.`);
   }
   logger.info(`Kiosk publishable key token: ${apiKey.token}`);
+
+  // The default shipping profile is named after the gym too (Medusa's own
+  // name is "Default Shipping Profile"). Every product uses this one.
+  const { data: allProfiles } = await query.graph({
+    entity: "shipping_profile",
+    fields: ["id", "name", "type"],
+  });
+  const defaultProfile = (allProfiles as { id: string; name: string; type: string }[]).find((p) => p.type === "default");
+  if (defaultProfile && defaultProfile.name !== GYM_NAME) {
+    await updateShippingProfilesWorkflow(container).run({
+      input: { selector: { id: defaultProfile.id }, update: { name: GYM_NAME } },
+    });
+    logger.info(`Renamed shipping profile ${defaultProfile.name} to ${GYM_NAME}.`);
+  }
 
   // Free in-gym pickup: a cart needs a shipping option to complete.
   const pickupName = `${GYM_NAME} pickup`;

@@ -27,7 +27,8 @@ export default async function removeDemoData({ container }: ExecArgs) {
   const one = async (entity: string, filters: Record<string, unknown>) =>
     (await ids(entity, filters))[0] as string | undefined;
 
-  const kioskChannel = await one("sales_channel", { name: "Armor Gym Kiosk" });
+  const kioskChannel =
+    (await one("sales_channel", { name: "Armor Gym" })) ?? (await one("sales_channel", { name: "Armor Gym Kiosk" }));
   const bolivia = await one("region", { name: "Bolivia" });
   const gym = await one("stock_location", { name: "Armor Gym" });
   if (!kioskChannel || !bolivia || !gym) {

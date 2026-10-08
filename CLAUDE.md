@@ -143,10 +143,10 @@ Written Oct 1, 2026 when work moved from the Claude desktop app to Claude Code i
 - **Medusa v2.21.2** in `backend/` (Turborepo layout). The app is `backend/apps/backend/`. Run all Medusa commands from there.
 - **Postgres 17** and **Redis 8** run as system services. Database `bitcoin_gym_kiosk` (named `perseus` until Oct 7, 2026), role `medusa`. No sudo from Claude: ask the developer to run anything that needs it.
 - **Redis is wired in** through `medusa-config.ts` when `REDIS_URL` is set (sessions, event bus, workflow engine, locking).
-- **Region "Bolivia"** (BOB, country BO), **stock location "Armor Gym"**, **sales channel "Armor Gym Kiosk"** (the store default), and a free **"Armor Gym pickup"** shipping option (a cart needs one to complete). Region payment providers: `pp_system_default` and `pp_coinos-lightning_coinos-lightning`.
+- **Region "Bolivia"** (BOB, country BO), **stock location "Armor Gym"**, **sales channel "Armor Gym"** (the store default; "Armor Gym Kiosk" until Oct 9, 2026), the default shipping profile also named "Armor Gym", and a free **"Armor Gym pickup"** shipping option (a cart needs one to complete). Region payment providers: `pp_system_default` and `pp_coinos-lightning_coinos-lightning`.
 - **Products:** Whey Protein Concentrate - Chocolate (Bs 10), Creatine Monohydrate (Bs 3), Banana (Bs 1), Qkies Galetta (Bs 2, added Oct 7, 2026; photo cropped from the brand's promo poster, swap for a plain product photo when available), Fruit Drink (Bs 1, added Oct 8, 2026; the developer's photo of a clear Supra can, cut out onto black). All Type "Autoservicio". Inventory is managed, 21 units each at Armor Gym. These prices look like test values.
 - **Admin user** exists for the developer's own email (not recorded in the repo). The developer set the password. Never create or reset *that* account — this isn't a blanket rule against ever creating an admin user; if no admin user exists yet (e.g. a fresh setup), create one and ask the developer to set its password.
-- **Kiosk storefront** in `backend/apps/kiosk/` (Vite + React, `@dtc/kiosk`), with a publishable API key scoped to the Armor Gym Kiosk channel, created by `setup-armor-gym.ts` and stored in `backend/apps/kiosk/.env`.
+- **Kiosk storefront** in `backend/apps/kiosk/` (Vite + React, `@dtc/kiosk`), with a publishable API key scoped to the Armor Gym sales channel, created by `setup-armor-gym.ts` and stored in `backend/apps/kiosk/.env`.
 - Git repo at the project root, pushed to the private GitHub repo `high-altitude-dog/Bitcoin-Gym-Kiosk` (since Oct 7, 2026).
 
 ## Run it
@@ -210,7 +210,7 @@ Scaffolded as `backend/apps/kiosk/` (`@dtc/kiosk`, Vite + React + TypeScript), u
 
 Also added to `setup-armor-gym.ts` (idempotent, same pattern as the rest of that script):
 
-- A publishable API key titled "Armor Gym Kiosk storefront", linked to the Armor Gym Kiosk sales channel. The token is logged on every run; copy it into `backend/apps/kiosk/.env` as `VITE_MEDUSA_PUBLISHABLE_KEY`.
+- A publishable API key titled "Armor Gym Kiosk storefront", linked to the Armor Gym sales channel. The token is logged on every run; copy it into `backend/apps/kiosk/.env` as `VITE_MEDUSA_PUBLISHABLE_KEY`.
 - A fix that links any product missing a shipping profile to the store's default one. The three real products (Whey, Creatine, Banana) had no shipping profile set — however they were created, it wasn't through a workflow that assigned one — which made `cart.complete()` fail for every product with "shipping profiles not satisfied," regardless of payment method. This was caught by actually running the purchase flow, not by code review.
 
 Gotcha hit while scaffolding: `npm create vite@latest -- --template react-ts` pulled Vite 8 (the new Rolldown-based engine) with `@vitejs/plugin-react` 6, which fails every request with `Missing field moduleType` from `builtin:vite-react-refresh-wrapper` — a blank page, not a readable error in the browser. Pinned `backend/apps/kiosk/package.json` to the known-stable pair (`vite` ^6.3.5, `@vitejs/plugin-react` ^4.3.4) instead. If re-scaffolding this app or starting a new Vite app in this repo, pin those versions from the start rather than taking whatever `create-vite` defaults to.
@@ -284,6 +284,15 @@ Medusa names each variant's inventory item after the variant alone, so the admin
 - Bundles (a variant with several inventory items) and items shared between variants are skipped.
 - Not handled: renaming a product later doesn't rename its inventory items (rename them by hand, or re-run the script for catalogue products).
 - Verified locally with real workflows against `medusa develop`: a one-variant product, then two variants added to it (with and without SKUs), and the 5 catalogue products; 6 unit tests.
+
+## Product form for staff: one "Armor Gym" (Oct 9, 2026)
+
+Everything is sold and collected at the gym, so the admin's **Shipping profile** and **Sales channels** fields shouldn't need explaining. The one sales channel and the one shipping profile are both named **"Armor Gym"** (`setup-armor-gym.ts` renames the old "Armor Gym Kiosk" channel and "Default Shipping Profile" in place; re-running is a no-op; the publishable key keeps its title "Armor Gym Kiosk storefront"). There are no other options in either dropdown.
+
+- **Auto-fill:** `src/subscribers/product-defaults.ts` (rule in `src/lib/product-defaults.ts`) runs on `product.created` and `product.updated` and gives any product with no shipping profile the default profile, and any product with no sales channel the store's default channel. A product that already has either is never changed. This covers the Admin API and scripts too. A missing shipping profile used to make checkout fail ("shipping profiles not satisfied"); a missing channel hid the product from the kiosk.
+- **Not touched:** new products stay Draft until someone publishes them, so a product with no price or stock never reaches the kiosk. The field labels themselves are Medusa's own and weren't relabelled.
+- **Second gym:** add a sales channel for its kiosk and a publishable key for it; products can then be given both channels in the admin. Auto-fill only adds the default channel to products that have none.
+- Tested locally with a product created with no profile and no channel: both were filled within seconds, and the renames ran once and then did nothing. 4 unit tests.
 
 ## Kiosk: Byte while the invoice is created (Oct 7, 2026)
 

@@ -92,7 +92,8 @@ export default async function createArmorGymProducts({ container }: ExecArgs) {
 
   const region = await find("region", { name: REGION_NAME });
   const stockLocation = await find("stock_location", { name: GYM_NAME });
-  const channel = await find("sales_channel", { name: `${GYM_NAME} Kiosk` });
+  const channel =
+    (await find("sales_channel", { name: GYM_NAME })) ?? (await find("sales_channel", { name: `${GYM_NAME} Kiosk` }));
   const { data: shippingProfiles } = await query.graph({
     entity: "shipping_profile",
     fields: ["id"],
