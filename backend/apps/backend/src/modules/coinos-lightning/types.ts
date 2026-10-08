@@ -4,6 +4,9 @@
 // stays a fixed, known value instead of something assembled at runtime.
 export const COINOS_LIGHTNING_PROVIDER_ID = "pp_coinos-lightning_coinos-lightning"
 
+export const COINOS_INVOICE_TYPES = ["lightning", "bolt12"] as const
+export type CoinosInvoiceType = (typeof COINOS_INVOICE_TYPES)[number]
+
 export type CoinosLightningOptions = {
   coinosApiUrl: string
   coinosApiToken: string
@@ -15,5 +18,9 @@ export type CoinosLightningOptions = {
   // Coinos webhook callback (Coinos must be able to reach it over the internet).
   webhookBaseUrl: string
   invoiceExpirySeconds?: number
+  // What Coinos creates: "lightning" (a BOLT11 invoice, the default) or
+  // "bolt12" (an offer). BOLT12 is for testing only so far: offers are
+  // reusable, and not every wallet can pay one.
+  invoiceType?: CoinosInvoiceType
   yadioCacheTtlMs?: number
 }

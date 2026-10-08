@@ -25,7 +25,7 @@ import {
 } from "@medusajs/framework/types"
 import { CoinosClient } from "./lib/coinos-client"
 import { YadioClient, sharedYadioClient } from "./lib/yadio-client"
-import { CoinosLightningOptions } from "./types"
+import { COINOS_INVOICE_TYPES, CoinosLightningOptions } from "./types"
 
 // Constant-time comparison. Hashing first gives both sides the same length,
 // which timingSafeEqual requires, without revealing the secret's length.
@@ -76,6 +76,13 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
         )
       }
     }
+    const type = options.invoiceType
+    if (type !== undefined && !(COINOS_INVOICE_TYPES as readonly unknown[]).includes(type)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `invoiceType must be one of ${COINOS_INVOICE_TYPES.join(", ")}, got ${JSON.stringify(type)}`
+      )
+    }
   }
 
   private webhookUrl(): string {
@@ -106,6 +113,7 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
       expirySeconds,
       webhookUrl: this.webhookUrl(),
       webhookSecret: this.options_.webhookSecret,
+      type: this.options_.invoiceType ?? "lightning",
     })
 
     return {

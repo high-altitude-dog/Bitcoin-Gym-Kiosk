@@ -28,7 +28,7 @@ describe("CoinosClient", () => {
   })
 
   describe("createInvoice", () => {
-    it("posts amount in sats, memo, expiry, webhook and secret", async () => {
+    it("posts amount in sats, memo, expiry, webhook, secret and type", async () => {
       fetchMock.mockResolvedValueOnce(
         jsonResponse({ id: "inv_1", text: "lnbc1...", hash: "lnbc1...", paymentHash: "hash123", amount: 1000, received: 0 })
       )
@@ -39,6 +39,7 @@ describe("CoinosClient", () => {
         expirySeconds: 600,
         webhookUrl: "https://backend.test/hooks/payment/pp_coinos-lightning_coinos-lightning",
         webhookSecret: "shared-secret",
+        type: "lightning",
       })
 
       expect(fetchMock).toHaveBeenCalledWith(
@@ -55,6 +56,7 @@ describe("CoinosClient", () => {
         expiry: 600,
         webhook: "https://backend.test/hooks/payment/pp_coinos-lightning_coinos-lightning",
         secret: "shared-secret",
+        type: "lightning",
       })
       expect(invoice.id).toBe("inv_1")
     })
@@ -69,6 +71,7 @@ describe("CoinosClient", () => {
           expirySeconds: 600,
           webhookUrl: "https://backend.test/hooks",
           webhookSecret: "secret",
+          type: "lightning",
         })
       ).rejects.toThrow("Coinos invoice creation failed: 400")
     })

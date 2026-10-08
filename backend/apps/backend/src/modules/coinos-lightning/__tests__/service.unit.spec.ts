@@ -66,6 +66,7 @@ describe("CoinosLightningProviderService", () => {
         memo: "payses_123",
         webhook: "https://backend.test/hooks/coinos",
         secret: "shared-secret",
+        type: "lightning",
       })
       expect(result.data).toMatchObject({ expiry_seconds: 600 })
 
@@ -83,6 +84,20 @@ describe("CoinosLightningProviderService", () => {
       expect(result.data!.expires_at as number).toBeLessThanOrEqual(Date.now() + 600_000)
     })
 
+    it("asks Coinos for a BOLT12 offer when invoiceType is bolt12", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse({ rate: 0.000001 }))
+        .mockResolvedValueOnce(jsonResponse({ id: "inv_2", text: "lno1...", hash: "lno1...", amount: 1000, received: 0 }))
+
+      const service = new CoinosLightningProviderService(
+        { logger } as any,
+        { ...options, yadioApiUrl: `https://yadio.test/${++serviceCount}`, invoiceType: "bolt12" } as any
+      )
+      await service.initiatePayment({ amount: 10, currency_code: "bob", data: { session_id: "payses_123" } } as any)
+
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body).invoice.type).toBe("bolt12")
+    })
+
     it("propagates the Yadio error instead of creating an invoice when the rate is unavailable", async () => {
       fetchMock.mockRejectedValueOnce(new Error("network down"))
       const service = makeService()
@@ -92,6 +107,17 @@ describe("CoinosLightningProviderService", () => {
       ).rejects.toThrow("network down")
       expect(fetchMock).toHaveBeenCalledTimes(1)
       expect(fetchMock.mock.calls[0][0]).toMatch(/\/rate\/BTC\/BOB$/)
+    })
+  })
+
+  describe("validateOptions", () => {
+    it("accepts no invoiceType, lightning or bolt12, and rejects anything else", () => {
+      expect(() => CoinosLightningProviderService.validateOptions(options)).not.toThrow()
+      expect(() => CoinosLightningProviderService.validateOptions({ ...options, invoiceType: "lightning" })).not.toThrow()
+      expect(() => CoinosLightningProviderService.validateOptions({ ...options, invoiceType: "bolt12" })).not.toThrow()
+      expect(() => CoinosLightningProviderService.validateOptions({ ...options, invoiceType: "bitcoin" })).toThrow(
+        "invoiceType must be one of lightning, bolt12"
+      )
     })
   })
 

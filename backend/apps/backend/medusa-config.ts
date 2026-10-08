@@ -83,6 +83,7 @@ module.exports = defineConfig({
               yadioApiUrl: process.env.YADIO_API_URL,
               webhookSecret: process.env.COINOS_WEBHOOK_SECRET,
               webhookBaseUrl: process.env.MEDUSA_BACKEND_URL,
+              invoiceType: process.env.COINOS_INVOICE_TYPE || undefined,
             },
           },
         ],

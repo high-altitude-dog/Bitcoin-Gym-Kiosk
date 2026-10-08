@@ -5,7 +5,9 @@ import { MedusaError } from "@medusajs/framework/utils"
 // coinos.io runs, since coinos.io/docs is a JS-rendered page that couldn't
 // be read directly:
 //   - base URL: https://coinos.io/api
-//   - POST /invoice, body { invoice: { amount (sats), memo, expiry, webhook, secret } }
+//   - POST /invoice, body { invoice: { amount (sats), memo, expiry, webhook, secret, type } }
+//     (type: "lightning" gives a BOLT11 invoice and is the default; "bolt12" an
+//     offer; anything else is a 500 "unrecognized type". Tested live Oct 8, 2026.)
 //   - GET /invoice/:id — public, returns the invoice with its current `received`
 //   - GET /payments — requires Authorization: Bearer <token>, supports start/end/limit/offset
 export type CoinosInvoice = {
@@ -49,6 +51,7 @@ export type CreateInvoiceInput = {
   expirySeconds: number
   webhookUrl: string
   webhookSecret: string
+  type: "lightning" | "bolt12"
 }
 
 export class CoinosClient {
@@ -80,6 +83,7 @@ export class CoinosClient {
           expiry: input.expirySeconds,
           webhook: input.webhookUrl,
           secret: input.webhookSecret,
+          type: input.type,
         },
       }),
     })
