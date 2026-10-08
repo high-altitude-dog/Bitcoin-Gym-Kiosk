@@ -276,7 +276,7 @@ Each product's **Type** field in the admin decides how it reaches the member (`s
 
 ## Inventory item names (Oct 8, 2026)
 
-Medusa names each variant's inventory item after the variant alone, so the admin's Inventory page showed every product as "Default variant". `src/lib/inventory-naming.ts` renames them after the product: "Banana" for a one-variant product, "Whey / Vanilla" when there are several. It runs from `src/subscribers/product-inventory-names.ts` on `product.created` and `product-variant.created` (so products added through the admin, the Admin API or a script are all covered, including a product that gains a second variant), and from `create-armor-gym-products.ts`.
+Medusa names each variant's inventory item after the variant alone, so the admin's Inventory page showed every product as "Default variant". `src/lib/inventory-naming.ts` renames them after the product: "Banana" for a one-variant product, "Whey / Vanilla" when there are several. It runs from `src/subscribers/product-inventory-names.ts` on `product.created`/`.updated` and `product-variant.created`/`.updated` (so products added through the admin, the Admin API or a script are all covered, including a product that gains a second variant, and ticking "Manage inventory" later, which is when Medusa creates the item), and from `create-armor-gym-products.ts`. `src/scripts/sync-inventory-names.ts` applies the rule to every product at once (run with `npx medusa exec`).
 
 - Only names Medusa generated (the variant title, "Default variant", "Product / Default variant") or that this code set earlier are changed. A name chosen by staff or an API caller is kept.
 - Variants are never modified. The item's description, where Medusa also copies the variant title, is left alone.
