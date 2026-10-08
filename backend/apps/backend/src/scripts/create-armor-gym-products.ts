@@ -53,6 +53,14 @@ const PRODUCTS = [
     priceBs: 2,
     imageFile: "qkies-galleta.webp",
   },
+  {
+    // Added Oct 8, 2026. A clear can of red drink (Supra brand), photographed
+    // by the developer and cut out onto black.
+    title: "Fruit Drink",
+    handle: "fruit-drink",
+    priceBs: 1,
+    imageFile: "fruit-drink.webp",
+  },
 ] as const;
 
 const MIME_TYPES: Record<string, string> = {
