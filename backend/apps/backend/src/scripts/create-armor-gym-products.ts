@@ -14,6 +14,7 @@ import {
 } from "@medusajs/medusa/core-flows";
 
 import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
+import { syncInventoryNames } from "../lib/inventory-naming";
 
 const GYM_NAME = "Armor Gym";
 const REGION_NAME = "Bolivia";
@@ -211,6 +212,12 @@ export default async function createArmorGymProducts({ container }: ExecArgs) {
   const inventoryItemIds = variants.flatMap(
     (v: any) => (v.inventory_items ?? []).map((i: any) => i.inventory_item_id)
   ) as string[];
+
+  // Inventory names: same rule as the product.created subscriber (see
+  // lib/inventory-naming.ts), applied here too so a rebuild from this script
+  // or products created before the subscriber existed get named.
+  const renamed = await syncInventoryNames(container, catalogue.map((p) => p.id));
+  if (renamed) logger.info(`Named ${renamed} inventory item(s) after their product.`);
 
   const { data: levels } = await query.graph({
     entity: "inventory_level",

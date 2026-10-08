@@ -274,6 +274,17 @@ Each product's **Type** field in the admin decides how it reaches the member (`s
 - `src/scripts/fulfill-existing-orders.ts`: one-off backfill for orders placed before this existed. Self-serve items only, no Slack, safe to re-run.
 - Verified locally with real orders through the kiosk (a mixed order: bananas fulfilled and stock lowered, staff and café messages sent to their channels, all recorded as `success`), the backfill (twice: second run did nothing, sent nothing), and 45 unit tests.
 
+## Inventory item names (Oct 8, 2026)
+
+Medusa names each variant's inventory item after the variant alone, so the admin's Inventory page showed every product as "Default variant". `src/lib/inventory-naming.ts` renames them after the product: "Banana" for a one-variant product, "Whey / Vanilla" when there are several. It runs from `src/subscribers/product-inventory-names.ts` on `product.created` and `product-variant.created` (so products added through the admin, the Admin API or a script are all covered, including a product that gains a second variant), and from `create-armor-gym-products.ts`.
+
+- Only names Medusa generated (the variant title, "Default variant", "Product / Default variant") or that this code set earlier are changed. A name chosen by staff or an API caller is kept.
+- Variants are never modified. The item's description, where Medusa also copies the variant title, is left alone.
+- A missing SKU is filled from the variant's SKU, or from the product handle for a one-variant product; with several variants and no variant SKU it stays empty. SKUs are unique, so a clash costs only that item its SKU, logged as a warning. A SKU is never changed once set, so one filled while a product had a single variant stays when variants are added.
+- Bundles (a variant with several inventory items) and items shared between variants are skipped.
+- Not handled: renaming a product later doesn't rename its inventory items (rename them by hand, or re-run the script for catalogue products).
+- Verified locally with real workflows against `medusa develop`: a one-variant product, then two variants added to it (with and without SKUs), and the 5 catalogue products; 6 unit tests.
+
 ## Kiosk: Byte while the invoice is created (Oct 7, 2026)
 
 Tapping "Pagar con Bitcoin⚡" shows Byte's magic hoops (Second's mascot, used with permission; from the developer's "Byte Magic Hoops" artifact, https://claude.ai/artifact/Fb7zvUz3tYMsYavsFmJzZ7) on a pure black screen until the QR is ready, for at least 1.5 s (`MIN_BYTE_MS` in `useKiosk.ts`) so a fast invoice doesn't make him flash. `ByteLoader.tsx` is reusable (the café wait will use it). The art is the on-black GIF converted unaltered to a looping WebM (`public/kiosk/byte/`, 232 KB vs the GIF's 516 KB; a video always starts at frame 0, a cached GIF may not), with the on-black still frame for reduced motion. WebM rather than MP4 because the headless test browser (open-source Chromium) can't play H.264; Android plays both. Added `webm` to the PWA precache patterns.
