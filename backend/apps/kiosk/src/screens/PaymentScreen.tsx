@@ -29,7 +29,7 @@ function usePaymentQrCode(bolt11: string | undefined) {
       return
     }
     let cancelled = false
-    QRCode.toDataURL(`lightning:${bolt11}`, { width: 320, margin: 1 })
+    QRCode.toDataURL(`lightning:${bolt11}`, { width: 720, margin: 1 })
       .then((url) => {
         if (!cancelled) setQrDataUrl(url)
       })

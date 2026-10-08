@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
 import "./App.css"
 import "./kiosk.css"
 import { toKioskCart, toKioskProduct } from "./lib/kioskMapping"
@@ -51,7 +51,7 @@ function App() {
 
 function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
   if (kiosk.loading) {
-    return (
+    return plain(
       <div className="screen screen--center">
         <p>{t.loading}</p>
       </div>
@@ -61,7 +61,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
   // Full-screen only for a failed catalog load. Its Retry clears the cart,
   // so it must never stand in for a payment error on a live cart.
   if (kiosk.error && kiosk.screen === "idle") {
-    return (
+    return plain(
       <div className="screen screen--center">
         <p>{kiosk.error}</p>
         <button className="primary-button" onClick={kiosk.reset}>
@@ -73,7 +73,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
 
   // No cart needed yet: "Pagar" can come before Medusa has created it.
   if (kiosk.screen === "payment-method") {
-    return (
+    return plain(
       <PaymentMethodScreen
         total={shownTotal(kiosk)}
         savingFor={kiosk.savingFor}
@@ -86,7 +86,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
   }
 
   if (kiosk.screen === "payment" && kiosk.cart) {
-    return (
+    return plain(
       <PaymentScreen
         cart={kiosk.cart}
         paymentMethod={kiosk.paymentMethod}
@@ -101,7 +101,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
   }
 
   if (kiosk.screen === "done" && kiosk.order) {
-    return <DoneScreen order={kiosk.order} onNewOrder={kiosk.reset} />
+    return plain(<DoneScreen order={kiosk.order} onNewOrder={kiosk.reset} />)
   }
 
   if (kiosk.screen === "shop") {
@@ -127,6 +127,12 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
 }
 
 export default App
+
+// Everything but idle and shop sits on the same 1200x1920 stage, without a
+// wall, so it scales with the screen exactly like the shop.
+function plain(screen: ReactNode) {
+  return <Stage variant="plain">{screen}</Stage>
+}
 
 // The order bar's total: the cart plus taps not yet saved.
 function shownTotal(kiosk: ReturnType<typeof useKiosk>): number {

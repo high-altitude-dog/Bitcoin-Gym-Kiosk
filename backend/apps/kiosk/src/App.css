@@ -1,14 +1,19 @@
+/* Screens other than idle and shop: loading/error, payment, done. They sit on
+   the same fixed 1200x1920 stage as the shop (<Stage variant="plain">), so
+   every size here is in stage pixels. On the Megapad SE the stage is drawn at
+   about one stage pixel per screen pixel. */
 .screen {
-  min-height: 100dvh;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  padding: 24px;
-  box-sizing: border-box;
+  padding: 0 var(--k-margin);
   background: var(--k-bg);
   color: var(--k-text);
-  font-family: var(--k-font);
+  font: 500 34px/1.3 var(--k-font);
 }
 
+/* Outside the stage: fixed to the real screen, in CSS pixels. */
 .reconnecting-banner {
   position: fixed;
   top: 0;
@@ -26,86 +31,88 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 16px;
+  gap: 40px;
 }
 
 .screen--center h1 {
-  font-size: 2rem;
+  font: var(--k-title);
   margin: 0;
+  max-width: 1000px;
+  white-space: normal;
 }
+
+.screen p { margin: 0; }
 
 .primary-button {
-  padding: 20px;
-  font-size: 1.3rem;
-  font-weight: 700;
-  border-radius: 16px;
-  border: none;
+  min-width: 520px;
+  height: 128px;
+  padding: 0 64px;
+  border-radius: var(--k-pill);
   background: var(--k-action);
   color: var(--k-action-text);
-}
-
-.primary-button:disabled {
-  opacity: 0.5;
+  font: var(--k-pay);
 }
 
 .back-button {
-  padding: 12px 20px;
-  font-size: 1rem;
-  border-radius: 12px;
-  border: none;
-  background: var(--k-card);
+  min-width: 280px;
+  height: 96px;
+  padding: 0 48px;
+  border-radius: var(--k-pill);
+  background: var(--k-control);
   color: var(--k-text);
+  font: 600 34px/1 var(--k-font);
 }
+
+.primary-button:disabled,
+.back-button:disabled { opacity: 0.5; }
+.primary-button.is-pressed,
+.back-button.is-pressed { transform: scale(0.95); filter: brightness(1.15); }
 
 .payment-note {
   color: var(--k-text-2);
-  max-width: 320px;
+  max-width: 900px;
 }
 
 /* The QR code itself keeps a light backing square regardless of theme — a
    dark background behind a Lightning QR is a real scannability risk, not a
-   style choice, so this is a deliberate exception to the dark theme. */
+   style choice, so this is a deliberate exception to the dark theme. Big, so
+   a phone held at arm's length focuses on it easily. */
 .payment-qr {
-  width: 260px;
-  height: 260px;
-  border-radius: 16px;
+  width: 720px;
+  height: 720px;
+  border-radius: 32px;
   background: #fff;
-  padding: 8px;
+  padding: 20px;
+  image-rendering: pixelated;
 }
 
 /* Bitcoin Lightning logo under the QR. */
 .payment-logo {
-  width: 110px;
+  width: 240px;
   height: auto;
 }
 
 .payment-qr--placeholder {
-  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px dashed var(--k-border);
+  border: 4px dashed var(--k-border);
   color: var(--k-text-2);
   font-weight: 600;
   text-align: center;
   background: transparent;
 }
 
-.payment-amounts p {
-  margin: 0;
-}
-
 .payment-sats {
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1.1;
+  font: 700 120px/1 var(--k-font);
+  letter-spacing: -0.02em;
   color: var(--k-text);
   font-variant-numeric: tabular-nums;
 }
 
 .payment-bs {
-  font-size: 1.4rem;
-  font-weight: 600;
+  margin-top: 12px !important;
+  font: 600 48px/1 var(--k-font);
   color: var(--k-text-2);
 }
 
@@ -113,31 +120,62 @@
    the only full colour; UI and wall stay black/white/grey") — urgency is
    conveyed with weight instead of colour. */
 .payment-countdown {
+  font: 700 44px/1 var(--k-font);
   color: var(--k-text);
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.done-order {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--k-text);
+/* Done: title, Byte, order number as one centred group, with the button set
+   apart below it. Byte is drawn at his native 800px (about one screen pixel
+   each on the Megapad), and his frame has ~95px of empty ground above and
+   below the circle, so the negative margins pull the title and number in to
+   the circle itself rather than to the frame's edge. */
+.screen--center.done { gap: 0; }
+.screen--center .done-title {
+  position: relative;
+  z-index: 1; /* above Byte's opaque frame, which the margin below tucks under it */
+  font: 700 120px/1 var(--k-font);
+  letter-spacing: -0.02em;
 }
+.done-art {
+  display: block;
+  width: 800px;
+  height: 800px;
+  margin: -32px 0 -48px;
+  background: var(--k-bg);
+}
+/* The number is what the member needs if staff or the café bring the order,
+   so it's the biggest thing after the title; the label stays quiet. */
+.done-order {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.done-order__label {
+  font: 600 40px/1 var(--k-font);
+  color: var(--k-text-2);
+}
+.done-order__number {
+  font: 700 96px/1 var(--k-font);
+  color: var(--k-text);
+  font-variant-numeric: tabular-nums;
+}
+.done-new { margin-top: 96px; }
 
 /* Bank QR placeholder: "Pagado" stands in for the Baneco webhook until the API exists. */
 .bank-qr-actions {
   display: flex;
-  gap: 16px;
+  gap: 32px;
   width: 100%;
-  max-width: 520px;
+  max-width: 900px;
 }
 .bank-qr-cancel,
 .bank-qr-paid {
   flex: 1;
-  padding: 20px;
-  font-size: 1.3rem;
-  font-weight: 700;
-  border-radius: 16px;
-  border: none;
+  height: 128px;
+  border-radius: var(--k-radius-card);
+  font: var(--k-pay);
   color: #fff;
 }
 .bank-qr-cancel { background: #d93636; }
@@ -146,7 +184,7 @@
 .bank-qr-paid:disabled { opacity: 0.5; }
 .bank-qr-cancel.is-pressed,
 .bank-qr-paid.is-pressed { transform: scale(0.95); filter: brightness(1.15); }
-.payment-error { color: #ff6b6b; margin: 0; }
+.payment-error { color: #ff6b6b; }
 
 /* Byte's magic hoops: the art's black ground is baked in, so the screen
    behind it is pure black, not the kiosk's dark grey. */
@@ -158,20 +196,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 24px;
   width: 100%;
 }
 
 .byte-loader__art {
   display: block;
   width: 100%;
-  max-width: 606px;
+  max-width: 909px;
   height: auto;
   background: #000;
 }
 
 .byte-loader__label {
-  margin: 0;
   color: var(--k-text-2);
   font-weight: 600;
 }

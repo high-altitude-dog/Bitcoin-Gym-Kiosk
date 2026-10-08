@@ -283,34 +283,25 @@
 .k-pay:disabled { background: var(--k-control); color: var(--k-text-disabled); cursor: default; }
 
 /* ---------------------------------------------------------------- payment method screen */
-/* Not wrapped in <Stage>/.k-stage (it's a plain fluid screen, not the fixed 1200x1920 canvas),
-   so button resets that .k-stage normally provides via :where() are repeated explicitly here. */
+/* On <Stage variant="plain">, so sizes are stage pixels and buttons get the
+   stage's zero-specificity reset (a plain ".k-method button" reset here used
+   to override the option buttons' own font and colour). */
 .k-method {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 32px;
-  white-space: nowrap;
+  gap: 40px;
   padding: 0 var(--k-margin);
-  background: var(--k-bg);
-  color: var(--k-text);
-  font-family: var(--k-font);
-  box-sizing: border-box;
+  font: 500 40px/1.3 var(--k-font);
+  text-align: center;
 }
-.k-method button {
-  font: inherit;
-  color: inherit;
-  border: 0;
-  margin: 0;
-  cursor: pointer;
-}
-.k-method__total { font: var(--k-bar-total); font-size: 56px; margin: 0 0 16px; }
+.k-method p { margin: 0; }
+.k-method__total { font: 700 120px/1 var(--k-font); letter-spacing: -0.02em; margin-bottom: 8px !important; }
 .k-method__error {
-  max-width: 720px;
+  max-width: 900px;
   margin: 0;
   padding: 20px 24px;
   border-radius: var(--k-radius-card);
@@ -321,13 +312,12 @@
 }
 .k-method__option {
   width: 100%;
-  max-width: 720px;
-  height: 140px;
+  max-width: 900px;
+  height: 180px;
   border-radius: var(--k-radius-card);
   background: var(--k-action);
   color: var(--k-action-text);
-  font: var(--k-pay);
-  font-size: 40px;
+  font: 700 48px/1 var(--k-font);
 }
 /* While a tapped button waits for the cart to save, the other one dims. */
 .k-method__option:disabled { opacity: 0.4; cursor: default; }
@@ -340,10 +330,11 @@
   box-shadow: inset 0 0 0 2px var(--k-border);
 }
 .k-method__back {
-  height: var(--k-touch);
-  padding: 0 32px;
+  min-width: 280px;
+  height: 96px;
+  padding: 0 48px;
   border-radius: var(--k-pill);
   background: var(--k-control);
   color: var(--k-text);
-  font: var(--k-chip);
+  font: 600 34px/1 var(--k-font);
 }

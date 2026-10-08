@@ -2,10 +2,13 @@ import { useEffect, type ReactNode } from "react"
 import { KIOSK } from "../lib/stageConfig"
 import { useStageScale } from "../hooks/useStageScale"
 
-/** Fixed 1200x1920 design stage, scaled to fit the screen. variant picks the wall image. */
-export function Stage({ variant, children }: { variant: "idle" | "shop"; children: ReactNode }) {
+/**
+ * Fixed 1200x1920 design stage, scaled to fit the screen. variant picks the
+ * wall image; "plain" (payment, done and message screens) has none.
+ */
+export function Stage({ variant, children }: { variant: "idle" | "shop" | "plain"; children: ReactNode }) {
   const { scale, x, y } = useStageScale()
-  const wall = KIOSK.wall[variant]
+  const wall = variant === "plain" ? null : KIOSK.wall[variant]
   useEffect(() => {
     // warm the cache for both walls so switching screens never flashes
     const dpr = window.devicePixelRatio || 1
@@ -17,7 +20,7 @@ export function Stage({ variant, children }: { variant: "idle" | "shop"; childre
         className={`k-stage k-stage--${variant}`}
         style={{
           transform: `translate(${x}px, ${y}px) scale(${scale})`,
-          backgroundImage: `image-set(url("${wall.x1}") 1x, url("${wall.x2}") 2x)`,
+          backgroundImage: wall ? `image-set(url("${wall.x1}") 1x, url("${wall.x2}") 2x)` : undefined,
         }}
       >
         {children}
