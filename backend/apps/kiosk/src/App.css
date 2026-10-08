@@ -161,7 +161,69 @@
   color: var(--k-text);
   font-variant-numeric: tabular-nums;
 }
-.done-new { margin-top: 96px; }
+.done-new { margin-top: 64px; }
+
+/* Smaller Byte for longer orders (see DoneScreen); margins scale with him. */
+.done--md .done-art { width: 560px; height: 560px; margin: -22px 0 -34px; }
+.done--sm .done-art { width: 400px; height: 400px; margin: -16px 0 -24px; }
+
+/* What was bought, so the member knows what to take from the jars and
+   baskets. Lines brought by staff or the café carry a note instead. */
+.done-items {
+  width: 100%;
+  max-width: 900px;
+  margin-top: 48px;
+  padding: 28px 40px;
+  border-radius: var(--k-radius-card);
+  background: var(--k-card);
+  text-align: left;
+}
+.done-items__title {
+  margin: 0 0 16px;
+  font: 600 34px/1.2 var(--k-font);
+  color: var(--k-text-2);
+}
+.done-items__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 880px; /* 8 lines; more scroll */
+  overflow-y: auto;
+}
+.done-item {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 110px;
+  padding: 10px 0;
+}
+.done-item + .done-item { border-top: 1px solid var(--k-control); }
+.done-item__photo {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--k-radius-photo);
+  background: var(--k-card-lift);
+  overflow: hidden;
+}
+.done-item__photo img { width: 100%; height: 100%; object-fit: cover; }
+.done-item__qty {
+  flex: none;
+  min-width: 80px;
+  font: 700 48px/1 var(--k-font);
+  font-variant-numeric: tabular-nums;
+}
+.done-item__text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.done-item__name {
+  /* Two lines, not an ellipsis: the end of a name ("- Chocolate") is often
+     what tells two jars apart. */
+  font: 600 40px/1.15 var(--k-font);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.done-item__note { font: 500 28px/1.2 var(--k-font); color: var(--k-text-2); }
 
 /* Bank QR placeholder: "Pagado" stands in for the Baneco webhook until the API exists. */
 .bank-qr-actions {

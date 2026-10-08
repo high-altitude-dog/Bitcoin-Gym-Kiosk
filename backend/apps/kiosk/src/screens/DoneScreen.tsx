@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { KIOSK } from "../lib/stageConfig"
+import { t } from "../lib/strings"
 
 interface Props {
   order: HttpTypes.StoreOrder
@@ -7,19 +8,58 @@ interface Props {
 }
 
 export function DoneScreen({ order, onNewOrder }: Props) {
+  const items = order.items ?? []
+  // Byte gives up room as the list grows, so the list and "Nuevo pedido"
+  // stay on the stage; a long list scrolls inside its card.
+  const size = items.length <= 3 ? "lg" : items.length <= 5 ? "md" : "sm"
+  const allSelfServe = items.every((item) => deliveryOf(item.product_type) === null)
   return (
-    <div className="screen screen--center done">
+    <div className={`screen screen--center done done--${size}`}>
       <h1 className="done-title">¡Gracias!</h1>
       <BoneReward />
       <p className="done-order">
         <span className="done-order__label">Tu pedido</span>
         <span className="done-order__number">#{order.display_id}</span>
       </p>
+      {items.length > 0 && (
+        <section className="done-items">
+          <h2 className="done-items__title">{allSelfServe ? t.takeYourItems : t.yourPurchase}</h2>
+          <ul className="done-items__list">
+            {items.map((item) => {
+              const delivery = deliveryOf(item.product_type)
+              return (
+                <li key={item.id} className="done-item">
+                  <div className="done-item__photo">
+                    {item.thumbnail && <img src={item.thumbnail} alt="" draggable={false} decoding="async" />}
+                  </div>
+                  <span className="done-item__qty">{item.quantity}×</span>
+                  <span className="done-item__text">
+                    <span className="done-item__name">{item.product_title ?? item.title}</span>
+                    {delivery && <span className="done-item__note">{delivery}</span>}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
       <button className="primary-button done-new" onClick={onNewOrder}>
         Nuevo pedido
       </button>
     </div>
   )
+}
+
+/**
+ * How a line reaches the member, from the product Type snapshot on the order
+ * line. Mirrors the backend's FULFILLMENT_TYPES (backend/apps/backend/src/lib/
+ * fulfillment-mode.ts): no type, or any other, means self-serve (null here).
+ */
+function deliveryOf(productType: string | null | undefined): string | null {
+  const value = productType?.trim().toLowerCase()
+  if (value === "entrega del personal") return t.deliveredByStaff
+  if (value === "café asociado") return t.deliveredByCafe
+  return null
 }
 
 /**

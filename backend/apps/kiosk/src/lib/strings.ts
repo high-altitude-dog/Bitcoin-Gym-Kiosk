@@ -36,4 +36,9 @@ export const t = {
   errorBankQrConfirm: "No pudimos registrar el pago. Intenta de nuevo o avisa a un miembro del personal.",
   checkingPayment: "Verificando el pago...",
   cartReference: (id: string) => `Referencia: ${id}`,
+  // Done screen: what the member takes, and what is brought to them.
+  takeYourItems: "Toma tus productos",
+  yourPurchase: "Tu compra",
+  deliveredByStaff: "Te lo entrega el personal",
+  deliveredByCafe: "Llega a recepción",
 } as const
