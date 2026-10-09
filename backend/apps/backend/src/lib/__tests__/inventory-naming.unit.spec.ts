@@ -1,4 +1,4 @@
-import { planInventoryNames, NamingVariant } from "../inventory-naming"
+import { planInventoryNames, planVariantSkus, NamingVariant } from "../inventory-naming"
 
 const item = (id: string, title: string | null, sku: string | null = null, variantCount = 1) => ({
   id,
@@ -6,7 +6,8 @@ const item = (id: string, title: string | null, sku: string | null = null, varia
   sku,
   variantCount,
 })
-const variant = (title: string | null, sku: string | null, items: NamingVariant["items"]): NamingVariant => ({
+const variant = (title: string | null, sku: string | null, items: NamingVariant["items"], id = "v"): NamingVariant => ({
+  id,
   title,
   sku,
   items,
@@ -90,5 +91,32 @@ describe("planInventoryNames", () => {
         ],
       })
     ).toEqual([])
+  })
+})
+
+describe("planVariantSkus", () => {
+  const product = (variants: NamingVariant[]) => ({ title: "Iced Latte", handle: "iced-latte", variants })
+
+  it("gives a SKU-less variant the SKU its inventory item is about to get", () => {
+    const p = product([variant("Default variant", null, [item("i1", "Default variant")], "v1")])
+    expect(planVariantSkus(p, planInventoryNames(p))).toEqual([{ id: "v1", sku: "ICED-LATTE" }])
+  })
+
+  it("gives a SKU-less variant the SKU its inventory item already has", () => {
+    const p = product([variant("Default variant", null, [item("i1", "Iced Latte", "OLD-SKU")], "v1")])
+    expect(planVariantSkus(p, [])).toEqual([{ id: "v1", sku: "OLD-SKU" }])
+  })
+
+  it("never changes a SKU the variant already has, even when the item differs", () => {
+    const p = product([variant("Default variant", "MINE", [item("i1", "Iced Latte", "OTHER")], "v1")])
+    expect(planVariantSkus(p, [])).toEqual([])
+  })
+
+  it("skips bundles and variants whose item has no SKU", () => {
+    const p = product([
+      variant("A", null, [item("i1", "A", "S1"), item("i2", "A", "S2")], "v1"),
+      variant("B", null, [item("i3", "B", null)], "v2"),
+    ])
+    expect(planVariantSkus(p, [])).toEqual([])
   })
 })

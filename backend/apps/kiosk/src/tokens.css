@@ -47,7 +47,8 @@
   --k-header-h: 88px;
   --k-chips-top: 140px;
   --k-grid-top: 240px;
-  --k-card-h: 410px;          /* 3 columns x 2 rows visible; more rows scroll */
+  --k-card-h: 410px;          /* 3 columns x 3 rows visible (ends at y=1518); more rows scroll */
+  --k-grid-rows: 3;
   --k-photo-h: 250px;
   --k-photo-box-w: 236px;     /* every product photo is contain-fit into this box */
   --k-photo-box-h: 222px;     /* tall products (tubs, bags) get the extra height */

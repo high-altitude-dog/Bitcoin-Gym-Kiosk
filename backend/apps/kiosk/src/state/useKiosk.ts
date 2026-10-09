@@ -20,8 +20,10 @@ export type PaymentStatus = "awaiting" | "expired" | "needs_staff" | null
 // Baneco flow here once credentials arrive.
 export type PaymentMethod = "lightning" | "bank_qr" | null
 
+// "*categories", not "+categories.id,+categories.name": that "+" form returns
+// categories as null in Medusa 2.21.2, so no product ever matched a category chip.
 const PRODUCT_FIELDS =
-  "*variants.calculated_price,+variants.inventory_quantity,*images,+categories.id,+categories.name"
+  "*variants.calculated_price,+variants.inventory_quantity,*images,*categories"
 const POLL_INTERVAL_MS = 500
 // Byte's magic hoops stay on screen at least this long before the QR, so a
 // fast invoice doesn't make him flash on and off.

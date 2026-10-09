@@ -294,6 +294,14 @@ Everything is sold and collected at the gym, so the admin's **Shipping profile**
 - **Second gym:** add a sales channel for its kiosk and a publishable key for it; products can then be given both channels in the admin. Auto-fill only adds the default channel to products that have none.
 - Tested locally with a product created with no profile and no channel: both were filled within seconds, and the renames ran once and then did nothing. 4 unit tests.
 
+## Kiosk grid: 3 × 3 and a "more below" cue (Oct 9, 2026)
+
+The shop grid shows 3 columns × 3 rows (9 products; was 2 rows). Row count is `--k-grid-rows` in `tokens.css`; at the 410 px card height the grid ends at y=1518 on the 1920 stage, the order bar starts at 1712. The cards now cover most of the lower wall art, including most of Byte on the right. With more than 9 products the rest scroll (snapping a row at a time), and a pill "Desliza para ver más" (Swipe to see more) with a bobbing chevron appears in the gap between the grid and the order bar, only while rows are out of sight (`ShopScreen.tsx`, `.k-grid-more`). It sits outside the grid so it never covers a card's + button. Checked headless at 1200×1920 against the local backend with the product list duplicated to 9 and 10: 9 shows no cue, 10 shows it and it disappears at the end of the list. **Not yet seen on the tablet.** If the catalogue grows past about 12, consider 4 rows of smaller cards (~330 px) instead.
+
+## Category chips fixed (Oct 9, 2026)
+
+Tapping a category chip (e.g. "Fruit") showed no products. The kiosk requested `+categories.id,+categories.name`; in Medusa 2.21.2 that form returns `categories: null` on every product, so nothing matched a chip. It now requests `*categories` (`PRODUCT_FIELDS` in `useKiosk.ts`, with a comment). Checked against the VM's Store API (Banana returns Fruit) and end to end locally: a real category with Banana in it, chips "Todo" and "Fruit", Fruit shows only Banana, Todo shows all 5 (the test category was removed). A category only shows as a chip if it has an active top-level entry; categories with no products still show as an empty chip.
+
 ## Kiosk: Byte while the invoice is created (Oct 7, 2026)
 
 Tapping "Pagar con Bitcoin⚡" shows Byte's magic hoops (Second's mascot, used with permission; from the developer's "Byte Magic Hoops" artifact, https://claude.ai/artifact/Fb7zvUz3tYMsYavsFmJzZ7) on a pure black screen until the QR is ready, for at least 1.5 s (`MIN_BYTE_MS` in `useKiosk.ts`) so a fast invoice doesn't make him flash. `ByteLoader.tsx` is reusable (the café wait will use it). The art is the on-black GIF converted unaltered to a looping WebM (`public/kiosk/byte/`, 232 KB vs the GIF's 516 KB; a video always starts at frame 0, a cached GIF may not), with the on-black still frame for reduced motion. WebM rather than MP4 because the headless test browser (open-source Chromium) can't play H.264; Android plays both. Added `webm` to the PWA precache patterns.
