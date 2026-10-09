@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { t } from "../lib/strings"
+import { useGreeting } from "../hooks/useGreeting"
 import { shownQuantity, toKioskCart, toKioskProduct } from "../lib/kioskMapping"
 import { CategoryChips } from "./CategoryChips"
 import { OrderBar } from "./OrderBar"
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function ShopScreen({ products, categories, cart, pending, onSetQuantity, onPay }: Props) {
+  const greeting = useGreeting()
   const [categoryId, setCategoryId] = useState<string | null>(null)
 
   const visible = useMemo(() => {
@@ -29,17 +31,35 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
     return kioskProducts.filter((p) => idsInCategory.has(p.id))
   }, [products, categoryId])
 
-  // Show a "more below" cue while the grid has rows out of sight, so a member
-  // knows to swipe. Re-checked on scroll, on resize, and when the list changes.
+  // While rows are out of sight, the grid fades out at that edge, showing a
+  // slice of the next row, and a chevron button sits in the faded strip.
+  // Re-checked on scroll, on resize, and when the list changes.
   const gridRef = useRef<HTMLElement>(null)
+  const fadeTopRef = useRef<HTMLDivElement>(null)
+  const fadeBottomRef = useRef<HTMLDivElement>(null)
   const [moreBelow, setMoreBelow] = useState(false)
   const [moreAbove, setMoreAbove] = useState(false)
   const checkMore = useCallback(() => {
     const el = gridRef.current
-    setMoreBelow(!!el && el.scrollTop + el.clientHeight < el.scrollHeight - 8)
-    setMoreAbove(!!el && el.scrollTop > 8)
+    if (!el) return
+    const viewTop = el.scrollTop
+    const viewBottom = viewTop + el.clientHeight
+    const above = viewTop > 8
+    const below = viewBottom < el.scrollHeight - 8
+    setMoreAbove(above)
+    setMoreBelow(below)
+    // The fade covers exactly the partly visible row at each open edge: a
+    // quarter row mid-list, about half a row at the very top or bottom.
+    const rows = [...el.querySelectorAll<HTMLElement>(".k-card")].filter((_, i) => i % 3 === 0)
+    const firstFull = rows.find((r) => r.offsetTop >= viewTop - 1)
+    const lastFull = [...rows].reverse().find((r) => r.offsetTop + r.offsetHeight <= viewBottom + 1)
+    const fadeTop = above && firstFull ? firstFull.offsetTop - viewTop : 0
+    const fadeBottom = below && lastFull ? viewBottom - (lastFull.offsetTop + lastFull.offsetHeight) : 0
+    // Set directly rather than through state: this runs on every scroll frame.
+    if (fadeTopRef.current) fadeTopRef.current.style.height = `${Math.max(0, fadeTop)}px`
+    if (fadeBottomRef.current) fadeBottomRef.current.style.height = `${Math.max(0, fadeBottom)}px`
   }, [])
-  // The cues are buttons too: each scrolls the grid by two rows.
+  // The chevrons scroll the grid by two rows.
   const scrollRows = (direction: 1 | -1) => {
     const el = gridRef.current
     if (!el) return
@@ -63,8 +83,15 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
 
   return (
     <>
+      <header className="k-header">
+        <h1 className="k-title">{greeting}</h1>
+      </header>
       <CategoryChips categories={kioskCategories} value={categoryId} onChange={setCategoryId} />
-      <section className="k-grid" ref={gridRef} onScroll={checkMore}>
+      <section
+        className="k-grid"
+        ref={gridRef}
+        onScroll={checkMore}
+      >
         {visible.length === 0 ? (
           <p className="k-grid__message">{t.emptyCategory}</p>
         ) : (
@@ -73,16 +100,11 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
           ))
         )}
       </section>
-      {moreAbove && (
-        <button className="k-grid-more k-grid-more--up" aria-label={t.moreAbove} onClick={() => scrollRows(-1)}>{t.moreAbove}</button>
-      )}
-      <OrderBar
-        itemCount={kioskCart.itemCount}
-        total={kioskCart.total}
-        busy={false}
-        onPay={onPay}
-        more={moreBelow ? { label: t.moreBelow, onClick: () => scrollRows(1) } : undefined}
-      />
+      <div className="k-grid-fade k-grid-fade--top" ref={fadeTopRef} aria-hidden />
+      <div className="k-grid-fade k-grid-fade--bottom" ref={fadeBottomRef} aria-hidden />
+      {moreAbove && <button className="k-scroll-cue k-scroll-cue--up" aria-label={t.moreAbove} onClick={() => scrollRows(-1)} />}
+      {moreBelow && <button className="k-scroll-cue k-scroll-cue--down" aria-label={t.moreBelow} onClick={() => scrollRows(1)} />}
+      <OrderBar itemCount={kioskCart.itemCount} total={kioskCart.total} busy={false} onPay={onPay} />
     </>
   )
 }

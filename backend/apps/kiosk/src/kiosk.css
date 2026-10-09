@@ -81,12 +81,24 @@
   .k-idle__cta, .k-idle__byte { animation: none; }
 }
 
+/* ---------------------------------------------------------------- header */
+.k-header {
+  position: absolute;
+  top: var(--k-header-top);
+  left: var(--k-margin);
+  right: var(--k-margin);
+  height: var(--k-header-h);
+  display: flex;
+  align-items: center;
+}
+.k-title { margin: 0; font: var(--k-title); letter-spacing: -0.02em; white-space: nowrap; }
+
 /* ---------------------------------------------------------------- category chips */
 .k-chips {
   position: absolute;
   top: var(--k-chips-top);
   left: var(--k-margin);
-  right: calc(var(--k-margin) + var(--k-touch) + 16px);   /* room for the round "up" cue, so it never covers a chip */
+  right: var(--k-margin);
   display: flex;
   gap: 16px;
   overflow-x: auto;
@@ -115,7 +127,7 @@
   top: var(--k-grid-top);
   left: var(--k-margin);
   width: calc(var(--k-stage-w) - 2 * var(--k-margin));
-  height: calc(var(--k-grid-rows) * var(--k-card-h) + (var(--k-grid-rows) - 1) * var(--k-gap));
+  height: var(--k-grid-h);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: var(--k-card-h);
@@ -125,55 +137,61 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
   scroll-snap-type: y mandatory;
+  /* Rows snap a peek-and-a-gap below the top, so a slice of the row above stays visible. */
+  scroll-padding-top: calc(var(--k-peek) + var(--k-gap));
 }
 .k-grid::-webkit-scrollbar { display: none; }
-/* Scroll cues. "Up" is a round chevron at the right end of the chips row (no room for a label there); "Ver más" (down)
-   is a pill inside the order bar next to Pagar, so the grid can run right down to the bar. */
-.k-grid-more {
+/* Fade-to-dark over the partly visible row at an edge with more rows behind it (ShopScreen sets the height to exactly
+   that row's visible part, 0 when there's nothing more). Full stage width, so the wall behind dims with it and no
+   side edge shows; taps pass through to the cards. */
+.k-grid-fade {
   position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border-radius: var(--k-pill);
-  background: var(--k-card);
-  box-shadow: inset 0 0 0 2px var(--k-border);
-  font: var(--k-bar-label);
-  color: var(--k-text-2);
-  border: 0;
-  cursor: pointer;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 1;
 }
-/* The matching "up" cue is a round chevron button at the right end of the chips row (no room for a label there). */
-.k-grid-more--up {
-  top: var(--k-chips-top);
-  left: auto;
-  right: var(--k-margin);
-  transform: none;
+.k-grid-fade--top {
+  top: var(--k-grid-top);
+  background: linear-gradient(to top, rgb(28 28 28 / 0) 0%, rgb(28 28 28 / 0.85) 65%, rgb(28 28 28 / 0.97) 100%);
+}
+.k-grid-fade--bottom {
+  top: calc(var(--k-grid-top) + var(--k-grid-h));
+  transform: translateY(-100%);
+  background: linear-gradient(to bottom, rgb(28 28 28 / 0) 0%, rgb(28 28 28 / 0.85) 65%, rgb(28 28 28 / 0.97) 100%);
+}
+/* Scroll chevrons: a round button centred in the faded strip at the top or bottom of the grid, white on the dark
+   background with a white ring, so it reads clearly against cards and wall. Tapping scrolls two rows. */
+.k-scroll-cue {
+  position: absolute;
+  left: calc(50% - var(--k-touch) / 2);
   width: var(--k-touch);
   height: var(--k-touch);
-  padding: 0;
+  border-radius: var(--k-pill);
+  background: rgb(28 28 28 / 0.9);
+  box-shadow: inset 0 0 0 3px var(--k-text), 0 6px 18px rgb(0 0 0 / 0.5);
+  color: var(--k-text);
+  display: flex;
+  align-items: center;
   justify-content: center;
-  font-size: 0;
+  z-index: 2;
 }
-.k-grid-more::after {
+.k-scroll-cue--up { top: calc(var(--k-grid-top) + var(--k-peek) / 2 - var(--k-touch) / 2); }
+.k-scroll-cue--down { top: calc(var(--k-grid-top) + var(--k-grid-h) - var(--k-peek) / 2 - var(--k-touch) / 2); }
+.k-scroll-cue::after {
   content: "";
-  width: 16px;
-  height: 16px;
-  border-right: 4px solid currentColor;
-  border-bottom: 4px solid currentColor;
-  transform: translateY(-4px) rotate(45deg);
-  animation: k-more-bob 1.6s ease-in-out infinite;
+  width: 18px;
+  height: 18px;
+  border-right: 5px solid currentColor;
+  border-bottom: 5px solid currentColor;
 }
-@keyframes k-more-bob {
-  50% { transform: translateY(4px) rotate(45deg); }
-}
-.k-grid-more--up::after {
-  transform: translateY(5px) rotate(-135deg);
-  animation-name: k-more-bob-up;
-}
-@keyframes k-more-bob-up {
-  50% { transform: translateY(-4px) rotate(-135deg); }
-}
-@media (prefers-reduced-motion: reduce) { .k-grid-more::after { animation: none; } }
+.k-scroll-cue--down::after { transform: translateY(-5px) rotate(45deg); animation: k-cue-down 1.6s ease-in-out infinite; }
+.k-scroll-cue--up::after { transform: translateY(5px) rotate(-135deg); animation: k-cue-up 1.6s ease-in-out infinite; }
+@keyframes k-cue-down { 50% { transform: translateY(1px) rotate(45deg); } }
+@keyframes k-cue-up { 50% { transform: translateY(-1px) rotate(-135deg); } }
+.k-scroll-cue.is-pressed { transform: scale(0.9); filter: brightness(1.25); }
+@media (prefers-reduced-motion: reduce) { .k-scroll-cue::after { animation: none; } }
 .k-grid__message {
   grid-column: 1 / -1;
   align-self: start;
@@ -305,30 +323,6 @@
 }
 .k-bar__label { font: var(--k-bar-label); color: var(--k-text-2); }
 .k-bar__total { font: var(--k-bar-total); margin-top: 6px; font-variant-numeric: tabular-nums; }
-.k-bar__more {
-  margin-left: auto;
-  margin-right: 20px;
-  height: var(--k-touch);
-  padding: 0 28px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border-radius: var(--k-pill);
-  background: var(--k-control);
-  font: var(--k-bar-label);
-  color: var(--k-text);
-}
-.k-bar__more::after {
-  content: "";
-  width: 14px;
-  height: 14px;
-  border-right: 4px solid currentColor;
-  border-bottom: 4px solid currentColor;
-  transform: translateY(-4px) rotate(45deg);
-  animation: k-more-bob 1.6s ease-in-out infinite;
-}
-.k-bar__more.is-pressed { transform: scale(0.94); filter: brightness(1.25); transition: none; }
-@media (prefers-reduced-motion: reduce) { .k-bar__more::after { animation: none; } }
 .k-pay {
   width: var(--k-pay-w);
   height: var(--k-pay-h);
