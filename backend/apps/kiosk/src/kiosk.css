@@ -81,26 +81,12 @@
   .k-idle__cta, .k-idle__byte { animation: none; }
 }
 
-/* ---------------------------------------------------------------- header */
-.k-header {
-  position: absolute;
-  top: var(--k-header-top);
-  left: var(--k-margin);
-  right: var(--k-margin);
-  height: var(--k-header-h);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.k-title { margin: 0; font: var(--k-title); letter-spacing: -0.02em; white-space: nowrap; }
-.k-clock { font: var(--k-clock); font-variant-numeric: tabular-nums; }
-
 /* ---------------------------------------------------------------- category chips */
 .k-chips {
   position: absolute;
   top: var(--k-chips-top);
   left: var(--k-margin);
-  right: var(--k-margin);
+  right: calc(var(--k-margin) + var(--k-touch) + 16px);   /* room for the round "up" cue, so it never covers a chip */
   display: flex;
   gap: 16px;
   overflow-x: auto;
@@ -144,7 +130,7 @@
 /* "More below" cue: sits in the gap between the grid and the order bar, so it never covers a card's + button. */
 .k-grid-more {
   position: absolute;
-  top: calc(var(--k-grid-top) + var(--k-grid-rows) * var(--k-card-h) + (var(--k-grid-rows) - 1) * var(--k-gap) + 28px);
+  top: calc(var(--k-grid-top) + var(--k-grid-rows) * var(--k-card-h) + (var(--k-grid-rows) - 1) * var(--k-gap) + 8px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -159,15 +145,17 @@
   border: 0;
   cursor: pointer;
 }
-/* Same pill above the grid, in the chips row's free space on the right, pointing up. */
+/* The matching "up" cue is a round chevron button at the right end of the chips row (no room for a label there). */
 .k-grid-more--up {
   top: var(--k-chips-top);
   left: auto;
   right: var(--k-margin);
   transform: none;
+  width: var(--k-touch);
   height: var(--k-touch);
-  padding-top: 0;
-  padding-bottom: 0;
+  padding: 0;
+  justify-content: center;
+  font-size: 0;
 }
 .k-grid-more::after {
   content: "";
@@ -182,7 +170,7 @@
   50% { transform: translateY(4px) rotate(45deg); }
 }
 .k-grid-more--up::after {
-  transform: translateY(4px) rotate(-135deg);
+  transform: translateY(5px) rotate(-135deg);
   animation-name: k-more-bob-up;
 }
 @keyframes k-more-bob-up {
@@ -231,7 +219,7 @@
   position: absolute;
   left: 22px;
   right: 22px;
-  top: 276px;
+  top: var(--k-name-top);
   margin: 0;
   font: var(--k-name);
   white-space: nowrap;

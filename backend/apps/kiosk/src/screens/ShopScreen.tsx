@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
-import { useClock } from "../hooks/useClock"
 import { t } from "../lib/strings"
 import { shownQuantity, toKioskCart, toKioskProduct } from "../lib/kioskMapping"
 import { CategoryChips } from "./CategoryChips"
@@ -17,7 +16,6 @@ interface Props {
 }
 
 export function ShopScreen({ products, categories, cart, pending, onSetQuantity, onPay }: Props) {
-  const clock = useClock()
   const [categoryId, setCategoryId] = useState<string | null>(null)
 
   const visible = useMemo(() => {
@@ -65,10 +63,6 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
 
   return (
     <>
-      <header className="k-header">
-        <h1 className="k-title">{t.title}</h1>
-        <time className="k-clock">{clock}</time>
-      </header>
       <CategoryChips categories={kioskCategories} value={categoryId} onChange={setCategoryId} />
       <section className="k-grid" ref={gridRef} onScroll={checkMore}>
         {visible.length === 0 ? (
@@ -80,7 +74,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
         )}
       </section>
       {moreAbove && (
-        <button className="k-grid-more k-grid-more--up" onClick={() => scrollRows(-1)}>{t.moreAbove}</button>
+        <button className="k-grid-more k-grid-more--up" aria-label={t.moreAbove} onClick={() => scrollRows(-1)}>{t.moreAbove}</button>
       )}
       {moreBelow && (
         <button className="k-grid-more" onClick={() => scrollRows(1)}>{t.moreBelow}</button>
