@@ -2,10 +2,12 @@ import { useEffect } from "react"
 
 // Long enough to see on a quick tap, which can lift in under 50 ms.
 const MIN_PRESSED_MS = 120
-// In the product grid, feedback waits until a tap is confirmed: the finger
-// lifted without having moved more than TAP_SLOP_PX, and the grid wasn't
-// scrolling (a scroll within SCROLL_QUIET_MS). A swipe that starts on a card
-// or a "+" must stay silent and still, or it looks and sounds like a tap.
+// A button inside something that scrolls (the product grid, the category
+// chips when they overflow, a long list) gives its feedback only once a tap is
+// confirmed: the finger lifted without having moved more than TAP_SLOP_PX, and
+// nothing was scrolling (a scroll within SCROLL_QUIET_MS). A swipe that starts
+// on a card, a "+" or a chip must stay silent and still, or it looks and
+// sounds like a tap.
 const TAP_SLOP_PX = 10
 const SCROLL_QUIET_MS = 250
 
@@ -16,6 +18,18 @@ const SCROLL_QUIET_MS = 250
  * alone isn't enough: on Android it can show late, or not at all, for a
  * quick tap.
  */
+/** True when the element sits inside a container that can scroll right now. */
+function insideScroller(el: Element): boolean {
+  if (el.closest(".k-grid")) return true
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const style = getComputedStyle(node)
+    const scrollsY = /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 1
+    const scrollsX = /(auto|scroll)/.test(style.overflowX) && node.scrollWidth > node.clientWidth + 1
+    if (scrollsY || scrollsX) return true
+  }
+  return false
+}
+
 export function useTapFeedback() {
   useEffect(() => {
     const click = createClick()
@@ -36,7 +50,7 @@ export function useTapFeedback() {
       const button = (event.target as Element | null)?.closest("button")
       if (!button || button.disabled) return
 
-      if (button.closest(".k-grid")) {
+      if (insideScroller(button)) {
         if (scrolling()) return // a touch that lands on a moving grid only stops it
         const x = event.clientX
         const y = event.clientY
