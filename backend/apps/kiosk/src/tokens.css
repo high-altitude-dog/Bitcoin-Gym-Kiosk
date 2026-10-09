@@ -43,21 +43,23 @@
   --k-margin: 64px;
   --k-gap: 24px;
   --k-touch: 72px;            /* minimum touch target, about 9 mm on this tablet */
-  /* Greeting row on top, chips under it, then the grid down to 16 px above the order bar (Oct 9, 2026). */
-  --k-header-top: 40px;
+  /* Greeting row on top, chips under it, then the grid down to 16 px above the order bar (Oct 9, 2026).
+     Real edge margins from a Megapad screenshot: about 58 px above the greeting's text and 64 px under the
+     order bar; halved to about 29 px and 32 px, which gave the 61 px that bring the cards back to 410 px. */
+  --k-header-top: 11px;
   --k-header-h: 88px;
-  --k-chips-top: 140px;
-  --k-grid-top: 236px;
-  --k-grid-h: 1460px;         /* ends at y=1696 */
-  --k-card-h: 390px;          /* 3 full rows + a faded quarter row ("peek") above and/or below */
-  --k-peek: 97px;             /* (grid-h - 3 rows - 4 gaps) / 2 */
-  --k-photo-h: 230px;
+  --k-chips-top: 111px;
+  --k-grid-top: 207px;
+  --k-grid-h: 1521px;         /* ends at y=1728 */
+  --k-card-h: 410px;          /* 3 full rows + a faded quarter row ("peek") above and/or below */
+  --k-peek: 97px;             /* (grid-h - 3 rows - 4 gaps) / 2, about */
+  --k-photo-h: 250px;
   --k-name-top: calc(8px + var(--k-photo-h) + 18px);   /* the name sits under the photo */
   --k-photo-box-w: 236px;     /* every product photo is contain-fit into this box */
-  --k-photo-box-h: 202px;     /* tall products (tubs, bags) get the extra height */
+  --k-photo-box-h: 222px;     /* tall products (tubs, bags) get the extra height */
   --k-add: 76px;              /* round "+" button */
   --k-stepper-w: 184px;
-  --k-bar-top: 1712px;
+  --k-bar-top: 1744px;
   --k-bar-h: 144px;
   --k-pay-w: 296px;
   --k-pay-h: 104px;
