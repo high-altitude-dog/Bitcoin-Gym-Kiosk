@@ -154,11 +154,8 @@ export default async function createArmorGymProducts({ container }: ExecArgs) {
                 manage_inventory: true,
                 options: { Default: "Default" },
                 prices: [
-                  {
-                    currency_code: "bob",
-                    amount: p.priceBs,
-                    rules: { region_id: region.id },
-                  },
+                  // A plain BOB price: the one price per product (see lib/price-normalize.ts).
+                  { currency_code: "bob", amount: p.priceBs },
                 ],
               },
             ],

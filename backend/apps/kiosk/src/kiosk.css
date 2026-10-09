@@ -156,7 +156,18 @@
   box-shadow: inset 0 0 0 2px var(--k-border);
   font: var(--k-bar-label);
   color: var(--k-text-2);
-  pointer-events: none;
+  border: 0;
+  cursor: pointer;
+}
+/* Same pill above the grid, in the chips row's free space on the right, pointing up. */
+.k-grid-more--up {
+  top: var(--k-chips-top);
+  left: auto;
+  right: var(--k-margin);
+  transform: none;
+  height: var(--k-touch);
+  padding-top: 0;
+  padding-bottom: 0;
 }
 .k-grid-more::after {
   content: "";
@@ -169,6 +180,13 @@
 }
 @keyframes k-more-bob {
   50% { transform: translateY(4px) rotate(45deg); }
+}
+.k-grid-more--up::after {
+  transform: translateY(4px) rotate(-135deg);
+  animation-name: k-more-bob-up;
+}
+@keyframes k-more-bob-up {
+  50% { transform: translateY(-4px) rotate(-135deg); }
 }
 @media (prefers-reduced-motion: reduce) { .k-grid-more::after { animation: none; } }
 .k-grid__message {

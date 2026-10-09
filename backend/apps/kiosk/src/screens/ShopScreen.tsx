@@ -35,10 +35,21 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
   // knows to swipe. Re-checked on scroll, on resize, and when the list changes.
   const gridRef = useRef<HTMLElement>(null)
   const [moreBelow, setMoreBelow] = useState(false)
+  const [moreAbove, setMoreAbove] = useState(false)
   const checkMore = useCallback(() => {
     const el = gridRef.current
     setMoreBelow(!!el && el.scrollTop + el.clientHeight < el.scrollHeight - 8)
+    setMoreAbove(!!el && el.scrollTop > 8)
   }, [])
+  // The cues are buttons too: each scrolls the grid by two rows.
+  const scrollRows = (direction: 1 | -1) => {
+    const el = gridRef.current
+    if (!el) return
+    const cards = el.querySelectorAll<HTMLElement>(".k-card")
+    const rowPitch = cards.length > 3 ? cards[3].offsetTop - cards[0].offsetTop : 434
+    const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    el.scrollBy({ top: direction * 2 * rowPitch, behavior: calm ? "auto" : "smooth" })
+  }
   useEffect(() => {
     checkMore()
     const el = gridRef.current
@@ -68,7 +79,12 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
           ))
         )}
       </section>
-      {moreBelow && <div className="k-grid-more" aria-hidden="true">{t.moreBelow}</div>}
+      {moreAbove && (
+        <button className="k-grid-more k-grid-more--up" onClick={() => scrollRows(-1)}>{t.moreAbove}</button>
+      )}
+      {moreBelow && (
+        <button className="k-grid-more" onClick={() => scrollRows(1)}>{t.moreBelow}</button>
+      )}
       <OrderBar itemCount={kioskCart.itemCount} total={kioskCart.total} busy={false} onPay={onPay} />
     </>
   )

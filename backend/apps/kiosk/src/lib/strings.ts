@@ -12,6 +12,7 @@ export const t = {
   inOrder: (n: number) => `${n} en tu pedido`,
   items: (n: number) => (n === 1 ? "1 producto" : `${n} productos`),
   moreBelow: "Desliza para ver más",
+  moreAbove: "Ver más arriba",
   emptyCategory: "No hay productos en esta categoría por ahora.",
   loadError: "No pudimos cargar los productos. Toca para reintentar.",
   currency: "Bs",
