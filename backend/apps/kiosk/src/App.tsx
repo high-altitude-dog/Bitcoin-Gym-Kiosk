@@ -13,6 +13,7 @@ import { Stage } from "./screens/Stage"
 import { PaymentMethodScreen } from "./screens/PaymentMethodScreen"
 import { PaymentScreen } from "./screens/PaymentScreen"
 import { DoneScreen } from "./screens/DoneScreen"
+import { ConnectionErrorScreen } from "./screens/ConnectionErrorScreen"
 
 function App() {
   const kiosk = useKiosk()
@@ -41,15 +42,30 @@ function App() {
     }
   }, [isOnline, kiosk.error, kiosk.screen, kiosk.reset])
 
+  // Whether the connection-error screen was up before this try started: the
+  // same screen stays on while it retries (see ConnectionErrorScreen), so the
+  // member sees one steady screen, not "Cargando..." flashing every 15 s.
+  const showingError = !!kiosk.error && kiosk.screen === "idle"
+  const hadError = useRef(false)
+  const retrying = kiosk.loading && hadError.current
+  useEffect(() => {
+    if (showingError) hadError.current = true
+    else if (!kiosk.loading) hadError.current = false
+  }, [showingError, kiosk.loading])
+
   return (
     <>
       {!isOnline && <div className="reconnecting-banner">{t.reconnecting}</div>}
-      {renderScreen(kiosk)}
+      {renderScreen(kiosk, retrying)}
     </>
   )
 }
 
-function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
+function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
+  if (retrying) {
+    return plain(<ConnectionErrorScreen message={t.errorCatalog} retrying onRetry={kiosk.reset} />)
+  }
+
   if (kiosk.loading) {
     return plain(
       <div className="screen screen--center">
@@ -61,14 +77,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>) {
   // Full-screen only for a failed catalog load. Its Retry clears the cart,
   // so it must never stand in for a payment error on a live cart.
   if (kiosk.error && kiosk.screen === "idle") {
-    return plain(
-      <div className="screen screen--center">
-        <p>{kiosk.error}</p>
-        <button className="primary-button" onClick={kiosk.reset}>
-          {t.retry}
-        </button>
-      </div>
-    )
+    return plain(<ConnectionErrorScreen message={kiosk.error} retrying={false} onRetry={kiosk.reset} />)
   }
 
   // No cart needed yet: "Pagar" can come before Medusa has created it.

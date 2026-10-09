@@ -274,3 +274,19 @@
   color: var(--k-text-2);
   font-weight: 600;
 }
+
+/* Connection error: Byte jumping rope (800 px, as on the done screen), the
+   message, a countdown to the next automatic try, and "try now". */
+.conn-error { gap: 32px; }
+.conn-error__art {
+  display: block;
+  width: 800px;
+  height: 800px;
+  background: var(--k-bg);
+}
+.conn-error p { max-width: 900px; }
+.conn-error__count {
+  font: 700 56px/1.1 var(--k-font);
+  color: var(--k-text);
+  font-variant-numeric: tabular-nums;
+}
