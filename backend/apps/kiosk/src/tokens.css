@@ -46,12 +46,12 @@
   /* No title or clock row any more (Oct 9, 2026): the chips start at the top and the grid right under them. */
   --k-chips-top: 40px;
   --k-grid-top: 136px;
-  --k-card-h: 355px;          /* 3 columns x 4 rows visible (ends at y=1628); more rows scroll */
+  --k-card-h: 372px;          /* 3 columns x 4 rows visible (ends at y=1696, 16 px above the order bar); more rows scroll */
   --k-grid-rows: 4;
-  --k-photo-h: 195px;
+  --k-photo-h: 212px;
   --k-name-top: calc(8px + var(--k-photo-h) + 18px);   /* the name sits under the photo */
   --k-photo-box-w: 236px;     /* every product photo is contain-fit into this box */
-  --k-photo-box-h: 167px;     /* tall products (tubs, bags) get the extra height */
+  --k-photo-box-h: 184px;     /* tall products (tubs, bags) get the extra height */
   --k-add: 76px;              /* round "+" button */
   --k-stepper-w: 184px;
   --k-bar-top: 1712px;

@@ -11,7 +11,7 @@ export const t = {
   remove: (name: string) => `Quitar un ${name}`,
   inOrder: (n: number) => `${n} en tu pedido`,
   items: (n: number) => (n === 1 ? "1 producto" : `${n} productos`),
-  moreBelow: "Desliza para ver más",
+  moreBelow: "Ver más",
   moreAbove: "Ver más arriba",
   emptyCategory: "No hay productos en esta categoría por ahora.",
   loadError: "No pudimos cargar los productos. Toca para reintentar.",

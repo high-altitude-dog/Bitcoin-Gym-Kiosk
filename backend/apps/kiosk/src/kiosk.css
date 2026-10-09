@@ -127,16 +127,13 @@
   scroll-snap-type: y mandatory;
 }
 .k-grid::-webkit-scrollbar { display: none; }
-/* "More below" cue: sits in the gap between the grid and the order bar, so it never covers a card's + button. */
+/* Scroll cues. "Up" is a round chevron at the right end of the chips row (no room for a label there); "Ver más" (down)
+   is a pill inside the order bar next to Pagar, so the grid can run right down to the bar. */
 .k-grid-more {
   position: absolute;
-  top: calc(var(--k-grid-top) + var(--k-grid-rows) * var(--k-card-h) + (var(--k-grid-rows) - 1) * var(--k-gap) + 8px);
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 32px;
   border-radius: var(--k-pill);
   background: var(--k-card);
   box-shadow: inset 0 0 0 2px var(--k-border);
@@ -308,6 +305,30 @@
 }
 .k-bar__label { font: var(--k-bar-label); color: var(--k-text-2); }
 .k-bar__total { font: var(--k-bar-total); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.k-bar__more {
+  margin-left: auto;
+  margin-right: 20px;
+  height: var(--k-touch);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: var(--k-pill);
+  background: var(--k-control);
+  font: var(--k-bar-label);
+  color: var(--k-text);
+}
+.k-bar__more::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-right: 4px solid currentColor;
+  border-bottom: 4px solid currentColor;
+  transform: translateY(-4px) rotate(45deg);
+  animation: k-more-bob 1.6s ease-in-out infinite;
+}
+.k-bar__more.is-pressed { transform: scale(0.94); filter: brightness(1.25); transition: none; }
+@media (prefers-reduced-motion: reduce) { .k-bar__more::after { animation: none; } }
 .k-pay {
   width: var(--k-pay-w);
   height: var(--k-pay-h);

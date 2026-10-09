@@ -76,10 +76,13 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
       {moreAbove && (
         <button className="k-grid-more k-grid-more--up" aria-label={t.moreAbove} onClick={() => scrollRows(-1)}>{t.moreAbove}</button>
       )}
-      {moreBelow && (
-        <button className="k-grid-more" onClick={() => scrollRows(1)}>{t.moreBelow}</button>
-      )}
-      <OrderBar itemCount={kioskCart.itemCount} total={kioskCart.total} busy={false} onPay={onPay} />
+      <OrderBar
+        itemCount={kioskCart.itemCount}
+        total={kioskCart.total}
+        busy={false}
+        onPay={onPay}
+        more={moreBelow ? { label: t.moreBelow, onClick: () => scrollRows(1) } : undefined}
+      />
     </>
   )
 }
