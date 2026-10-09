@@ -7,6 +7,11 @@ import { CategoryChips } from "./CategoryChips"
 import { OrderBar } from "./OrderBar"
 import { ProductCard } from "./ProductCard"
 
+// Height of the fade-to-dark strip at an edge with more rows behind it. About
+// the peek (a quarter row) plus the gap, so mid-list it covers the slice of
+// the next row and no more.
+const FADE_PX = 130
+
 interface Props {
   products: HttpTypes.StoreProduct[]
   categories: HttpTypes.StoreProductCategory[]
@@ -48,13 +53,14 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
     const below = viewBottom < el.scrollHeight - 8
     setMoreAbove(above)
     setMoreBelow(below)
-    // The fade covers exactly the partly visible row at each open edge: a
-    // quarter row mid-list, about half a row at the very top or bottom.
-    const rows = [...el.querySelectorAll<HTMLElement>(".k-card")].filter((_, i) => i % 3 === 0)
-    const firstFull = rows.find((r) => r.offsetTop >= viewTop - 1)
-    const lastFull = [...rows].reverse().find((r) => r.offsetTop + r.offsetHeight <= viewBottom + 1)
-    const fadeTop = above && firstFull ? firstFull.offsetTop - viewTop : 0
-    const fadeBottom = below && lastFull ? viewBottom - (lastFull.offsetTop + lastFull.offsetHeight) : 0
+    // The fade is a fixed-size strip at each open edge that shrinks only when
+    // less than that much content is left to scroll (so it eases away at the
+    // very top/bottom). It depends smoothly on the scroll position: an earlier
+    // version sized it to "the gap below the last fully visible row", which
+    // dropped from a whole row to zero the instant a new row became fully
+    // visible, so that row popped from dim to bright (seen on the tablet).
+    const fadeTop = Math.min(FADE_PX, viewTop)
+    const fadeBottom = Math.min(FADE_PX, Math.max(0, el.scrollHeight - viewBottom))
     // Set directly rather than through state: this runs on every scroll frame.
     if (fadeTopRef.current) fadeTopRef.current.style.height = `${Math.max(0, fadeTop)}px`
     if (fadeBottomRef.current) fadeBottomRef.current.style.height = `${Math.max(0, fadeBottom)}px`

@@ -9,13 +9,18 @@ import type { KioskCart, KioskProduct } from "./kioskTypes"
 export function toKioskProduct(product: HttpTypes.StoreProduct): KioskProduct | null {
   const variant = product.variants?.[0]
   if (!variant) return null
+  // A product with no price at all (the admin let it be published without
+  // one) can't be added to a cart, and used to show as "Bs 0" with a working +.
+  // Hide it until a price is set. A price of exactly 0 is a price and shows.
+  const price = variant.calculated_price?.calculated_amount
+  if (price === null || price === undefined) return null
   const stock = variant.inventory_quantity ?? 0
   return {
     id: product.id,
     variantId: variant.id,
     title: product.title ?? "",
     thumbnail: product.thumbnail ?? product.images?.[0]?.url ?? null,
-    price: variant.calculated_price?.calculated_amount ?? 0,
+    price,
     soldOut: stock <= 0,
     stock,
   }
