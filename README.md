@@ -145,7 +145,7 @@ with a banana while the order is empty, and with a bone on "¡Gracias!". Byte's 
 
 ## License
 
-[MIT](LICENSE), for the code and documentation. The artwork (Byte, Second's mascot, used with permission, and the wall
+[MIT](LICENSE), for the code and documentation. The artwork (Byte, Second's mascot and the wall
 images that include him), the Lightning logo and the product photos are **not** covered: see [NOTICE.md](NOTICE.md).
 The backend was started from Medusa's [DTC starter](https://docs.medusajs.com), which is also MIT-licensed
 (`backend/LICENSE`).
