@@ -16,7 +16,7 @@ location and a new tablet, not a redesign.
 ```text
  Tablet kiosk (React)  ──┐                         ┌─▶ Yadio       BOB/BTC rate when a Lightning invoice is made
                          ├─▶  Medusa backend  ─────┼─▶ Coinos      Lightning invoices, payment webhook
- Medusa admin (staff)  ──┘    Postgres + Redis     ├─▶ Baneco API  bank QR in fiat local currency (not connected yet)
+ Medusa admin (staff)  ──┘    Postgres + Redis     ├─▶ Bank API    bank QR in fiat local currency (not connected yet)
                                                    └─▶ Slack       sales, low stock, payment alerts
 ```
 
@@ -172,7 +172,7 @@ signifique una nueva ubicación de inventario y una nueva tableta, no un redise�
 ```text
  Kiosco en tableta (React) ──┐                         ┌─▶ Yadio       tasa BOB/BTC al crear una factura Lightning
                              ├─▶  Backend Medusa  ─────┼─▶ Coinos      facturas Lightning, webhook de pago
- Admin de Medusa (personal) ─┘    Postgres + Redis     ├─▶ Baneco API  QR bancario en moneda fiat local (aún no conectado)
+ Admin de Medusa (personal) ─┘    Postgres + Redis     ├─▶ Bank API    QR bancario en moneda fiat local (aún no conectado)
                                                        └─▶ Slack       ventas, stock bajo, alertas de pago
 ```
 
