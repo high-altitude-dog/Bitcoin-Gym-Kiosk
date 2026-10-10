@@ -139,5 +139,7 @@ open checklist is in `CLAUDE.md`.
 
 ## License
 
-The backend was started from Medusa's [DTC starter](https://docs.medusajs.com), which is MIT-licensed
-(`backend/LICENSE`). No license has been chosen for the rest of this project yet.
+[MIT](LICENSE), for the code and documentation. The artwork (Byte, Second's mascot, used with permission, and the wall
+images that include him), the Lightning logo and the product photos are **not** covered: see [NOTICE.md](NOTICE.md).
+The backend was started from Medusa's [DTC starter](https://docs.medusajs.com), which is also MIT-licensed
+(`backend/LICENSE`).
