@@ -5,6 +5,8 @@ export const t = {
   tapToStart: "Toca para empezar",
   orderLabel: "Tu pedido",
   orderEmpty: "Elige algo para empezar",
+  orderCountEmpty: "Vacío",
+  orderTotal: "Total",
   pay: "Pagar",
   soldOut: "Agotado",
   add: (name: string) => `Añadir ${name}`,

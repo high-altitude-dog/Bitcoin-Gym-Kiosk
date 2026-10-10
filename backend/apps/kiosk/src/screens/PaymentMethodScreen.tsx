@@ -25,12 +25,15 @@ export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBa
       <p className="k-method__total">{formatBs(total)}</p>
       <p>{t.choosePayment}</p>
       {error && <p className="k-method__error" role="alert">{error}</p>}
-      <button className="k-method__option" onClick={onLightning} disabled={saving} aria-busy={savingFor === "lightning"}>
-        {savingFor === "lightning" ? t.savingOrder : t.payWithLightning}
-      </button>
-      <button className="k-method__option k-method__option--secondary" onClick={onBankQr} disabled={saving} aria-busy={savingFor === "bank_qr"}>
-        {savingFor === "bank_qr" ? t.savingOrder : t.payWithBankQr}
-      </button>
+      {/* Stacked in portrait, side by side in landscape (see kiosk.css) */}
+      <div className="k-method__options">
+        <button className="k-method__option" onClick={onLightning} disabled={saving} aria-busy={savingFor === "lightning"}>
+          {savingFor === "lightning" ? t.savingOrder : t.payWithLightning}
+        </button>
+        <button className="k-method__option k-method__option--secondary" onClick={onBankQr} disabled={saving} aria-busy={savingFor === "bank_qr"}>
+          {savingFor === "bank_qr" ? t.savingOrder : t.payWithBankQr}
+        </button>
+      </div>
       <button className="k-method__back" onClick={onBack}>{t.back}</button>
     </div>
   )

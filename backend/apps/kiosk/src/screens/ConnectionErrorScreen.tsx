@@ -40,13 +40,16 @@ export function ConnectionErrorScreen({
   return (
     <div className="screen screen--center conn-error">
       <ByteJumpRope />
-      <p>{message}</p>
-      <p className="conn-error__count" role="timer">
-        {retrying ? t.retryingNow : t.retryingIn(seconds)}
-      </p>
-      <button className="primary-button" disabled={retrying} onClick={onRetry}>
-        {t.retryNow}
-      </button>
+      {/* Layout-only group: Byte beside the text in landscape (App.css) */}
+      <div className="conn-error__body">
+        <p>{message}</p>
+        <p className="conn-error__count" role="timer">
+          {retrying ? t.retryingNow : t.retryingIn(seconds)}
+        </p>
+        <button className="primary-button" disabled={retrying} onClick={onRetry}>
+          {t.retryNow}
+        </button>
+      </div>
     </div>
   )
 }

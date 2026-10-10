@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import type { KioskCart, KioskProduct } from "./kioskTypes"
+import type { KioskCart, KioskLine, KioskProduct } from "./kioskTypes"
 
 /**
  * Maps the real Medusa StoreProduct/StoreCart (already fetched by useKiosk.ts) onto the
@@ -57,4 +57,18 @@ export function toKioskCart(
     total += delta * price
   }
   return { id: cart?.id ?? null, total, itemCount }
+}
+
+/**
+ * The order panel's lines: every product with a quantity in the order, using the same shown quantity as the
+ * cards (taps Medusa hasn't confirmed yet included), so a tap appears in the panel and on the card at once.
+ */
+export function toKioskLines(
+  cart: HttpTypes.StoreCart | null,
+  pending: Record<string, number>,
+  products: KioskProduct[]
+): KioskLine[] {
+  return products
+    .map((p) => ({ ...p, qty: shownQuantity(cart, pending, p.variantId) }))
+    .filter((line) => line.qty > 0)
 }

@@ -290,3 +290,32 @@
   color: var(--k-text);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------- landscape (1920 x 1200)
+   The groups below (.payment-qrbox, .payment-side, .done-hero, .done-side, .conn-error__body) only exist for this:
+   in portrait they are display: contents, so their children are laid out as if they were direct children of the
+   screen, exactly as before. Portrait's order is kept with `order`, since a display: contents group can't be ordered
+   itself: the amounts (or the title) first, the QR second, the rest after. */
+.payment-qrbox, .payment-side, .done-hero, .done-side, .conn-error__body { display: contents; }
+.payment-qrbox > * { order: 2; }
+.payment-side > :first-child { order: 1; }
+.payment-side > :not(:first-child) { order: 3; }
+
+.k-stage[data-orientation="landscape"] .payment-layout { flex-direction: row; gap: 120px; }
+.k-stage[data-orientation="landscape"] .payment-qrbox { display: flex; flex: none; width: 720px; align-items: center; justify-content: center; }
+.k-stage[data-orientation="landscape"] .payment-side { display: flex; flex: none; width: 720px; flex-direction: column; align-items: center; gap: 32px; }
+.k-stage[data-orientation="landscape"] .payment-side h1 { max-width: none; }
+
+/* Done: Byte, the thanks and the order number on the left; what was bought and the button on the right. The list sits
+   beside Byte, so he stays one size however long it is. */
+.k-stage[data-orientation="landscape"] .screen--center.done { flex-direction: row; gap: 120px; }
+.k-stage[data-orientation="landscape"] .done-hero { display: flex; flex: none; width: 720px; flex-direction: column; align-items: center; }
+.k-stage[data-orientation="landscape"] .done .done-art { width: 560px; height: 560px; margin: -22px 0 -34px; }
+.k-stage[data-orientation="landscape"] .done-side { display: flex; flex: none; width: 840px; flex-direction: column; align-items: center; gap: 64px; }
+.k-stage[data-orientation="landscape"] .done-items { margin-top: 0; max-width: none; }
+.k-stage[data-orientation="landscape"] .done-items__list { max-height: 660px; }
+.k-stage[data-orientation="landscape"] .done-new { margin-top: 0; }
+
+/* Connection error: Byte on the left, the message, countdown and button on the right. */
+.k-stage[data-orientation="landscape"] .conn-error { flex-direction: row; gap: 96px; }
+.k-stage[data-orientation="landscape"] .conn-error__body { display: flex; flex: none; width: 760px; flex-direction: column; align-items: flex-start; gap: 32px; text-align: left; }

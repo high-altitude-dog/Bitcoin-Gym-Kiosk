@@ -74,31 +74,35 @@ export function PaymentScreen({
   // a static square instead of a real bank QR invoice.
   if (paymentMethod === "bank_qr") {
     return (
-      <div className="screen screen--center">
-        <h1>Pagar {formatBs(cart.total)}</h1>
-        <div className="payment-qr payment-qr--placeholder">
-          <span>El QR aparecerá aquí</span>
+      <div className="screen screen--center payment-layout">
+        <div className="payment-qrbox">
+          <div className="payment-qr payment-qr--placeholder">
+            <span>El QR aparecerá aquí</span>
+          </div>
         </div>
-        <p className="payment-note">El QR bancario estará disponible pronto. Escanea con tu app del banco para pagar.</p>
-        {error && <p className="payment-error" role="alert">{error}</p>}
-        <div className="bank-qr-actions">
-          <button className="bank-qr-cancel" onClick={onCancel} disabled={confirming}>
-            {t.cancel}
-          </button>
-          <button
-            className="bank-qr-paid"
-            disabled={confirming}
-            onClick={async () => {
-              setConfirming(true)
-              try {
-                await onBankQrPaid()
-              } finally {
-                setConfirming(false)
-              }
-            }}
-          >
-            {t.paid}
-          </button>
+        <div className="payment-side">
+          <h1>Pagar {formatBs(cart.total)}</h1>
+          <p className="payment-note">El QR bancario estará disponible pronto. Escanea con tu app del banco para pagar.</p>
+          {error && <p className="payment-error" role="alert">{error}</p>}
+          <div className="bank-qr-actions">
+            <button className="bank-qr-cancel" onClick={onCancel} disabled={confirming}>
+              {t.cancel}
+            </button>
+            <button
+              className="bank-qr-paid"
+              disabled={confirming}
+              onClick={async () => {
+                setConfirming(true)
+                try {
+                  await onBankQrPaid()
+                } finally {
+                  setConfirming(false)
+                }
+              }}
+            >
+              {t.paid}
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -145,24 +149,32 @@ export function PaymentScreen({
     )
   }
 
+  // Portrait stacks amounts, QR, logo, countdown, note and button in one column;
+  // landscape puts the QR on the left and everything else on the right. The two
+  // groups are layout-only (see App.css), so turning the tablet keeps the same
+  // elements: the QR image is never rebuilt.
   return (
-    <div className="screen screen--center">
-      {/* The amount being charged (sats) leads; the Bs price follows, smaller. */}
-      <div className="payment-amounts">
-        <p className="payment-sats">{invoice.satsAmount.toLocaleString("es-BO")} sats</p>
-        <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
+    <div className="screen screen--center payment-layout">
+      <div className="payment-qrbox">
+        {qrDataUrl ? (
+          <img className="payment-qr" src={qrDataUrl} alt="Código QR de la factura de Bitcoin⚡" />
+        ) : (
+          <p className="payment-note">Generando código QR...</p>
+        )}
       </div>
-      {qrDataUrl ? (
-        <img className="payment-qr" src={qrDataUrl} alt="Código QR de la factura de Bitcoin⚡" />
-      ) : (
-        <p className="payment-note">Generando código QR...</p>
-      )}
-      <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
-      <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
-      <p className="payment-note">Escanea con billetera Bitcoin Lightning</p>
-      <button className="back-button" onClick={onCancel}>
-        Cancelar
-      </button>
+      <div className="payment-side">
+        {/* The amount being charged (sats) leads; the Bs price follows, smaller. */}
+        <div className="payment-amounts">
+          <p className="payment-sats">{invoice.satsAmount.toLocaleString("es-BO")} sats</p>
+          <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
+        </div>
+        <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
+        <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
+        <p className="payment-note">Escanea con billetera Bitcoin Lightning</p>
+        <button className="back-button" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
     </div>
   )
 }

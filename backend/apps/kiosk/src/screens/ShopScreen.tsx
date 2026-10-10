@@ -1,16 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { t } from "../lib/strings"
 import { useGreeting } from "../hooks/useGreeting"
-import { shownQuantity, toKioskCart, toKioskProduct } from "../lib/kioskMapping"
+import { useOrientation } from "../hooks/useStage"
+import { shownQuantity, toKioskCart, toKioskLines, toKioskProduct } from "../lib/kioskMapping"
 import { CategoryChips } from "./CategoryChips"
 import { OrderBar } from "./OrderBar"
+import { OrderPanel } from "./OrderPanel"
 import { ProductCard } from "./ProductCard"
 
 // Height of the fade-to-dark strip at an edge with more rows behind it. About
 // the peek (a quarter row) plus the gap, so mid-list it covers the slice of
 // the next row and no more.
 const FADE_PX = 130
+
+// After turning the tablet, the scrolling the turn itself causes must not
+// change which product is remembered as the one in view. Otherwise each
+// round trip would move the list a little closer to the top.
+const ANCHOR_QUIET_MS = 400
+
+/** How far a row snaps below the top of the grid (room for the slice of the row above). */
+function snapPadding(grid: HTMLElement): number {
+  return parseFloat(getComputedStyle(grid).scrollPaddingTop) || 0
+}
+
+/**
+ * The distance from one row of cards to the next. Found from the cards
+ * themselves, not from a column count: the first card that sits lower than the
+ * first one starts the second row, whatever the number of columns.
+ */
+function rowPitchOf(cards: ArrayLike<HTMLElement>): number {
+  const firstTop = cards[0]?.offsetTop ?? 0
+  for (let i = 1; i < cards.length; i++) {
+    if (cards[i].offsetTop > firstTop) return cards[i].offsetTop - firstTop
+  }
+  return 434
+}
 
 interface Props {
   products: HttpTypes.StoreProduct[]
@@ -61,6 +86,12 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
     // visible, so that row popped from dim to bright (seen on the tablet).
     const fadeTop = Math.min(FADE_PX, viewTop)
     const fadeBottom = Math.min(FADE_PX, Math.max(0, el.scrollHeight - viewBottom))
+    // The first product in view: the first card at or below the snap line
+    // (the row above it only shows as a slice).
+    const cards = el.querySelectorAll<HTMLElement>(".k-card")
+    const snapLine = viewTop - snapPadding(el) + 1
+    const first = Array.from(cards).findIndex((card) => card.offsetTop >= snapLine)
+    if (performance.now() - restoredAt.current > ANCHOR_QUIET_MS) anchorIndex.current = Math.max(0, first)
     // Set directly rather than through state: this runs on every scroll frame.
     if (fadeTopRef.current) fadeTopRef.current.style.height = `${Math.max(0, fadeTop)}px`
     if (fadeBottomRef.current) fadeBottomRef.current.style.height = `${Math.max(0, fadeBottom)}px`
@@ -70,10 +101,27 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
     const el = gridRef.current
     if (!el) return
     const cards = el.querySelectorAll<HTMLElement>(".k-card")
-    const rowPitch = cards.length > 3 ? cards[3].offsetTop - cards[0].offsetTop : 434
     const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-    el.scrollBy({ top: direction * 2 * rowPitch, behavior: calm ? "auto" : "smooth" })
+    el.scrollBy({ top: direction * 2 * rowPitchOf(cards), behavior: calm ? "auto" : "smooth" })
   }
+  // Turning the tablet changes the number of columns, and so which row each
+  // product is in. Remember the first product in view while scrolling, and
+  // after a turn scroll to the row that now holds it, so the member keeps their
+  // place in the list.
+  const orientation = useOrientation()
+  const lastOrientation = useRef(orientation)
+  const anchorIndex = useRef(0)
+  const restoredAt = useRef(-Infinity)
+  useLayoutEffect(() => {
+    if (lastOrientation.current === orientation) return
+    lastOrientation.current = orientation
+    const el = gridRef.current
+    if (!el) return
+    const card = el.querySelectorAll<HTMLElement>(".k-card")[anchorIndex.current]
+    el.scrollTop = card ? Math.max(0, card.offsetTop - snapPadding(el)) : 0
+    restoredAt.current = performance.now()
+    checkMore()
+  }, [orientation, checkMore])
   useEffect(() => {
     checkMore()
     const el = gridRef.current
@@ -86,6 +134,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
   const kioskCategories = categories.map((c) => ({ id: c.id, name: c.name }))
   const allProducts = useMemo(() => products.map(toKioskProduct).filter((p) => p !== null), [products])
   const kioskCart = toKioskCart(cart, pending, allProducts)
+  const lines = toKioskLines(cart, pending, allProducts)
 
   return (
     <>
@@ -111,6 +160,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
       {moreAbove && <button className="k-scroll-cue k-scroll-cue--up" aria-label={t.moreAbove} onClick={() => scrollRows(-1)} />}
       {moreBelow && <button className="k-scroll-cue k-scroll-cue--down" aria-label={t.moreBelow} onClick={() => scrollRows(1)} />}
       <OrderBar itemCount={kioskCart.itemCount} total={kioskCart.total} busy={false} onPay={onPay} />
+      <OrderPanel lines={lines} itemCount={kioskCart.itemCount} total={kioskCart.total} busy={false} onQty={onSetQuantity} onPay={onPay} />
     </>
   )
 }

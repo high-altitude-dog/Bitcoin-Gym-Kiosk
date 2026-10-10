@@ -12,3 +12,6 @@ export type KioskProduct = {
 }
 
 export type KioskCart = { id: string | null; total: number; itemCount: number }
+
+/** A product in the order, with the quantity shown (see toKioskLines). */
+export type KioskLine = KioskProduct & { qty: number }

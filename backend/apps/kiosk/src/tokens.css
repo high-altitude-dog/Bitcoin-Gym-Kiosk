@@ -63,4 +63,40 @@
   --k-bar-h: 144px;
   --k-pay-w: 296px;
   --k-pay-h: 104px;
+  /* what the landscape block below changes */
+  --k-cols: 3;                /* product columns */
+  --k-grid-w: 1072px;         /* the grid and the chips row */
+  --k-grid-cx: 600px;         /* horizontal centre of the grid (the scroll chevrons sit on it) */
+  --k-fade-w: 100%;           /* width of the fade strips */
+}
+
+/* Landscape (layout B): the same tablet turned on its side, a 1920 x 1200 stage. <Stage> sets data-orientation
+   from the shape of the screen. Products on the left in 4 columns, the order panel on the right in place of the
+   order bar. Cards are 380 px tall so that, mid-list, a 70 px slice of the row above and below still shows:
+   2 x peek + 2 x card + 3 x gap = grid height (2 x 70 + 2 x 380 + 3 x 24 = 972), so the chevrons (72 px) fit in the
+   faded strip (peek + gap = 94 px). Derived tokens (--k-name-top) are written out again here: a calc() on :root
+   would keep its portrait result. */
+.k-stage[data-orientation="landscape"] {
+  --k-stage-w: 1920px;
+  --k-stage-h: 1200px;
+  --k-margin: 32px;
+  --k-header-top: 20px;
+  --k-header-h: 80px;
+  --k-chips-top: 108px;
+  --k-grid-top: 196px;
+  --k-grid-h: 972px;          /* ends at y=1168, 32 px above the bottom edge */
+  --k-card-h: 380px;
+  --k-peek: 70px;
+  --k-photo-h: 224px;
+  --k-name-top: calc(8px + 224px + 18px);
+  --k-photo-box-w: 250px;
+  --k-photo-box-h: 198px;
+  --k-cols: 4;
+  --k-grid-w: 1328px;         /* x = 32 to 1360 */
+  --k-grid-cx: 696px;
+  --k-fade-w: 1372px;         /* stops 12 px short of the panel */
+  --k-panel-left: 1384px;
+  --k-panel-top: 32px;
+  --k-panel-w: 504px;
+  --k-panel-h: 1136px;
 }

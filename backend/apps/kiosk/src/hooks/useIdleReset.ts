@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react"
 
 const IDLE_MS = 60_000
-const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown"] as const
+// Turning the tablet counts as activity: someone is standing there.
+const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "resize", "orientationchange"] as const
 
 // `enabled: false` suspends the timer entirely rather than just not firing
 // it, since a member paying from their phone won't touch the tablet for the

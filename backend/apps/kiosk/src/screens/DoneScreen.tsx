@@ -15,37 +15,42 @@ export function DoneScreen({ order, onNewOrder }: Props) {
   const allSelfServe = items.every((item) => deliveryOf(item.product_type) === null)
   return (
     <div className={`screen screen--center done done--${size}`}>
-      <h1 className="done-title">¡Gracias!</h1>
-      <BoneReward />
-      <p className="done-order">
-        <span className="done-order__label">Tu pedido</span>
-        <span className="done-order__number">#{order.display_id}</span>
-      </p>
-      {items.length > 0 && (
-        <section className="done-items">
-          <h2 className="done-items__title">{allSelfServe ? t.takeYourItems : t.yourPurchase}</h2>
-          <ul className="done-items__list">
-            {items.map((item) => {
-              const delivery = deliveryOf(item.product_type)
-              return (
-                <li key={item.id} className="done-item">
-                  <div className="done-item__photo">
-                    {item.thumbnail && <img src={item.thumbnail} alt="" draggable={false} decoding="async" />}
-                  </div>
-                  <span className="done-item__qty">{item.quantity}×</span>
-                  <span className="done-item__text">
-                    <span className="done-item__name">{item.product_title ?? item.title}</span>
-                    {delivery && <span className="done-item__note">{delivery}</span>}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      )}
-      <button className="primary-button done-new" onClick={onNewOrder}>
-        Nuevo pedido
-      </button>
+      {/* Two groups, layout-only: stacked in portrait, side by side in landscape (App.css) */}
+      <div className="done-hero">
+        <h1 className="done-title">¡Gracias!</h1>
+        <BoneReward />
+        <p className="done-order">
+          <span className="done-order__label">Tu pedido</span>
+          <span className="done-order__number">#{order.display_id}</span>
+        </p>
+      </div>
+      <div className="done-side">
+        {items.length > 0 && (
+          <section className="done-items">
+            <h2 className="done-items__title">{allSelfServe ? t.takeYourItems : t.yourPurchase}</h2>
+            <ul className="done-items__list">
+              {items.map((item) => {
+                const delivery = deliveryOf(item.product_type)
+                return (
+                  <li key={item.id} className="done-item">
+                    <div className="done-item__photo">
+                      {item.thumbnail && <img src={item.thumbnail} alt="" draggable={false} decoding="async" />}
+                    </div>
+                    <span className="done-item__qty">{item.quantity}×</span>
+                    <span className="done-item__text">
+                      <span className="done-item__name">{item.product_title ?? item.title}</span>
+                      {delivery && <span className="done-item__note">{delivery}</span>}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
+        <button className="primary-button done-new" onClick={onNewOrder}>
+          Nuevo pedido
+        </button>
+      </div>
     </div>
   )
 }
