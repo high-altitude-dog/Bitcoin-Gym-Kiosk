@@ -60,8 +60,7 @@ the open checklist. Read it before changing payments or deploying.
 - Designed for an 11" Android tablet (1200 × 1920) running in Fully Kiosk Browser. It works **in portrait and in
   landscape**, and members can turn the tablet at any time: the layout changes without losing the cart, a live
   invoice or the place in the product list.
-- Spanish (Bolivia) UI, dark theme ("Kiosko Byte, La Paz") with Byte, [Second](https://second.tech)'s mascot, used
-  with permission.
+- Spanish (Bolivia) UI, dark theme ("Kiosko Byte, La Paz") with Byte, [Second](https://second.tech)'s mascot.
 - Built for an unattended device: instant feedback on every tap, a 60-second idle reset (paused while a payment is
   in progress), an offline-capable app shell, automatic retries when the backend can't be reached, and a "tell a
   staff member" screen if a paid order can't be completed.
@@ -142,8 +141,7 @@ open checklist is in `CLAUDE.md`.
 
 Thank you to [Second](https://second.tech) for **Byte**, their mascot, who appears throughout the kiosk: on the
 start-screen and shop walls, jumping rope while the kiosk reconnects, through the hoops while an invoice is made,
-with a banana while the order is empty, and with a bone on "¡Gracias!". Byte's artwork and animations are used with
-Second's kind permission and remain theirs (see [NOTICE.md](NOTICE.md)).
+with a banana while the order is empty, and with a bone on "¡Gracias!". Byte's artwork and animations are used in this project and remain theirs (see [NOTICE.md](NOTICE.md)).
 
 ## License
 
