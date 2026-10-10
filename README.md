@@ -135,7 +135,7 @@ Coming shortly: **Ark payments through [Second](https://second.tech)**, as an ad
 Lightning and bank QR. A coin toss will determine whether to route the payment through CoinOS or second.tech,
 failing-over to each other.
 
-Not done yet: the Baneco bank QR (waiting on API access from the bank; the kiosk has a placeholder with a manual
+Not done yet: the bank QR (waiting on API access from the bank; the kiosk has a placeholder with a manual
 "Pagado" button for now), partner café items, and multi-gym features, which wait until a second gym exists. The
 open checklist is in `CLAUDE.md`.
 
@@ -297,7 +297,7 @@ Próximamente: **pagos con Ark a través de [Second](https://second.tech)**, com
 Lightning y el QR bancario. Se lanzará una moneda para decidir si el pago pasa por CoinOS o por second.tech, y si uno
 falla se usará el otro.
 
-Pendiente: el QR bancario de Baneco (a la espera del acceso a la API del banco; por ahora el kiosco tiene una pantalla
+Pendiente: el QR bancario (a la espera del acceso a la API del banco; por ahora el kiosco tiene una pantalla
 provisional con un botón manual de "Pagado"), los productos de la cafetería asociada y las funciones para varios
 gimnasios, que esperan a que exista un segundo gimnasio. La lista de pendientes está en `CLAUDE.md`.
 
