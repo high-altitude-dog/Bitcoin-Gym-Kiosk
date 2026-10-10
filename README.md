@@ -1,6 +1,6 @@
 # Bitcoin Gym Kiosk
 
-A self-service kiosk for gyms. Members pick drinks, snacks and supplements on a wall-mounted tablet and pay from
+An open source self-service kiosk for gyms. Members pick drinks, snacks and supplements on a wall-mounted tablet and pay from
 their own phone with **Bitcoin Lightning** or a **bank QR**. Lightning invoices are created and
 confirmed through [CoinOS.io](https://coinos.io) and its [API](https://coinos.io/docs). A sale is complete only when
 the payment provider confirms it. **Ark**, through [Second](https://second.tech), will shortly be added as an additional
@@ -18,8 +18,8 @@ location and a new tablet, not a redesign.
                                                    └─▶ Slack       sales, low stock, payment alerts
 ```
 
-1. The member taps products on the tablet; Medusa builds the cart in Bs against the gym's stock.
-2. They choose **Bitcoin⚡** or **bank QR**. For Lightning, the backend converts the Bs total to sats at the current
+1. The member taps products on the tablet; Medusa builds the cart in local currency against the gym's stock.
+2. They choose **Bitcoin⚡** or **Bank QR**. For Lightning, the backend converts the fiat local currency amount to sats at the current
    Yadio rate and creates a short-lived invoice at Coinos; the tablet shows it as a QR code with a countdown.
 3. The member pays from any Lightning wallet. Coinos calls the backend's webhook, the backend re-checks the invoice
    with Coinos, and only then does Medusa create the order and reserve stock. The tablet shows "¡Gracias!" with the
@@ -27,7 +27,7 @@ location and a new tablet, not a redesign.
 4. Self-serve items are fulfilled automatically; items handed over by staff or brought by a partner café are posted to
    their own Slack channels.
 
-Prices are always set and shown in Bs; sats are worked out only when an invoice is created, and the rate and amount
+Prices are always set and shown in fiat local currency; sats are worked out only when an invoice is created, and the rate and amount
 are stored on the order. A daily job reconciles Coinos's payment history against Medusa's orders.
 
 ## What's in the repo
