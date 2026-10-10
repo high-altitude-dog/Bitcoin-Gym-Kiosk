@@ -1,8 +1,9 @@
 # Bitcoin Gym Kiosk
 
 A self-service kiosk for gyms. Members pick drinks, snacks and supplements on a wall-mounted tablet and pay from
-their own phone with **Bitcoin Lightning** or a **bank QR in bolivianos (Bs)**. A sale is complete only when the
-payment provider confirms it. **Ark**, through [Second](https://second.tech), will shortly be added as an additional
+their own phone with **Bitcoin Lightning** or a **bank QR in bolivianos (Bs)**. Lightning invoices are created and
+confirmed through [CoinOS.io](https://coinos.io) and its [API](https://coinos.io/docs). A sale is complete only when
+the payment provider confirms it. **Ark**, through [Second](https://second.tech), will shortly be added as an additional
 payment method.
 
 It is built on [MedusaJS](https://medusajs.com). It is designed so that adding more gyms later means a new stock
