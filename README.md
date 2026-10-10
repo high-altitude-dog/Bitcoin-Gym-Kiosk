@@ -137,6 +137,13 @@ Not done yet: the Baneco bank QR (waiting on API access from the bank; the kiosk
 "Pagado" button for now), partner café items, and multi-gym features, which wait until a second gym exists. The
 open checklist is in `CLAUDE.md`.
 
+## Acknowledgements
+
+Thank you to [Second](https://second.tech) for **Byte**, their mascot, who appears throughout the kiosk: on the
+start-screen and shop walls, jumping rope while the kiosk reconnects, through the hoops while an invoice is made,
+with a banana while the order is empty, and with a bone on "¡Gracias!". Byte's artwork and animations are used with
+Second's kind permission and remain theirs (see [NOTICE.md](NOTICE.md)).
+
 ## License
 
 [MIT](LICENSE), for the code and documentation. The artwork (Byte, Second's mascot, used with permission, and the wall
