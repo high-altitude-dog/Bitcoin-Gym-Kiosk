@@ -14,7 +14,7 @@ location and a new tablet, not a redesign.
 ```text
  Tablet kiosk (React)  ──┐                         ┌─▶ Yadio       BOB/BTC rate when a Lightning invoice is made
                          ├─▶  Medusa backend  ─────┼─▶ Coinos      Lightning invoices, payment webhook
- Medusa admin (staff)  ──┘    Postgres + Redis     ├─▶ Baneco API  bank QR in Bs (not connected yet)
+ Medusa admin (staff)  ──┘    Postgres + Redis     ├─▶ Baneco API  bank QR in fiat local currency (not connected yet)
                                                    └─▶ Slack       sales, low stock, payment alerts
 ```
 
