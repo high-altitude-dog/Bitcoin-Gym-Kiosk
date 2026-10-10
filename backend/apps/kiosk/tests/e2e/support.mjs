@@ -50,14 +50,6 @@ function chromiumPath() {
 
 export const launch = () => chromium.launch({ executablePath: chromiumPath(), args: ["--no-sandbox"] })
 
-/** The old "rotate to portrait" overlay (index.html) would cover landscape and swallow clicks. */
-export const unblockLandscape = (page) =>
-  page.addInitScript(() => {
-    const style = document.createElement("style")
-    style.textContent = "#rotate-overlay{display:none!important}"
-    document.addEventListener("DOMContentLoaded", () => document.head.append(style))
-  })
-
 /** Page errors and console errors, collected. */
 export function watchErrors(page) {
   const errors = []

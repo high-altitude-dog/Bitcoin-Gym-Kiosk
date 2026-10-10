@@ -1,5 +1,5 @@
 // Turning the tablet at awkward moments: during taps, saving, a live invoice, a payment, and the idle timer.
-import { createChecker, createMock, launch, LANDSCAPE, PORTRAIT, startServer, unblockLandscape, watchErrors } from "./support.mjs"
+import { createChecker, createMock, launch, LANDSCAPE, PORTRAIT, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -15,7 +15,6 @@ const turn = (to) => page.setViewportSize(to)
 const orient = () => page.evaluate(() => document.querySelector(".k-stage").dataset.orientation)
 const shownQty = () => page.evaluate(() => { const c = document.querySelector(".k-card .k-stepper__qty"); return c ? Number(c.textContent) : 0 })
 const cartQty = () => (mock.cart?.items ?? []).reduce((n, i) => n + i.quantity, 0)
-await unblockLandscape(page)
 const firstVisible = () => page.evaluate(() => { const g = document.querySelector(".k-grid"); const pad = parseFloat(getComputedStyle(g).scrollPaddingTop); return { index: [...g.querySelectorAll(".k-card")].findIndex((c) => c.offsetTop >= g.scrollTop - pad + 1), top: g.scrollTop } })
 const isVisible = (i) => page.evaluate((i) => { const g = document.querySelector(".k-grid").getBoundingClientRect(); const r = document.querySelectorAll(".k-card")[i].getBoundingClientRect(); return r.top >= g.top - 1 && r.bottom <= g.bottom + 1 }, i)
 
@@ -133,7 +132,6 @@ mock.paid = false
 {
   const ctx3 = await browser.newContext({ viewport: PORT, serviceWorkers: "block" })
   const p3 = await ctx3.newPage()
-  await unblockLandscape(p3)
   await createMock().install(p3)
   await p3.clock.install()
   await p3.goto(server.url)

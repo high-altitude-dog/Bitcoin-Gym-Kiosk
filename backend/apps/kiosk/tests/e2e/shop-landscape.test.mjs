@@ -1,5 +1,5 @@
 // Shop screen in landscape: layout, order panel, scroll, and turning with a cart.
-import { createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, unblockLandscape, watchErrors } from "./support.mjs"
+import { createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -9,8 +9,6 @@ const mock = createMock()
 await mock.install(page)
 const errors = watchErrors(page)
 const { check, finish } = createChecker()
-
-await unblockLandscape(page)
 const rect = (sel, i = 0) => page.evaluate(([sel, i]) => { const r = document.querySelectorAll(sel)[i]?.getBoundingClientRect(); return r ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } : null }, [sel, i])
 const visibleTitles = () => page.evaluate(() => { const g = document.querySelector(".k-grid").getBoundingClientRect(); return [...document.querySelectorAll(".k-card")].map((c, i) => ({ i, r: c.getBoundingClientRect() })).filter(({ r }) => r.top >= g.top - 1 && r.bottom <= g.bottom + 1).map(({ i }) => i) })
 
@@ -42,6 +40,7 @@ const callsBefore = mock.calls.length
 // ---- turn to landscape (empty order)
 await page.setViewportSize({ width: 1920, height: 1200 })
 await page.waitForTimeout(800)
+check("landscape: nothing covers the screen (no rotate-to-portrait overlay)", await page.evaluate(() => !document.getElementById("rotate-overlay") && document.elementFromPoint(innerWidth / 2, innerHeight / 2)?.closest(".k-stage") !== null))
 check("landscape: panel visible, bar hidden", (await page.locator(".k-panel").isVisible()) && !(await page.locator(".k-bar").isVisible()))
 check("landscape: 4 columns", (await page.evaluate(() => getComputedStyle(document.querySelector(".k-grid")).gridTemplateColumns.split(" ").length)) === 4)
 const grid = await rect(".k-grid"), panel = await rect(".k-panel"), card = await rect(".k-card"), chips = await rect(".k-chips")

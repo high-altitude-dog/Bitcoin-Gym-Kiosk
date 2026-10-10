@@ -1,5 +1,5 @@
 // Every other screen in both orientations: payment method, invoice wait, Lightning QR, bank QR, done (3 and 9 lines), connection error.
-import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, unblockLandscape, watchErrors } from "./support.mjs"
+import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -10,8 +10,6 @@ await mock.install(page)
 const errors = watchErrors(page)
 const { check, finish } = createChecker()
 mock.availabilityDelay = 1800 // long enough to see the "creating the invoice" screen
-
-await unblockLandscape(page)
 
 const outside = () => page.evaluate(() => {
   const stage = document.querySelector(".k-stage").getBoundingClientRect()
@@ -148,7 +146,6 @@ await page.evaluate(() => document.querySelector(".done-new").click())
 // 7. connection error, in its own page: the catalogue request fails
 const ctx2 = await browser.newContext({ viewport: { width: 1200, height: 1920 }, serviceWorkers: "block" })
 const page2 = await ctx2.newPage()
-await unblockLandscape(page2)
 await page2.route(`${API}/**`, (route) => route.request().method() === "OPTIONS" ? route.fulfill({ status: 204, headers: cors }) : route.fulfill({ status: 500, headers: cors, body: "{}" }))
 await page2.goto(server.url)
 await page2.waitForSelector(".conn-error", { timeout: 20000 })
