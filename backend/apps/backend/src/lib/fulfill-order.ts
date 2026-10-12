@@ -4,6 +4,7 @@ import {
   createOrderFulfillmentWorkflow,
   markOrderFulfillmentAsDeliveredWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { awaitsCashPayment, paymentsOf } from "./cash-payment"
 import { planFulfillment, type OrderLine } from "./fulfillment-mode"
 import { notifySlack } from "./notify-slack"
 
@@ -36,11 +37,16 @@ export async function fulfillOrderByType(
       // items.quantity together with a detail field drops quantity.
       "items.*",
       "items.detail.fulfilled_quantity",
+      "payment_collections.payments.provider_id",
+      "payment_collections.payments.captured_at",
+      "payment_collections.payments.canceled_at",
     ],
     filters: { id: orderId },
   })
   const order = data[0] as any
   if (!order || order.status === "canceled") return { autoFulfilled: 0, staff: 0, cafe: 0 }
+  // Unpaid cash: runs again once staff capture the payment.
+  if (awaitsCashPayment(paymentsOf(order))) return { autoFulfilled: 0, staff: 0, cafe: 0 }
 
   const lines: OrderLine[] = (order.items ?? []).map((i: any) => ({
     id: i.id,

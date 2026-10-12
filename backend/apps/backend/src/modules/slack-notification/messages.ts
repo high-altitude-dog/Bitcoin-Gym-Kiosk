@@ -5,7 +5,7 @@ export type OrderPlacedData = {
   display_id: number
   total: number
   items: { title: string; quantity: number }[]
-  payment_method: "lightning" | "bank_qr" | "other"
+  payment_method: "lightning" | "bank_qr" | "cash" | "other"
   sats?: number | null
   admin_url?: string | null
 }
@@ -28,6 +28,13 @@ export type ReconciliationMismatchData = {
   captured_without_coinos: string[]
 }
 
+export type UnpaidCashData = {
+  display_id: number
+  total: number
+  minutes_waiting: number
+  admin_url?: string | null
+}
+
 export type HandoverOrderData = {
   display_id: number
   items: { title: string; quantity: number }[]
@@ -41,6 +48,7 @@ export const SLACK_TEMPLATES = [
   "reconciliation-mismatch",
   "staff-order",
   "cafe-order",
+  "unpaid-cash",
 ] as const
 export type SlackTemplate = (typeof SLACK_TEMPLATES)[number]
 
@@ -70,6 +78,7 @@ function paymentLabel(data: OrderPlacedData): string {
     return data.sats ? `Lightning (${formatSats(data.sats)})` : "Lightning"
   }
   if (data.payment_method === "bank_qr") return "QR bancario"
+  if (data.payment_method === "cash") return "efectivo, *por cobrar en recepción*"
   return "otro medio de pago"
 }
 
@@ -147,6 +156,17 @@ export function cafeOrderMessage(data: HandoverOrderData): string {
   ].join("\n")
 }
 
+// A cash order still not captured: the member may not have paid at the
+// desk. Its items are held until it is (or it's cancelled, which frees them).
+export function unpaidCashMessage(data: UnpaidCashData): string {
+  const lines = [
+    `*Pedido #${data.display_id} en efectivo sin cobrar* desde hace ${data.minutes_waiting} min · ${formatBs(data.total)}`,
+    `Al cobrar, capturar el pago en el admin. Si el cliente no pagó, cancelar el pedido.`,
+  ]
+  if (data.admin_url) lines.push(`<${data.admin_url}|Ver pedido en el admin>`)
+  return lines.join("\n")
+}
+
 export function renderSlackMessage(template: string, data: Record<string, unknown>): string {
   switch (template as SlackTemplate) {
     case "order-placed":
@@ -161,6 +181,8 @@ export function renderSlackMessage(template: string, data: Record<string, unknow
       return staffOrderMessage(data as unknown as HandoverOrderData)
     case "cafe-order":
       return cafeOrderMessage(data as unknown as HandoverOrderData)
+    case "unpaid-cash":
+      return unpaidCashMessage(data as unknown as UnpaidCashData)
     default:
       throw new Error(`slack-notification: unknown template "${template}"`)
   }

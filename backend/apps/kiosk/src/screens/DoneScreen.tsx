@@ -1,13 +1,17 @@
 import type { HttpTypes } from "@medusajs/types"
+import { formatBs } from "../lib/money"
 import { KIOSK } from "../lib/stageConfig"
 import { t } from "../lib/strings"
 
 interface Props {
   order: HttpTypes.StoreOrder
+  // Cash: the order is placed but not paid yet; the member pays at the
+  // front desk, quoting the order number.
+  payAtDesk: boolean
   onNewOrder: () => void
 }
 
-export function DoneScreen({ order, onNewOrder }: Props) {
+export function DoneScreen({ order, payAtDesk, onNewOrder }: Props) {
   const items = order.items ?? []
   // Byte gives up room as the list grows, so the list and "Nuevo pedido"
   // stay on the stage; a long list scrolls inside its card.
@@ -17,17 +21,18 @@ export function DoneScreen({ order, onNewOrder }: Props) {
     <div className={`screen screen--center done done--${size}`}>
       {/* Two groups, layout-only: stacked in portrait, side by side in landscape (App.css) */}
       <div className="done-hero">
-        <h1 className="done-title">¡Gracias!</h1>
+        <h1 className={payAtDesk ? "done-title done-title--desk" : "done-title"}>{payAtDesk ? t.payAtDesk : "¡Gracias!"}</h1>
         <BoneReward />
         <p className="done-order">
           <span className="done-order__label">Tu pedido</span>
           <span className="done-order__number">#{order.display_id}</span>
         </p>
+        {payAtDesk && <p className="done-due">{t.cashDue(formatBs(order.total))}</p>}
       </div>
       <div className="done-side">
         {items.length > 0 && (
           <section className="done-items">
-            <h2 className="done-items__title">{allSelfServe ? t.takeYourItems : t.yourPurchase}</h2>
+            <h2 className="done-items__title">{allSelfServe && !payAtDesk ? t.takeYourItems : t.yourPurchase}</h2>
             <ul className="done-items__list">
               {items.map((item) => {
                 const delivery = deliveryOf(item.product_type)

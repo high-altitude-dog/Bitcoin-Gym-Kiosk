@@ -4,6 +4,10 @@ export const COINOS_LIGHTNING_PROVIDER_ID = "pp_coinos-lightning_coinos-lightnin
 // Medusa's built-in provider: records a payment without charging anything.
 // Used by the bank QR "Pagado" button until the Baneco API exists.
 export const MANUAL_PAYMENT_PROVIDER_ID = "pp_system_default"
+// Cash at the front desk: authorized at the kiosk, captured by staff in the
+// admin. Must match CASH_PAYMENT_PROVIDER_ID in
+// backend/apps/backend/src/modules/cash-payment/types.ts.
+export const CASH_PAYMENT_PROVIDER_ID = "pp_cash_cash"
 
 // Shape of the payment session `data` coinos-lightning's initiatePayment
 // returns (see that module's service.ts). The kiosk only reads these fields;

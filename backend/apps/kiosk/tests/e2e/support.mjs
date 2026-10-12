@@ -84,6 +84,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   availabilityDelay  ms the Lightning availability check takes
  *   paid               the Lightning payment session reads as authorized
  *   orderItems         the lines the completed order returns
+ *   sessionProviders   provider ids of the payment sessions created, in order
  * and read cart and calls (every request, as "METHOD /path").
  */
 export function createMock() {
@@ -98,6 +99,7 @@ export function createMock() {
     availabilityDelay: 0,
     paid: false,
     orderItems: [],
+    sessionProviders: [],
     /** Answers every request to API from this page or context. */
     install(target) {
       return target.route(`${API}/**`, async (route) => {
@@ -138,10 +140,11 @@ export function createMock() {
         if (url.pathname === "/store/payment-collections") { mock.cart = { ...mock.cart, payment_collection: { id: "pc_1", payment_sessions: [] } }; return json({ payment_collection: mock.cart.payment_collection }) }
         if (url.pathname.endsWith("/payment-sessions")) {
           const isLightning = body().provider_id === LIGHTNING_PROVIDER
+          mock.sessionProviders.push(body().provider_id)
           const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: 600 } : {}
           return json({ payment_collection: { id: "pc_1", payment_sessions: [{ id: "ps_1", provider_id: body().provider_id, status: "pending", data }] } })
         }
-        if (url.pathname.endsWith("/complete")) return json({ type: "order", order: { id: "order_1", display_id: 12, items: mock.orderItems } })
+        if (url.pathname.endsWith("/complete")) return json({ type: "order", order: { id: "order_1", display_id: 12, total: mock.cart?.total ?? 0, items: mock.orderItems } })
         if (url.pathname.startsWith("/store/carts/")) {
           if (mock.cart?.payment_collection) {
             mock.cart = { ...mock.cart, payment_collection: { id: "pc_1", payment_sessions: [{ id: "ps_1", provider_id: LIGHTNING_PROVIDER, status: mock.paid ? "authorized" : "pending", data: {} }] } }

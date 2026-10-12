@@ -16,6 +16,7 @@ interface Props {
   paymentStatus: PaymentStatus
   error: string | null
   onBankQrPaid: () => Promise<void>
+  onCashConfirm: () => Promise<void>
   onRetry: () => void
   onCancel: () => void
 }
@@ -51,6 +52,7 @@ export function PaymentScreen({
   paymentStatus,
   error,
   onBankQrPaid,
+  onCashConfirm,
   onRetry,
   onCancel,
 }: Props) {
@@ -66,6 +68,38 @@ export function PaymentScreen({
       <div className="screen screen--center">
         <h1>{t.errorOrderIncomplete}</h1>
         <p className="payment-note">{t.cartReference(cart.id)}</p>
+      </div>
+    )
+  }
+
+  // Cash: confirming places the order with the payment still to be collected
+  // at the front desk. Single column in both orientations: it's short.
+  // Same red/green pair as bank QR's "Cancelar" and "Pagado".
+  if (paymentMethod === "cash") {
+    return (
+      <div className="screen screen--center">
+        <h1>{t.cashTitle(formatBs(cart.total))}</h1>
+        <p className="payment-note">{t.cashNote}</p>
+        {error && <p className="payment-error" role="alert">{error}</p>}
+        <div className="bank-qr-actions">
+          <button className="bank-qr-cancel" onClick={onCancel} disabled={confirming}>
+            {t.cancel}
+          </button>
+          <button
+            className="bank-qr-paid"
+            disabled={confirming}
+            onClick={async () => {
+              setConfirming(true)
+              try {
+                await onCashConfirm()
+              } finally {
+                setConfirming(false)
+              }
+            }}
+          >
+            {t.confirmOrder}
+          </button>
+        </div>
       </div>
     )
   }

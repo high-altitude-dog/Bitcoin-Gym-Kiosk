@@ -86,6 +86,12 @@ module.exports = defineConfig({
               invoiceType: process.env.COINOS_INVOICE_TYPE || undefined,
             },
           },
+          // Cash at the front desk: authorized at the kiosk, captured by
+          // staff in the admin (see src/modules/cash-payment).
+          {
+            resolve: './src/modules/cash-payment',
+            id: 'cash',
+          },
         ],
       },
     },

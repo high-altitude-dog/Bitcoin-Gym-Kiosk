@@ -21,10 +21,17 @@ import {
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows";
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types";
+import { CASH_PAYMENT_PROVIDER_ID } from "../modules/cash-payment/types";
 import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
 
 const GYM_NAME = "Armor Gym";
 const REGION_NAME = "Bolivia";
+// pp_system_default backs the bank QR "Pagado" stand-in until Baneco exists.
+const REGION_PAYMENT_PROVIDERS = [
+  "pp_system_default",
+  COINOS_LIGHTNING_PROVIDER_ID,
+  CASH_PAYMENT_PROVIDER_ID,
+];
 // The kiosk sales channel and the default shipping profile are both named
 // after the gym, so staff see a single "Armor Gym" in the product form. The
 // channel was called "Armor Gym Kiosk" until Oct 9, 2026; it is renamed in place.
@@ -56,7 +63,7 @@ export default async function setupArmorGym({ container }: ExecArgs) {
             name: REGION_NAME,
             currency_code: "bob",
             countries: ["bo"],
-            payment_providers: ["pp_system_default", COINOS_LIGHTNING_PROVIDER_ID],
+            payment_providers: [...REGION_PAYMENT_PROVIDERS],
           },
         ],
       },
@@ -71,14 +78,15 @@ export default async function setupArmorGym({ container }: ExecArgs) {
     });
     const currentProviders = (regions[0] as { payment_providers: { id: string }[] })
       .payment_providers.map((p) => p.id);
-    if (!currentProviders.includes(COINOS_LIGHTNING_PROVIDER_ID)) {
+    const missing = REGION_PAYMENT_PROVIDERS.filter((id) => !currentProviders.includes(id));
+    if (missing.length) {
       await updateRegionsWorkflow(container).run({
         input: {
           selector: { id: region.id },
-          update: { payment_providers: [...currentProviders, COINOS_LIGHTNING_PROVIDER_ID] },
+          update: { payment_providers: [...currentProviders, ...missing] },
         },
       });
-      logger.info(`Enabled ${COINOS_LIGHTNING_PROVIDER_ID} on region ${REGION_NAME}.`);
+      logger.info(`Enabled ${missing.join(", ")} on region ${REGION_NAME}.`);
     }
   }
 

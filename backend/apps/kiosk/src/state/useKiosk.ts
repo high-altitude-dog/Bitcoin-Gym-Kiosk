@@ -4,6 +4,7 @@ import { isHttpError, sdk } from "../lib/medusa"
 import { toKioskCart } from "../lib/kioskMapping"
 import { t } from "../lib/strings"
 import {
+  CASH_PAYMENT_PROVIDER_ID,
   COINOS_LIGHTNING_PROVIDER_ID,
   MANUAL_PAYMENT_PROVIDER_ID,
   readLightningInvoice,
@@ -17,8 +18,9 @@ export type Screen = "idle" | "shop" | "payment-method" | "payment" | "done"
 export type PaymentStatus = "awaiting" | "expired" | "needs_staff" | null
 // "bank_qr" is a placeholder while the Baneco API request is pending: it
 // shows a static QR square instead of a real invoice. Swap in the real
-// Baneco flow here once credentials arrive.
-export type PaymentMethod = "lightning" | "bank_qr" | null
+// Baneco flow here once credentials arrive. "cash": the member confirms the
+// order here and pays at the front desk; staff capture it in the admin.
+export type PaymentMethod = "lightning" | "bank_qr" | "cash" | null
 
 // "*categories", not "+categories.id,+categories.name": that "+" form returns
 // categories as null in Medusa 2.21.2, so no product ever matched a category chip.
@@ -95,6 +97,7 @@ export function useKiosk() {
   const epochRef = useRef(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollBusyRef = useRef(false)
+  const confirmingRef = useRef(false)
 
   const commitCart = useCallback((cart: HttpTypes.StoreCart | null) => {
     cartRef.current = cart
@@ -282,7 +285,7 @@ export function useKiosk() {
   // member moved on, or a tap couldn't be saved (the screen then shows the
   // total Medusa really holds and asks them to check it).
   const settleForPayment = useCallback(
-    async (method: "lightning" | "bank_qr") => {
+    async (method: Exclude<PaymentMethod, null>) => {
       const epoch = epochRef.current
       const nav = navRef.current
       // Only show "Guardando tu pedido…" if there is something left to
@@ -485,49 +488,74 @@ export function useKiosk() {
     await initiateLightningPayment(cart)
   }, [initiateLightningPayment])
 
-  // Baneco access is still pending (see CLAUDE.md), so this just shows a
-  // static placeholder QR rather than creating a real invoice. It leaves any
-  // live Lightning invoice and its polling alone: if the member already paid
-  // that invoice, the order still completes.
-  const startBankQrPayment = useCallback(async () => {
-    const cart = await settleForPayment("bank_qr")
-    if (!cart) return
-    const epoch = epochRef.current
-    try {
-      const withShipping = await ensureShippingMethod(cart)
-      if (epoch !== epochRef.current) return
-      commitCart(withShipping)
-      setState((s) => ({ ...s, error: null, paymentMethod: "bank_qr", screen: "payment" }))
-    } catch {
-      if (epoch !== epochRef.current) return
-      setState((s) => ({ ...s, error: t.errorPayment, screen: "payment-method" }))
-    }
-  }, [ensureShippingMethod, commitCart, settleForPayment])
+  // Bank QR and cash both open a confirm screen with no invoice. Baneco
+  // access is still pending (see CLAUDE.md), so bank QR shows a static
+  // placeholder QR. Neither touches a live Lightning invoice or its polling:
+  // if the member already paid that invoice, the order still completes.
+  const startManualPayment = useCallback(
+    async (method: "bank_qr" | "cash") => {
+      const cart = await settleForPayment(method)
+      if (!cart) return
+      const epoch = epochRef.current
+      try {
+        const withShipping = await ensureShippingMethod(cart)
+        if (epoch !== epochRef.current) return
+        commitCart(withShipping)
+        setState((s) => ({ ...s, error: null, paymentMethod: method, screen: "payment" }))
+      } catch {
+        if (epoch !== epochRef.current) return
+        setState((s) => ({ ...s, error: t.errorPayment, screen: "payment-method" }))
+      }
+    },
+    [ensureShippingMethod, commitCart, settleForPayment]
+  )
+  const startBankQrPayment = useCallback(() => startManualPayment("bank_qr"), [startManualPayment])
+  const startCashPayment = useCallback(() => startManualPayment("cash"), [startManualPayment])
 
-  // Stand-in for the Baneco webhook: the "Pagado" button records the bank QR
-  // payment with Medusa's manual provider and completes the order. Nothing
-  // checks that the money arrived, so staff must confirm it in the bank app
-  // (the Slack sale alert is the prompt). Replace with the real Baneco
-  // confirmation when the API is available.
-  const confirmBankQrPaid = useCallback(async () => {
-    const cart = cartRef.current
-    if (!cart) return
-    const epoch = epochRef.current
-    try {
-      await sdk.store.payment.initiatePaymentSession(cart, { provider_id: MANUAL_PAYMENT_PROVIDER_ID })
-      const result = await sdk.store.cart.complete(cart.id)
-      if (epoch !== epochRef.current) return
-      if (result.type !== "order") throw new Error("cart did not complete")
-      // Any Lightning invoice from earlier in this visit no longer has a
-      // session behind it, so stop watching it.
-      stopPolling()
-      invoiceRef.current = null
-      setState((s) => ({ ...s, order: result.order, invoice: null, paymentStatus: null, error: null, screen: "done" }))
-    } catch {
-      if (epoch !== epochRef.current) return
-      setState((s) => ({ ...s, error: t.errorBankQrConfirm }))
-    }
-  }, [stopPolling])
+  // Records the payment with a provider that charges nothing and completes
+  // the order.
+  // - Bank QR: stand-in for the Baneco webhook. Nothing checks that the
+  //   money arrived, so staff must confirm it in the bank app (the Slack
+  //   sale alert is the prompt). Replace with the real Baneco confirmation
+  //   when the API is available.
+  // - Cash: the order is placed with the payment only authorized; staff
+  //   capture it in the admin when the member pays at the desk, and only then
+  //   is it fulfilled (backend: subscribers/cash-payment-captured.ts).
+  const confirmManualPayment = useCallback(
+    async (providerId: string, errorMessage: string) => {
+      const cart = cartRef.current
+      // Two taps in the same instant both get here before the button
+      // re-renders as disabled; the second must not start a second session.
+      if (!cart || confirmingRef.current) return
+      confirmingRef.current = true
+      const epoch = epochRef.current
+      try {
+        await sdk.store.payment.initiatePaymentSession(cart, { provider_id: providerId })
+        const result = await sdk.store.cart.complete(cart.id)
+        if (epoch !== epochRef.current) return
+        if (result.type !== "order") throw new Error("cart did not complete")
+        // Any Lightning invoice from earlier in this visit no longer has a
+        // session behind it, so stop watching it.
+        stopPolling()
+        invoiceRef.current = null
+        setState((s) => ({ ...s, order: result.order, invoice: null, paymentStatus: null, error: null, screen: "done" }))
+      } catch {
+        if (epoch !== epochRef.current) return
+        setState((s) => ({ ...s, error: errorMessage }))
+      } finally {
+        confirmingRef.current = false
+      }
+    },
+    [stopPolling]
+  )
+  const confirmBankQrPaid = useCallback(
+    () => confirmManualPayment(MANUAL_PAYMENT_PROVIDER_ID, t.errorBankQrConfirm),
+    [confirmManualPayment]
+  )
+  const confirmCashOrder = useCallback(
+    () => confirmManualPayment(CASH_PAYMENT_PROVIDER_ID, t.errorCashConfirm),
+    [confirmManualPayment]
+  )
 
   // Deliberately keeps a live Lightning invoice and its polling running: the
   // member may already be paying from their phone, and Coinos can't cancel
@@ -569,6 +597,8 @@ export function useKiosk() {
     startPayment,
     startBankQrPayment,
     confirmBankQrPaid,
+    startCashPayment,
+    confirmCashOrder,
     retryPayment,
     cancelPayment,
     reset,

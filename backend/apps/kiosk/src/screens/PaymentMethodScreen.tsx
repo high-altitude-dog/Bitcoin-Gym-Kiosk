@@ -10,6 +10,7 @@ interface Props {
   error: string | null
   onLightning: () => void
   onBankQr: () => void
+  onCash: () => void
   onBack: () => void
 }
 
@@ -18,7 +19,7 @@ interface Props {
  * all (payment is out of scope for it) — this screen is new, filling the gap so the existing
  * Lightning-vs-bank-QR choice (previously CartScreen's two buttons) has somewhere to live.
  */
-export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBankQr, onBack }: Props) {
+export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBankQr, onCash, onBack }: Props) {
   const saving = savingFor !== null
   return (
     <div className="k-method">
@@ -32,6 +33,9 @@ export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBa
         </button>
         <button className="k-method__option k-method__option--secondary" onClick={onBankQr} disabled={saving} aria-busy={savingFor === "bank_qr"}>
           {savingFor === "bank_qr" ? t.savingOrder : t.payWithBankQr}
+        </button>
+        <button className="k-method__option k-method__option--secondary" onClick={onCash} disabled={saving} aria-busy={savingFor === "cash"}>
+          {savingFor === "cash" ? t.savingOrder : t.payWithCash}
         </button>
       </div>
       <button className="k-method__back" onClick={onBack}>{t.back}</button>

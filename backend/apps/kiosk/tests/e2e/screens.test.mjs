@@ -1,4 +1,4 @@
-// Every other screen in both orientations: payment method, invoice wait, Lightning QR, bank QR, done (3 and 9 lines), connection error.
+// Every other screen in both orientations: payment method, invoice wait, Lightning QR, bank QR, done (3 and 9 lines), cash, connection error.
 import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
@@ -76,7 +76,7 @@ await page.click(".k-bar .k-pay")
 await page.waitForSelector(".k-method")
 await both("1-payment-method", async () => {
   const opts = await page.evaluate(() => [...document.querySelectorAll(".k-method__option")].map((e) => { const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } }))
-  check("payment method landscape: options side by side, same row", opts.length === 2 && opts[0].y === opts[1].y && opts[0].x < opts[1].x, JSON.stringify(opts))
+  check("payment method landscape: three options side by side, same row", opts.length === 3 && opts.every((o) => o.y === opts[0].y) && opts[0].x < opts[1].x && opts[1].x < opts[2].x, JSON.stringify(opts))
 })
 const callsBefore = mock.calls.length
 
@@ -141,6 +141,31 @@ await both("6-done-9-lines", async () => {
   const list = await page.evaluate(() => { const l = document.querySelector(".done-items__list"); return { client: l.clientHeight, scroll: l.scrollHeight } })
   check("done landscape, 9 lines: the list scrolls inside its card", list.scroll > list.client, JSON.stringify(list))
 })
+await page.evaluate(() => document.querySelector(".done-new").click())
+
+// 6b. cash: confirm screen, then "Paga en recepción" with the amount due
+mock.orderItems = [{ id: "c1", quantity: 2, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
+await page.waitForSelector(".k-idle")
+await page.click(".k-idle")
+await page.waitForSelector(".k-card")
+await page.evaluate(() => { document.querySelectorAll(".k-card .k-add")[0].click() })
+await page.waitForTimeout(1500)
+await page.click(".k-bar .k-pay")
+await page.waitForSelector(".k-method")
+await page.click(".k-method__option >> nth=2")
+await page.waitForSelector(".bank-qr-paid")
+check("cash: confirm screen asks to pay at the desk", (await page.textContent(".screen h1")).includes("en efectivo"), await page.textContent(".screen h1"))
+await both("6b-cash-confirm")
+const providersBefore = mock.sessionProviders.length
+// A double tap must place one order.
+await page.evaluate(() => { const b = document.querySelector(".bank-qr-paid"); b.click(); b.click() })
+await page.waitForSelector(".done-title")
+await page.waitForTimeout(600)
+check("cash: one payment session, with the cash provider", JSON.stringify(mock.sessionProviders.slice(providersBefore)) === JSON.stringify(["pp_cash_cash"]), JSON.stringify(mock.sessionProviders.slice(providersBefore)))
+check("cash done: title says pay at the desk", (await page.textContent(".done-title")) === "Paga en recepción", await page.textContent(".done-title"))
+check("cash done: shows the amount due", /^Bs \d/.test(await page.textContent(".done-due")), await page.textContent(".done-due"))
+check("cash done: self-serve list is not 'take your products' yet", (await page.textContent(".done-items__title")) === "Tu compra", await page.textContent(".done-items__title"))
+await both("6b-cash-done")
 await page.evaluate(() => document.querySelector(".done-new").click())
 
 // 7. connection error, in its own page: the catalogue request fails

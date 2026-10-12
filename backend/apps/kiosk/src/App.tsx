@@ -89,6 +89,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
         error={kiosk.error}
         onLightning={kiosk.startPayment}
         onBankQr={kiosk.startBankQrPayment}
+        onCash={kiosk.startCashPayment}
         onBack={() => kiosk.goTo("shop")}
       />
     )
@@ -103,6 +104,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
         paymentStatus={kiosk.paymentStatus}
         error={kiosk.error}
         onBankQrPaid={kiosk.confirmBankQrPaid}
+        onCashConfirm={kiosk.confirmCashOrder}
         onRetry={kiosk.retryPayment}
         onCancel={kiosk.cancelPayment}
       />
@@ -110,7 +112,9 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
   }
 
   if (kiosk.screen === "done" && kiosk.order) {
-    return plain(<DoneScreen order={kiosk.order} onNewOrder={kiosk.reset} />)
+    return plain(
+      <DoneScreen order={kiosk.order} payAtDesk={kiosk.paymentMethod === "cash"} onNewOrder={kiosk.reset} />
+    )
   }
 
   if (kiosk.screen === "shop") {

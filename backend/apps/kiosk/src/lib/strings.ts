@@ -25,6 +25,7 @@ export const t = {
   choosePayment: "¿Cómo quieres pagar?",
   payWithLightning: "Pagar con Bitcoin⚡",
   payWithBankQr: "Pagar con QR bancario",
+  payWithCash: "Pagar en efectivo",
   back: "Atrás",
   // Added for App.tsx's loading/retry screen and useKiosk.ts's error
   // messages, the last English text left in the kiosk.
@@ -44,6 +45,13 @@ export const t = {
   paid: "Pagado",
   cancel: "Cancelar",
   errorBankQrConfirm: "No pudimos registrar el pago. Intenta de nuevo o avisa a un miembro del personal.",
+  // Cash: the order is placed here and paid at the front desk.
+  cashTitle: (total: string) => `Pagar ${total} en efectivo`,
+  cashNote: "Confirma tu pedido y paga en recepción con tu número de pedido.",
+  confirmOrder: "Confirmar pedido",
+  errorCashConfirm: "No pudimos registrar tu pedido. Intenta de nuevo o avisa a un miembro del personal.",
+  payAtDesk: "Paga en recepción",
+  cashDue: (total: string) => `${total} en efectivo`,
   checkingPayment: "Verificando el pago...",
   cartReference: (id: string) => `Referencia: ${id}`,
   // Done screen: what the member takes, and what is brought to them.

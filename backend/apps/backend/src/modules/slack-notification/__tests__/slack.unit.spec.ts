@@ -10,6 +10,7 @@ import {
   renderSlackMessage,
   staffOrderMessage,
   cafeOrderMessage,
+  unpaidCashMessage,
 } from "../messages"
 
 describe("slack messages (Spanish)", () => {
@@ -170,5 +171,18 @@ describe("slack provider routing", () => {
     expect(sent.map((s) => s.url)).toEqual(["K", "K"])
     expect(sent[0].text).toContain("para el personal")
     expect(sent[1].text).toContain("para el Café asociado")
+  })
+
+  it("marks a cash sale as still to be collected", () => {
+    const text = orderPlacedMessage({ display_id: 7, total: 3, items: [{ title: "Banana", quantity: 3 }], payment_method: "cash" })
+    expect(text.split("\n")[0]).toBe("*Venta #7* · Bs 3 · efectivo, *por cobrar en recepción*")
+  })
+
+  it("tells staff to capture or cancel an unpaid cash order", () => {
+    const text = unpaidCashMessage({ display_id: 7, total: 3, minutes_waiting: 20, admin_url: "http://backend.test/app/orders/order_7" })
+    expect(text).toContain("*Pedido #7 en efectivo sin cobrar* desde hace 20 min · Bs 3")
+    expect(text).toContain("capturar el pago en el admin")
+    expect(text).toContain("<http://backend.test/app/orders/order_7|Ver pedido en el admin>")
+    expect(renderSlackMessage("unpaid-cash", { display_id: 7, total: 3, minutes_waiting: 20 })).toContain("#7")
   })
 })

@@ -162,6 +162,15 @@
   font-variant-numeric: tabular-nums;
 }
 .done-new { margin-top: 64px; }
+/* Cash: "Paga en recepción" is longer than "¡Gracias!", and the amount to
+   hand over sits under the order number. */
+.screen--center .done-title--desk { font-size: 88px; }
+.done-due {
+  margin: 20px 0 0;
+  font: 600 56px/1 var(--k-font);
+  color: var(--k-text);
+  font-variant-numeric: tabular-nums;
+}
 
 /* Smaller Byte for longer orders (see DoneScreen); margins scale with him. */
 .done--md .done-art { width: 560px; height: 560px; margin: -22px 0 -34px; }
