@@ -1,15 +1,16 @@
 import { MedusaError } from "@medusajs/framework/utils"
 
 // Confirmed against the live API (coinos.io/api) and against the open-source
-// coinos-server code (github.com/coinos/coinos-server), which is what
+// coinos-server code (git.coinos.io/coinos-server.git; the GitHub copy is gone), which is what
 // coinos.io runs, since coinos.io/docs is a JS-rendered page that couldn't
 // be read directly:
 //   - base URL: https://coinos.io/api
 //   - POST /invoice, body { invoice: { amount (sats), memo, expiry, webhook, secret, type } }
 //     (type: "lightning" gives a BOLT11 invoice and is the default; "bolt12" an
 //     offer; anything else is a 500 "unrecognized type". Tested live Oct 8, 2026.)
-//     single_use: true caps a BOLT12 offer at one payment (Coinos, Oct 9, 2026);
-//     an offer without it can be paid any number of times.
+//     single_use: true caps a BOLT12 offer at one payment; an offer without it
+//     can be paid any number of times. Since coinos-server 0cbfab47 (Oct 8, 2026)
+//     both it and the expiry are set on the offer itself (absolute_expiry).
 //   - GET /invoice/:id — public, returns the invoice with its current `received`
 //   - GET /payments — requires Authorization: Bearer <token>, supports start/end/limit/offset
 export type CoinosInvoice = {
