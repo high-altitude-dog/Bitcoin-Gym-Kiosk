@@ -107,13 +107,16 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
     const satsAmount = this.yadio_.satsForBob(amountBob, rate)
     const expirySeconds = this.options_.invoiceExpirySeconds ?? DEFAULT_INVOICE_EXPIRY_SECONDS
 
+    const type = this.options_.invoiceType ?? "lightning"
     const invoice = await this.coinos_.createInvoice({
       amountSats: satsAmount,
       memo: sessionId,
       expirySeconds,
       webhookUrl: this.webhookUrl(),
       webhookSecret: this.options_.webhookSecret,
-      type: this.options_.invoiceType ?? "lightning",
+      type,
+      // A BOLT12 offer is reusable by design; one cart must be paid once.
+      singleUse: type === "bolt12",
     })
 
     return {

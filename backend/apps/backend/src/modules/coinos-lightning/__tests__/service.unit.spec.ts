@@ -68,6 +68,7 @@ describe("CoinosLightningProviderService", () => {
         secret: "shared-secret",
         type: "lightning",
       })
+      expect(sentBody.invoice).not.toHaveProperty("single_use")
       expect(result.data).toMatchObject({ expiry_seconds: 600 })
 
       expect(result.id).toBe("inv_1")
@@ -95,7 +96,9 @@ describe("CoinosLightningProviderService", () => {
       )
       await service.initiatePayment({ amount: 10, currency_code: "bob", data: { session_id: "payses_123" } } as any)
 
-      expect(JSON.parse(fetchMock.mock.calls[1][1].body).invoice.type).toBe("bolt12")
+      const sent = JSON.parse(fetchMock.mock.calls[1][1].body).invoice
+      expect(sent.type).toBe("bolt12")
+      expect(sent.single_use).toBe(true)
     })
 
     it("propagates the Yadio error instead of creating an invoice when the rate is unavailable", async () => {

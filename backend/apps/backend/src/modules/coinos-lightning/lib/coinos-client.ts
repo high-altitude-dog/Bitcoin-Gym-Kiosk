@@ -8,6 +8,8 @@ import { MedusaError } from "@medusajs/framework/utils"
 //   - POST /invoice, body { invoice: { amount (sats), memo, expiry, webhook, secret, type } }
 //     (type: "lightning" gives a BOLT11 invoice and is the default; "bolt12" an
 //     offer; anything else is a 500 "unrecognized type". Tested live Oct 8, 2026.)
+//     single_use: true caps a BOLT12 offer at one payment (Coinos, Oct 9, 2026);
+//     an offer without it can be paid any number of times.
 //   - GET /invoice/:id — public, returns the invoice with its current `received`
 //   - GET /payments — requires Authorization: Bearer <token>, supports start/end/limit/offset
 export type CoinosInvoice = {
@@ -52,6 +54,7 @@ export type CreateInvoiceInput = {
   webhookUrl: string
   webhookSecret: string
   type: "lightning" | "bolt12"
+  singleUse?: boolean
 }
 
 export class CoinosClient {
@@ -84,6 +87,7 @@ export class CoinosClient {
           webhook: input.webhookUrl,
           secret: input.webhookSecret,
           type: input.type,
+          ...(input.singleUse ? { single_use: true } : {}),
         },
       }),
     })
