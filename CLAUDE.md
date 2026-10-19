@@ -349,6 +349,10 @@ The "No pudimos conectar con la tienda…" screen (`ConnectionErrorScreen.tsx`) 
 
 Tested headless with the catalogue request blocked: the countdown runs 15 → 1, retries at 0 and starts again at 15 after each failure (no "Cargando..." flash); with the backend back, the kiosk recovered on its own within one cycle; "Reintentar ahora" shows "Reintentando..." with the button disabled while the try is in flight.
 
+## Sold-out products last (Oct 19, 2026)
+
+The shop grid shows sold-out products after everything else, in "Todo" and inside each category (`soldOutLast` in `kioskMapping.ts`, used by `ShopScreen.tsx`). The rest keep Medusa's order (the order products were added), and the sold-out ones keep theirs. Medusa can't do this itself: the Store API's `order` only sorts by product fields, and `inventory_quantity` is added to each variant after the query and pagination (checked in 2.21.2's `store/products/route.js`), so the sort is on the tablet. Stock is read when the catalogue loads, each time the kiosk returns to the start screen, so a product that sells out during a visit moves to the end only for the next member and the grid never reshuffles mid-visit. Verified with `tests/e2e/shop-order.test.mjs` (6 checks, which fail against the previous code) and the other three suites. Not yet committed or deployed.
+
 ## A product with no price is hidden (Oct 9, 2026)
 
 Found in the user's screen recording: "Pre-workout Fruta 300g" showed "Bs 0" with a working "+". It had been published with no price at all (its variant's price set was empty, so the Store API returns `calculated_price: null`), and Medusa would refuse to add it to a cart. `toKioskProduct` (`kioskMapping.ts`) now returns null for a variant with no calculated price, so the kiosk hides it until a price is set; a price of exactly 0 is a price and still shows. The admin lets staff publish a product without a price, so a new product that doesn't appear on the kiosk should be checked for a missing price first. (The silent-hide has no alert; a Slack warning for published products with no price would be a possible follow-up.)

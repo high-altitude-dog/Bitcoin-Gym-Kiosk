@@ -3,7 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { t } from "../lib/strings"
 import { useGreeting } from "../hooks/useGreeting"
 import { useOrientation } from "../hooks/useStage"
-import { shownQuantity, toKioskCart, toKioskLines, toKioskProduct } from "../lib/kioskMapping"
+import { shownQuantity, soldOutLast, toKioskCart, toKioskLines, toKioskProduct } from "../lib/kioskMapping"
 import { CategoryChips } from "./CategoryChips"
 import { OrderBar } from "./OrderBar"
 import { OrderPanel } from "./OrderPanel"
@@ -51,7 +51,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
   const [categoryId, setCategoryId] = useState<string | null>(null)
 
   const visible = useMemo(() => {
-    const kioskProducts = products.map(toKioskProduct).filter((p) => p !== null)
+    const kioskProducts = soldOutLast(products.map(toKioskProduct).filter((p) => p !== null))
     if (categoryId === null) return kioskProducts
     const idsInCategory = new Set(
       products

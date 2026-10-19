@@ -12,6 +12,7 @@ npm run test:e2e -- rotation  # only suites whose file name contains "rotation"
 
 - `shop-landscape.test.mjs`: the shop in landscape (4 columns, the order panel, the fade and chevrons) and a turn with a cart.
 - `screens.test.mjs`: payment method, invoice wait, Lightning QR, bank QR, "¡Gracias!" and the connection error, in both orientations.
+- `shop-order.test.mjs`: sold-out products last, in "Todo" and inside a category, and only from the next member's start.
 - `rotation-stress.test.mjs`: turning during taps, saving, a live invoice, a payment and the idle timer.
 - `support.mjs`: the static server, Chromium launcher, mock Store API and reporter the suites share.
 

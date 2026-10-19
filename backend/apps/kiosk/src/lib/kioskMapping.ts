@@ -26,6 +26,15 @@ export function toKioskProduct(product: HttpTypes.StoreProduct): KioskProduct | 
   }
 }
 
+/**
+ * Sold-out products move to the end of the grid; everything else keeps Medusa's order. The sort is stable, so
+ * the sold-out ones keep their own order too. Stock is read when the catalogue loads (each time the kiosk goes
+ * back to the start screen), so the grid never reshuffles while a member is shopping.
+ */
+export function soldOutLast(products: KioskProduct[]): KioskProduct[] {
+  return [...products].sort((a, b) => Number(a.soldOut) - Number(b.soldOut))
+}
+
 export function cartQuantity(cart: HttpTypes.StoreCart | null, variantId: string): number {
   return cart?.items?.find((i) => i.variant_id === variantId)?.quantity ?? 0
 }

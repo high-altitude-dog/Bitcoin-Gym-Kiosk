@@ -85,6 +85,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   paid               the Lightning payment session reads as authorized
  *   orderItems         the lines the completed order returns
  *   sessionProviders   provider ids of the payment sessions created, in order
+ *   categories         the product categories the store lists
  * and read cart and calls (every request, as "METHOD /path").
  */
 export function createMock() {
@@ -100,6 +101,7 @@ export function createMock() {
     paid: false,
     orderItems: [],
     sessionProviders: [],
+    categories: [],
     /** Answers every request to API from this page or context. */
     install(target) {
       return target.route(`${API}/**`, async (route) => {
@@ -116,7 +118,7 @@ export function createMock() {
 
         if (url.pathname === "/store/regions") return json({ regions: [{ id: "reg_1", currency_code: "bob" }] })
         if (url.pathname === "/store/products") return json({ products: mock.products, count: mock.products.length })
-        if (url.pathname === "/store/product-categories") return json({ product_categories: [] })
+        if (url.pathname === "/store/product-categories") return json({ product_categories: mock.categories })
         if (url.pathname === "/store/carts" && req.method() === "POST") { mock.cart = { id: "cart_1", total: 0, items: [] }; return json({ cart: mock.cart }) }
         if (url.pathname.endsWith("/line-items") && req.method() === "POST") {
           mock.cart = { ...mock.cart, items: [...mock.cart.items, { id: `li_${body().variant_id}`, variant_id: body().variant_id, quantity: body().quantity }] }
