@@ -18,10 +18,13 @@ export function ProductCard({ product, qty, onQty }: { product: KioskProduct; qt
         )}
       </div>
       <h3 className="k-card__name" ref={nameRef}>{product.title}</h3>
-      <p className="k-card__price">
-        <span className="k-card__currency">{t.currency}</span>
-        <span className="k-card__amount">{formatAmount(product.price)}</span>
-      </p>
+      {/* A sold-out product shows only "Agotado", no price. */}
+      {!product.soldOut && (
+        <p className="k-card__price">
+          <span className="k-card__currency">{t.currency}</span>
+          <span className="k-card__amount">{formatAmount(product.price)}</span>
+        </p>
+      )}
       {product.soldOut ? (
         <span className="k-card__sold-out">{t.soldOut}</span>
       ) : inOrder ? (

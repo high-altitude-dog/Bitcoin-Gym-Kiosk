@@ -367,6 +367,15 @@ At the developer's request: every stock level set to 0, and every order holding 
 - **Local: done.** 5 levels to 0; test orders #9 and #10 (each with a delivered self-serve fulfilment) cancelled; 0 reservations left.
 - **VM: done.** 16 levels to 0 (Mio - Acai was already 0); Medusa's cancel for cash #24, #25, #28, #34 and bank QR #36, #37 (their payments cancelled); without refund for Lightning #18, #19, #20, #21, #27 (Bs 1 each, payments still captured; pay the members back by hand if they weren't test payments). Ended with `After: stocked total 0, reserved total 0, reservations 0.`; the live Store API then reported 0 for all 17 products, and the live kiosk shows every product as "Agotado" until stock is entered. The script was copied to the VM by hand, so `src/scripts/cancel-open-orders-zero-stock.ts` sits there untracked: delete it before a `git pull` that brings the committed copy.
 
+## Sold-out products show no price (Oct 19, 2026)
+
+A sold-out card shows only "Agotado", without the Bs price (`ProductCard.tsx`; checked in `shop-order.test.mjs`).
+
+## Payment buttons coloured; "Supra" logo removed from three photos (Oct 19, 2026)
+
+- **Payment method screen:** "Pagar con Bitcoin⚡" stays orange; "Pagar con QR bancario" is blue (`#1f6fd1`) and "Pagar en efectivo" green (`#1f9d4d`, the bank QR "Pagado" green), both with white text (`.k-method__option--bank-qr` / `--cash` in `kiosk.css`, checked in `screens.test.mjs`). Commit `657708b`, deployed the same day.
+- **Photos:** the "Supra" logo was removed from Fruit Drink, Iced Late - Single and Iced Late - Double (masked by brightness, filled mostly from the liquid directly above and below so vertical streaks carry through; for the latte cans the whole hexagon was filled, since a logo-shaped fill left a faint hexagon). Throwaway Node script with `sharp` and OpenCV.js, not in the repo. Applied on the VM with `replace-product-images.ts` and copied into `.medusa/server/static`. Old URLs, for rollback: Fruit Drink `1791490059821-fruit-drink.webp`, Iced Late - Single `1791505475154-supra-iced-latte.png`, Iced Late - Double `1791505746207-supra-double-iced-latte.png` (all under `https://api.paywithbitcoin.lol/static/`).
+
 ## A product with no price is hidden (Oct 9, 2026)
 
 Found in the user's screen recording: "Pre-workout Fruta 300g" showed "Bs 0" with a working "+". It had been published with no price at all (its variant's price set was empty, so the Store API returns `calculated_price: null`), and Medusa would refuse to add it to a cart. `toKioskProduct` (`kioskMapping.ts`) now returns null for a variant with no calculated price, so the kiosk hides it until a price is set; a price of exactly 0 is a price and still shows. The admin lets staff publish a product without a price, so a new product that doesn't appear on the kiosk should be checked for a missing price first. (The silent-hide has no alert; a Slack warning for published products with no price would be a possible follow-up.)

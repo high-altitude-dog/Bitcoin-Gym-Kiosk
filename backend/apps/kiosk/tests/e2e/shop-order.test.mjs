@@ -32,6 +32,8 @@ await page.waitForSelector(".k-card")
   check("Todo: sold-out products last, the rest in Medusa's order", sameList(got, want), got.slice(-3).join(" | "))
   const agotado = await page.evaluate(() => [...document.querySelectorAll(".k-card")].map((c) => c.classList.contains("k-card--sold-out")))
   check("Todo: only the last two cards are sold out", agotado.lastIndexOf(false) === agotado.length - 3 && agotado.slice(-2).every(Boolean))
+  const prices = await page.evaluate(() => [...document.querySelectorAll(".k-card")].map((c) => !!c.querySelector(".k-card__price")))
+  check("sold-out cards show no price, the others do", prices.every((p, i) => p === !agotado[i]), prices.join(","))
 }
 
 // ---- inside a category
