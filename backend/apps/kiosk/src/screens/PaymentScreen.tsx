@@ -133,12 +133,17 @@ export function PaymentScreen({
   if (paymentMethod === "bank_qr") {
     return (
       <div className="screen screen--center payment-layout">
-        <div className="payment-qrbox">
+        <div className="payment-qrbox payment-qrbox--bank">
           {bankQrUrl ? (
             <img className="payment-qr payment-qr--bank" src={bankQrUrl} alt="Código QR bancario del gimnasio" />
           ) : (
             <div className="payment-qr payment-qr--placeholder" />
           )}
+          {/* The bank's mark as on the front-desk card: white box on navy. Redrawn from a photo of the
+              card in BCP's own blue and coral; swap for an official file if one turns up. */}
+          <div className="bank-logo">
+            <img src={`${KIOSK.assets}bcp-logo.png`} alt="BCP" draggable={false} />
+          </div>
         </div>
         <div className="payment-side">
           <h1>Pagar {formatBs(cart.total)}</h1>

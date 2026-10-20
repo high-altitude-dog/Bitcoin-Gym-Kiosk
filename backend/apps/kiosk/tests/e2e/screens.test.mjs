@@ -106,12 +106,22 @@ await page.click(".back-button")
 await page.waitForSelector(".k-method")
 await page.click(".k-method__option--bank-qr")
 await page.waitForSelector(".payment-qr--bank")
+// The BCP logo has loaded and sits right under the bank QR, centred on it.
+async function logoUnderQr(orientation) {
+  const r = await page.evaluate(() => {
+    const q = document.querySelector(".payment-qr--bank").getBoundingClientRect(), l = document.querySelector(".bank-logo").getBoundingClientRect(), img = document.querySelector(".bank-logo img")
+    return { gap: Math.round(l.top - q.bottom), dx: Math.round(l.left + l.width / 2 - (q.left + q.width / 2)), loaded: img.complete && img.naturalWidth > 0 }
+  })
+  check(`bank QR ${orientation}: BCP logo loaded, under the QR and centred`, r.loaded && r.gap >= 0 && r.gap <= 60 && Math.abs(r.dx) <= 2, JSON.stringify(r))
+}
 // The rendered QR is saved so it can be decoded and compared with the printed card.
 fs.writeFileSync(`${SHOTS}/bank-qr.png`, Buffer.from((await page.getAttribute(".payment-qr--bank", "src")).split(",")[1], "base64"))
 await both("4-bank-qr", async () => {
   const ph = await rect(".payment-qr--bank"), h1 = await rect(".payment-side h1")
   check("bank QR landscape: QR left, title right", ph.x < h1.x, `ph ${JSON.stringify(ph)} h1 ${JSON.stringify(h1)}`)
+  await logoUnderQr("landscape")
 })
+await logoUnderQr("portrait")
 
 // 5. done (3 lines, mixed delivery) via "Pagado"
 mock.orderItems = [

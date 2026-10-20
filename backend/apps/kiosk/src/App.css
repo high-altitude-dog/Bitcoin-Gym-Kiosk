@@ -92,6 +92,24 @@
   height: auto;
 }
 
+/* Under the bank QR: BCP's mark in a white box on a navy band, like the card on the front desk. */
+.bank-logo {
+  display: flex;
+  justify-content: center;
+  width: 720px;
+  padding: 22px 0;
+  border-radius: 32px;
+  background: #0b1f4d;
+}
+.bank-logo img {
+  display: block;
+  width: 300px;
+  height: auto;
+  padding: 18px 40px;
+  border-radius: 20px;
+  background: #fff;
+}
+
 .payment-qr--placeholder {
   display: flex;
   align-items: center;
@@ -320,6 +338,7 @@
 
 .k-stage[data-orientation="landscape"] .payment-layout { flex-direction: row; gap: 120px; }
 .k-stage[data-orientation="landscape"] .payment-qrbox { display: flex; flex: none; width: 720px; align-items: center; justify-content: center; }
+.k-stage[data-orientation="landscape"] .payment-qrbox--bank { flex-direction: column; gap: 24px; }
 .k-stage[data-orientation="landscape"] .payment-side { display: flex; flex: none; width: 720px; flex-direction: column; align-items: center; gap: 32px; }
 .k-stage[data-orientation="landscape"] .payment-side h1 { max-width: none; }
 
