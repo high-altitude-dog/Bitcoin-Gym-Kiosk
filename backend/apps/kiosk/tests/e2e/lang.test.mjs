@@ -1,0 +1,78 @@
+// Language flags (Bolivia = Spanish, UK = English): on the start screen, the shop and the Wi-Fi screen;
+// the choice carries through the visit and goes back to Spanish on every reset.
+import { createChecker, createMock, launch, LANDSCAPE, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
+
+const server = await startServer()
+const browser = await launch()
+const { check, finish } = createChecker()
+const ctx = await browser.newContext({ viewport: PORTRAIT, serviceWorkers: "block" })
+const page = await ctx.newPage()
+const mock = createMock()
+mock.orderItems = [{ id: "i1", quantity: 1, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
+await mock.install(page)
+const errors = watchErrors(page)
+const text = (sel) => page.textContent(sel)
+const active = () => page.evaluate(() => [...document.querySelectorAll(".k-flag")].filter((f) => f.getAttribute("aria-pressed") === "true").map((f) => f.getAttribute("lang")).join(","))
+const box = (sel) => page.evaluate((sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), r: Math.round(r.right), w: Math.round(r.width) } }, sel)
+
+await page.goto(server.url)
+await page.waitForSelector(".k-idle")
+const f = await box(".k-flags--corner")
+check("start screen: two flags at the top right, Spanish selected", f.r === 1200 - 32 && f.y === 32 && (await page.$$(".k-flag")).length === 2 && (await active()) === "es", JSON.stringify(f))
+check("start screen: Spanish by default", (await text(".k-idle__cta")).includes("Toca para empezar"))
+await page.click('.k-flag[lang="en"]')
+check("tapping the UK flag: English, and the shop didn't start", (await text(".k-idle__cta")).includes("Tap to start") && !(await page.$(".k-card")) && (await page.getAttribute("html", "lang")) === "en")
+await page.screenshot({ path: `${SHOTS}/lang-idle-en.png`, clip: { x: 900, y: 0, width: 300, height: 120 } })
+
+await page.click(".k-idle")
+await page.waitForSelector(".k-card")
+check("shop in English: greeting, 'All' chip, empty order bar", /^Good (morning|afternoon|evening)!$/.test(await text(".k-title")) && (await text(".k-chip")) === "All" && /Pick something to start/.test(await text(".k-bar")), await text(".k-title"))
+const sf = await box(".k-header .k-flags"), ex = await box(".k-exit")
+check("shop: flags left of the exit ring", sf.r < ex.x && (await active()) === "en", JSON.stringify({ sf, ex }))
+await page.screenshot({ path: `${SHOTS}/lang-shop-en.png`, clip: { x: 0, y: 0, width: 1200, height: 200 } })
+await page.click('.k-header .k-flag[lang="es"]')
+check("switching to Spanish mid-visit updates the greeting at once", /^¡Buen(os|as) /.test(await text(".k-title")) && (await text(".k-chip")) === "Todo", await text(".k-title"))
+await page.click('.k-header .k-flag[lang="en"]')
+
+await page.evaluate(() => document.querySelectorAll(".k-card .k-add")[0].click())
+await page.waitForTimeout(1200)
+await page.click(".k-bar .k-pay")
+await page.waitForSelector(".k-method")
+check("payment choice in English", (await text(".k-method")).includes("How would you like to pay?") && (await text(".k-method__option--cash")) === "Pay with cash")
+await page.click(".k-method__option--bank-qr")
+await page.waitForSelector(".bank-qr-paid")
+check("bank QR screen in English", /^Pay Bs/.test(await text(".payment-side h1")) && (await text(".bank-qr-paid")) === "Paid" && /with your bank app/.test(await text(".payment-note")))
+await page.click(".bank-qr-paid")
+await page.waitForSelector(".done-new")
+check("thank-you screen in English", (await text(".done-title")) === "Thank you!" && (await text(".done-order__label")) === "Your order" && (await text(".done-new")) === "New order")
+await page.click(".done-new")
+await page.waitForSelector(".k-idle")
+check("'New order' resets to Spanish", (await text(".k-idle__cta")).includes("Toca para empezar") && (await active()) === "es" && (await page.getAttribute("html", "lang")) === "es")
+
+// The exit ring resets too.
+await page.click('.k-flag[lang="en"]')
+await page.click(".k-idle")
+await page.waitForSelector(".k-exit")
+await page.click(".k-exit")
+await page.waitForSelector(".k-idle")
+check("the shop's exit ring resets to Spanish", (await text(".k-idle__cta")).includes("Toca para empezar"))
+
+// Wi-Fi screen: flags in its corner, in both orientations.
+for (const [name, vp, right] of [["portrait", PORTRAIT, 1200 - 32], ["landscape", LANDSCAPE, 1920 - 32]]) {
+  await page.setViewportSize(vp)
+  await page.waitForTimeout(300)
+  await page.click(".k-idle-connect")
+  await page.waitForSelector(".connect")
+  const cf = await box(".connect .k-flags--corner")
+  await page.click('.connect .k-flag[lang="en"]')
+  check(`${name}: Wi-Fi screen flags in the corner, and it translates`, cf.r === right && (await text(".connect__title")) === "Wi-Fi and gym access" && (await text(".connect-reveal__label")) === "Tap to reveal" && (await text(".connect__back")) === "Back", JSON.stringify(cf))
+  await page.screenshot({ path: `${SHOTS}/lang-connect-${name}-en.png` })
+  await page.click(".connect__back")
+  await page.waitForSelector(".k-idle")
+  check(`${name}: back from the Wi-Fi screen keeps English (no reset)`, (await text(".k-idle__cta")).includes("Tap to start"))
+  await page.click('.k-flag[lang="es"]')
+}
+check("no page errors", errors.length === 0, errors.join(" | "))
+await browser.close()
+await server.close()
+finish()

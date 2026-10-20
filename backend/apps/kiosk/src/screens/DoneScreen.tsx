@@ -23,10 +23,10 @@ export function DoneScreen({ order, payAtDesk, onNewOrder }: Props) {
     <div className={`screen screen--center done done--${size}`}>
       {/* Two groups, layout-only: stacked in portrait, side by side in landscape (App.css) */}
       <div className="done-hero">
-        <h1 className={payAtDesk ? "done-title done-title--desk" : "done-title"}>{payAtDesk ? t.payAtDesk : order ? "¡Gracias!" : t.paymentReceived}</h1>
+        <h1 className={payAtDesk ? "done-title done-title--desk" : "done-title"}>{payAtDesk ? t.payAtDesk : order ? t.thanks : t.paymentReceived}</h1>
         <BoneReward />
         <p className="done-order">
-          <span className="done-order__label">Tu pedido</span>
+          <span className="done-order__label">{t.yourOrder}</span>
           <span className="done-order__number">#{order?.display_id ?? "…"}</span>
         </p>
         {payAtDesk && order && <p className="done-due">{t.cashDue(formatBs(order.total))}</p>}
@@ -57,7 +57,7 @@ export function DoneScreen({ order, payAtDesk, onNewOrder }: Props) {
         {/* Hidden until the order exists, so nobody leaves before seeing its number. */}
         {order && (
           <button className="primary-button done-new" onClick={onNewOrder}>
-            Nuevo pedido
+            {t.newOrder}
           </button>
         )}
       </div>

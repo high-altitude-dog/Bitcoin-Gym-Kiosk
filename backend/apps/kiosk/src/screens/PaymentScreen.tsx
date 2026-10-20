@@ -141,7 +141,7 @@ export function PaymentScreen({
       <div className="screen screen--center payment-layout">
         <div className="payment-qrbox payment-qrbox--bank">
           {bankQrUrl ? (
-            <img className="payment-qr payment-qr--bank" src={bankQrUrl} alt="Código QR bancario del gimnasio" />
+            <img className="payment-qr payment-qr--bank" src={bankQrUrl} alt={t.bankQrAlt} />
           ) : (
             <div className="payment-qr payment-qr--placeholder" />
           )}
@@ -152,7 +152,7 @@ export function PaymentScreen({
           </div>
         </div>
         <div className="payment-side">
-          <h1>Pagar {formatBs(cart.total)}</h1>
+          <h1>{t.payAmount(formatBs(cart.total))}</h1>
           <p className="payment-note">{t.bankQrNote(formatBs(cart.total))}</p>
           {error && <p className="payment-error" role="alert">{error}</p>}
           <div className="bank-qr-actions">
@@ -182,10 +182,10 @@ export function PaymentScreen({
   if (paymentStatus === "expired") {
     return (
       <div className="screen screen--center">
-        <h1>La factura venció</h1>
-        <p className="payment-note">La factura de Bitcoin⚡ no se pagó a tiempo.</p>
+        <h1>{t.invoiceExpired}</h1>
+        <p className="payment-note">{t.invoiceExpiredNote}</p>
         <button className="primary-button" onClick={onRetry}>
-          Intentar de nuevo
+          {t.tryAgain}
         </button>
         <button className="back-button" onClick={onCancel}>
           Cancelar
@@ -197,7 +197,7 @@ export function PaymentScreen({
   if (!invoice) {
     return (
       <div className="screen screen--center screen--black">
-        <ByteLoader label="Creando la factura de Bitcoin⚡..." />
+        <ByteLoader label={t.creatingInvoice} />
         <button className="back-button" onClick={onCancel}>
           Cancelar
         </button>
@@ -211,7 +211,7 @@ export function PaymentScreen({
   if (msLeft === 0) {
     return (
       <div className="screen screen--center">
-        <h1>Pagar {formatBs(invoice.bobAmount)}</h1>
+        <h1>{t.payAmount(formatBs(invoice.bobAmount))}</h1>
         <p className="payment-note">{t.checkingPayment}</p>
         <button className="back-button" onClick={onCancel}>
           Cancelar
@@ -228,9 +228,9 @@ export function PaymentScreen({
     <div className="screen screen--center payment-layout">
       <div className="payment-qrbox">
         {qrDataUrl ? (
-          <img className="payment-qr" src={qrDataUrl} alt="Código QR de la factura de Bitcoin⚡" />
+          <img className="payment-qr" src={qrDataUrl} alt={t.lightningQrAlt} />
         ) : (
-          <p className="payment-note">Generando código QR...</p>
+          <p className="payment-note">{t.generatingQr}</p>
         )}
       </div>
       <div className="payment-side">
@@ -240,8 +240,8 @@ export function PaymentScreen({
           <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
         </div>
         <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
-        <p className="payment-countdown">Vence en {formatCountdown(msLeft)}</p>
-        <p className="payment-note">Escanea con billetera Bitcoin Lightning</p>
+        <p className="payment-countdown">{t.expiresIn(formatCountdown(msLeft))}</p>
+        <p className="payment-note">{t.scanLightning}</p>
         <button className="back-button" onClick={onCancel}>
           Cancelar
         </button>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import QRCode from "qrcode"
 import { OPEN_GYM_URL, WIFI_QR_PAYLOAD } from "../lib/connectQr"
 import { t } from "../lib/strings"
+import { LangFlags } from "./LangFlags"
 
 // Drawn once when the app loads, so the screen opens with both codes ready.
 const draw = (text: string | null) =>
@@ -51,6 +52,7 @@ export function ConnectScreen({ onBack }: { onBack: () => void }) {
   const access = useQr(accessQr)
   return (
     <div className="screen connect">
+      <LangFlags className="k-flags--corner" />
       <h1 className="connect__title">{t.connectTitle}</h1>
       <div className="connect__cards">
         <section className="connect-card">

@@ -1,5 +1,6 @@
 import { KIOSK } from "../lib/stageConfig"
 import { t } from "../lib/strings"
+import { LangFlags } from "./LangFlags"
 
 /**
  * Full-strength doodle wall. Any tap starts a new order, except on the small
@@ -18,6 +19,7 @@ export function IdleScreen({ onStart, onConnect }: { onStart: () => void; onConn
           {t.tapToStart}
         </span>
       </button>
+      <LangFlags className="k-flags--corner" />
       <button className="k-idle-connect" onClick={onConnect} aria-label={t.connectTitle}>
         <svg viewBox="0 0 40 40" aria-hidden>
           <path d="M5 16a21 21 0 0 1 30 0M10.5 21.5a13 13 0 0 1 19 0M16 27a5.5 5.5 0 0 1 8 0" />

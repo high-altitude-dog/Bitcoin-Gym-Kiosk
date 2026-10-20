@@ -10,11 +10,12 @@ export function greetingFor(hour: number): string {
   return t.greetingEvening
 }
 
+// Keeps the hour, not the text, so a language change shows at once.
 export function useGreeting(): string {
-  const [greeting, setGreeting] = useState(() => greetingFor(new Date().getHours()))
+  const [hour, setHour] = useState(() => new Date().getHours())
   useEffect(() => {
-    const id = window.setInterval(() => setGreeting(greetingFor(new Date().getHours())), 60_000)
+    const id = window.setInterval(() => setHour(new Date().getHours()), 60_000)
     return () => window.clearInterval(id)
   }, [])
-  return greeting
+  return greetingFor(hour)
 }

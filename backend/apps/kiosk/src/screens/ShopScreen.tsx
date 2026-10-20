@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { LangFlags } from "./LangFlags"
 import type { HttpTypes } from "@medusajs/types"
 import { t } from "../lib/strings"
 import { useGreeting } from "../hooks/useGreeting"
@@ -143,6 +144,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
       <header className="k-header">
         <h1 className="k-title">{greeting}</h1>
         {/* Deliberately small and faint: for staff, not a member's next step. */}
+        <LangFlags />
         <button className="k-exit" onClick={onExit} aria-label={t.backToStart} />
       </header>
       <CategoryChips categories={kioskCategories} value={categoryId} onChange={setCategoryId} />

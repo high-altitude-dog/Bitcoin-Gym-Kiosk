@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react"
 import "./App.css"
 import "./kiosk.css"
 import { toKioskCart, toKioskProduct } from "./lib/kioskMapping"
-import { t } from "./lib/strings"
+import { t, useLang } from "./lib/strings"
 import { useKiosk } from "./state/useKiosk"
 import { useIdleReset } from "./hooks/useIdleReset"
 import { useOnlineStatus } from "./hooks/useOnlineStatus"
@@ -18,6 +18,8 @@ import { ConnectionErrorScreen } from "./screens/ConnectionErrorScreen"
 
 function App() {
   const kiosk = useKiosk()
+  // Re-render everything when the language flags are tapped.
+  useLang()
   const isOnline = useOnlineStatus()
   useTapFeedback()
   // Never reset while a Lightning invoice is live (the member may be paying

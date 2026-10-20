@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { isHttpError, sdk } from "../lib/medusa"
 import { toKioskCart } from "../lib/kioskMapping"
-import { t } from "../lib/strings"
+import { setLang, t } from "../lib/strings"
 import {
   CASH_PAYMENT_PROVIDER_ID,
   COINOS_LIGHTNING_PROVIDER_ID,
@@ -642,6 +642,8 @@ export function useKiosk() {
 
   const reset = useCallback(() => {
     epochRef.current += 1
+    // Every new visit starts in Spanish.
+    setLang("es")
     cashOpenRef.current = null
     cashToldRef.current = null
     queueRef.current = Promise.resolve()
