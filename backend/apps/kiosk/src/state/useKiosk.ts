@@ -40,6 +40,10 @@ const EXPIRY_GRACE_MS = 60_000
 // A cart change that times out or loses its connection is retried this many
 // times (after reloading the cart) before its taps are given up.
 const MAX_SYNC_RETRIES = 1
+// The cash screen waits this long for "Confirmar pedido" or "Cancelar". With
+// no tap, the order is recorded as paid at the desk and handed over (decided
+// Oct 20, 2026): see autoPayCash below and the backend's lib/cash-auto-capture.ts.
+export const CASH_AUTO_PAY_MS = 5 * 60_000
 const PAYMENT_SESSION_FIELDS =
   "+payment_collection.payment_sessions.status,+payment_collection.payment_sessions.provider_id"
 
@@ -59,6 +63,8 @@ interface KioskState {
   // The payment button tapped while taps were still being saved: it shows
   // "Guardando tu pedido…" until they are.
   savingFor: PaymentMethod
+  // When the cash screen records the order as paid by itself (ms since epoch).
+  cashDeadline: number | null
   loading: boolean
   error: string | null
 }
@@ -76,6 +82,7 @@ export function useKiosk() {
     paymentStatus: null,
     paymentMethod: null,
     savingFor: null,
+    cashDeadline: null,
     loading: true,
     error: null,
   })
@@ -512,7 +519,13 @@ export function useKiosk() {
         const withShipping = await ensureShippingMethod(cart)
         if (epoch !== epochRef.current) return
         commitCart(withShipping)
-        setState((s) => ({ ...s, error: null, paymentMethod: method, screen: "payment" }))
+        setState((s) => ({
+          ...s,
+          error: null,
+          paymentMethod: method,
+          screen: "payment",
+          cashDeadline: method === "cash" ? Date.now() + CASH_AUTO_PAY_MS : null,
+        }))
       } catch {
         if (epoch !== epochRef.current) return
         setState((s) => ({ ...s, error: t.errorPayment, screen: "payment-method" }))
@@ -549,7 +562,7 @@ export function useKiosk() {
         // session behind it, so stop watching it.
         stopPolling()
         invoiceRef.current = null
-        setState((s) => ({ ...s, order: result.order, invoice: null, paymentStatus: null, error: null, screen: "done" }))
+        setState((s) => ({ ...s, order: result.order, invoice: null, paymentStatus: null, error: null, screen: "done", cashDeadline: null }))
       } catch {
         if (epoch !== epochRef.current) return
         setState((s) => ({ ...s, error: errorMessage }))
@@ -573,7 +586,7 @@ export function useKiosk() {
   // the invoice anyway. If it gets paid, the order completes and the kiosk
   // moves to "done" from whichever screen it's on.
   const cancelPayment = useCallback(() => {
-    setState((s) => ({ ...s, error: null, screen: "payment-method" }))
+    setState((s) => ({ ...s, error: null, screen: "payment-method", cashDeadline: null }))
   }, [])
 
   const reset = useCallback(() => {
@@ -595,10 +608,40 @@ export function useKiosk() {
       paymentStatus: null,
       paymentMethod: null,
       savingFor: null,
+      cashDeadline: null,
       error: null,
     }))
     loadCatalog()
   }, [loadCatalog, stopPolling])
+
+  // Five minutes on the cash screen with no tap: place the order, have the
+  // backend record its cash payment as captured (which fulfils it), and go
+  // back to the start screen for the next member. If the capture fails the
+  // order stays unpaid, and the backend's unpaid-cash Slack alert follows it up.
+  const autoPayCash = useCallback(async () => {
+    const cart = cartRef.current
+    if (!cart || confirmingRef.current) return
+    confirmingRef.current = true
+    const epoch = epochRef.current
+    try {
+      await sdk.store.payment.initiatePaymentSession(cart, { provider_id: CASH_PAYMENT_PROVIDER_ID })
+      const result = await sdk.store.cart.complete(cart.id)
+      if (result.type === "order") {
+        await sdk.client.fetch(`/store/cash-orders/${result.order.id}/auto-capture`, { method: "POST" })
+      }
+    } catch {
+      // Nobody is at the kiosk to tell; start over for the next member.
+    } finally {
+      confirmingRef.current = false
+    }
+    if (epoch === epochRef.current) reset()
+  }, [reset])
+
+  useEffect(() => {
+    if (state.screen !== "payment" || state.paymentMethod !== "cash" || !state.cashDeadline) return
+    const timer = setTimeout(autoPayCash, Math.max(0, state.cashDeadline - Date.now()))
+    return () => clearTimeout(timer)
+  }, [state.screen, state.paymentMethod, state.cashDeadline, autoPayCash])
 
   return {
     ...state,

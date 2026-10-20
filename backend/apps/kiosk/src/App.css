@@ -234,6 +234,14 @@
 }
 .done-item__note { font: 500 28px/1.2 var(--k-font); color: var(--k-text-2); }
 
+/* Cash confirm: the same list, shorter so the note, countdown and buttons
+   stay on the stage (about 4 lines in portrait, 3 in landscape; more scroll). */
+.cash-items { margin-top: 0; }
+.cash-items .done-items__list { max-height: 460px; }
+.k-stage[data-orientation="landscape"] .cash-items .done-items__list { max-height: 340px; }
+.k-stage[data-orientation="landscape"] .done-items.cash-items { max-width: 900px; }
+.cash-countdown { font-size: 36px; color: var(--k-text-2); }
+
 /* Bank QR placeholder: "Pagado" stands in for the Baneco webhook until the API exists. */
 .bank-qr-actions {
   display: flex;

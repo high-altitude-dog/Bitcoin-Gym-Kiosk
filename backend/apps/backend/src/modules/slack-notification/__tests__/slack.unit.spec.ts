@@ -11,6 +11,7 @@ import {
   staffOrderMessage,
   cafeOrderMessage,
   unpaidCashMessage,
+  cashAutoPaidMessage,
 } from "../messages"
 
 describe("slack messages (Spanish)", () => {
@@ -184,5 +185,12 @@ describe("slack provider routing", () => {
     expect(text).toContain("capturar el pago en el admin")
     expect(text).toContain("<http://backend.test/app/orders/order_7|Ver pedido en el admin>")
     expect(renderSlackMessage("unpaid-cash", { display_id: 7, total: 3, minutes_waiting: 20 })).toContain("#7")
+  })
+
+  it("tells staff a cash order was recorded as paid after 5 minutes with no tap", () => {
+    const text = cashAutoPaidMessage({ display_id: 8, total: 2, admin_url: "http://backend.test/app/orders/order_8" })
+    expect(text).toContain("*Pedido #8 en efectivo dado por pagado* · Bs 2")
+    expect(text).toContain("Verificar que el dinero esté en caja")
+    expect(renderSlackMessage("cash-auto-paid", { display_id: 8, total: 2 })).toContain("#8")
   })
 })

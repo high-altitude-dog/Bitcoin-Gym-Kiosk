@@ -1,4 +1,5 @@
 // Every other screen in both orientations: payment method, invoice wait, Lightning QR, bank QR, done (3 and 9 lines), cash, connection error.
+import fs from "node:fs"
 import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
@@ -104,10 +105,12 @@ check("turning on the QR screen: only payment polling requests", mock.calls.slic
 await page.click(".back-button")
 await page.waitForSelector(".k-method")
 await page.click(".k-method__option--bank-qr")
-await page.waitForSelector(".payment-qr--placeholder")
+await page.waitForSelector(".payment-qr--bank")
+// The rendered QR is saved so it can be decoded and compared with the printed card.
+fs.writeFileSync(`${SHOTS}/bank-qr.png`, Buffer.from((await page.getAttribute(".payment-qr--bank", "src")).split(",")[1], "base64"))
 await both("4-bank-qr", async () => {
-  const ph = await rect(".payment-qr--placeholder"), h1 = await rect(".payment-side h1")
-  check("bank QR landscape: placeholder left, title right", ph.x < h1.x, `ph ${JSON.stringify(ph)} h1 ${JSON.stringify(h1)}`)
+  const ph = await rect(".payment-qr--bank"), h1 = await rect(".payment-side h1")
+  check("bank QR landscape: QR left, title right", ph.x < h1.x, `ph ${JSON.stringify(ph)} h1 ${JSON.stringify(h1)}`)
 })
 
 // 5. done (3 lines, mixed delivery) via "Pagado"
@@ -138,7 +141,7 @@ await page.waitForTimeout(1500)
 await page.click(".k-bar .k-pay")
 await page.waitForSelector(".k-method")
 await page.click(".k-method__option--bank-qr")
-await page.waitForSelector(".payment-qr--placeholder")
+await page.waitForSelector(".payment-qr--bank")
 await page.click(".bank-qr-paid")
 await page.waitForSelector(".done-title")
 await page.waitForTimeout(600)

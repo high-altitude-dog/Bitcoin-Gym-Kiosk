@@ -125,7 +125,8 @@ export function createMock() {
         if (url.pathname === "/store/product-categories") return json({ product_categories: mock.categories })
         if (url.pathname === "/store/carts" && req.method() === "POST") { mock.cart = { id: "cart_1", total: 0, items: [] }; return json({ cart: mock.cart }) }
         if (url.pathname.endsWith("/line-items") && req.method() === "POST") {
-          mock.cart = { ...mock.cart, items: [...mock.cart.items, { id: `li_${body().variant_id}`, variant_id: body().variant_id, quantity: body().quantity }] }
+          const product = mock.products.find((p) => p.variants[0].id === body().variant_id)
+          mock.cart = { ...mock.cart, items: [...mock.cart.items, { id: `li_${body().variant_id}`, variant_id: body().variant_id, quantity: body().quantity, title: product.title, product_title: product.title, thumbnail: null }] }
           recalc()
           return json({ cart: mock.cart })
         }
@@ -150,6 +151,7 @@ export function createMock() {
           const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: 600 } : {}
           return json({ payment_collection: { id: "pc_1", payment_sessions: [{ id: "ps_1", provider_id: body().provider_id, status: "pending", data }] } })
         }
+        if (/^\/store\/cash-orders\/[^/]+\/auto-capture$/.test(url.pathname)) return json({ captured: true })
         if (url.pathname.endsWith("/complete")) {
           await wait(mock.completeDelay)
           if (mock.completeFailures > 0) { mock.completeFailures--; return route.fulfill({ status: 500, headers: cors, body: "{}" }) }

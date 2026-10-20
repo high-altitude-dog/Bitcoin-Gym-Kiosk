@@ -26,6 +26,8 @@ function App() {
     kiosk.screen !== "idle" &&
       kiosk.paymentStatus !== "awaiting" &&
       kiosk.paymentStatus !== "confirmed" &&
+      // The cash screen has its own 5-minute countdown.
+      !(kiosk.screen === "payment" && kiosk.paymentMethod === "cash") &&
       kiosk.paymentStatus !== "needs_staff"
   )
 
@@ -106,6 +108,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
         error={kiosk.error}
         onBankQrPaid={kiosk.confirmBankQrPaid}
         onCashConfirm={kiosk.confirmCashOrder}
+        cashDeadline={kiosk.cashDeadline}
         onRetry={kiosk.retryPayment}
         onCancel={kiosk.cancelPayment}
       />

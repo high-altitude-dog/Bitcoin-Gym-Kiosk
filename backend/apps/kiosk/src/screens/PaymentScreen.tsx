@@ -7,6 +7,7 @@ import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
 import { ByteLoader } from "./ByteLoader"
+import { BANK_QR_OPTIONS, BANK_QR_PAYLOAD } from "../lib/bankQr"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   error: string | null
   onBankQrPaid: () => Promise<void>
   onCashConfirm: () => Promise<void>
+  // Cash: when the order is recorded as paid if nobody taps.
+  cashDeadline: number | null
   onRetry: () => void
   onCancel: () => void
 }
@@ -45,6 +48,22 @@ function usePaymentQrCode(bolt11: string | undefined) {
   return qrDataUrl
 }
 
+// The static bank QR, drawn once; the same size and quiet zone as the Lightning QR.
+function useBankQrCode(enabled: boolean) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!enabled || url) return
+    let cancelled = false
+    QRCode.toDataURL([{ data: new TextEncoder().encode(BANK_QR_PAYLOAD), mode: "byte" as const }], { ...BANK_QR_OPTIONS, width: 720, margin: 1 })
+      .then((u) => !cancelled && setUrl(u))
+      .catch(() => !cancelled && setUrl(null))
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, url])
+  return url
+}
+
 export function PaymentScreen({
   cart,
   paymentMethod,
@@ -53,13 +72,16 @@ export function PaymentScreen({
   error,
   onBankQrPaid,
   onCashConfirm,
+  cashDeadline,
   onRetry,
   onCancel,
 }: Props) {
   const qrDataUrl = usePaymentQrCode(invoice?.bolt11)
+  const bankQrUrl = useBankQrCode(paymentMethod === "bank_qr")
   // One confirmation at a time: a double tap must not complete twice.
   const [confirming, setConfirming] = useState(false)
   const msLeft = useCountdown(invoice?.expiresAt ?? 0)
+  const cashMsLeft = useCountdown(cashDeadline ?? 0)
 
   // Paid, but the order didn't complete. No buttons: paying again or
   // starting over would be wrong. Staff use the reference to find the cart.
@@ -79,7 +101,9 @@ export function PaymentScreen({
     return (
       <div className="screen screen--center">
         <h1>{t.cashTitle(formatBs(cart.total))}</h1>
+        <OrderLines cart={cart} />
         <p className="payment-note">{t.cashNote}</p>
+        {cashDeadline && <p className="payment-countdown cash-countdown">{t.cashAutoIn(formatCountdown(cashMsLeft))}</p>}
         {error && <p className="payment-error" role="alert">{error}</p>}
         <div className="bank-qr-actions">
           <button className="bank-qr-cancel" onClick={onCancel} disabled={confirming}>
@@ -104,19 +128,21 @@ export function PaymentScreen({
     )
   }
 
-  // Placeholder while the Baneco API request is pending (see CLAUDE.md):
-  // a static square instead of a real bank QR invoice.
+  // The gym's static bank QR until the Baneco API exists (see CLAUDE.md): it
+  // has no amount in it, and nothing checks the payment arrived ("Pagado").
   if (paymentMethod === "bank_qr") {
     return (
       <div className="screen screen--center payment-layout">
         <div className="payment-qrbox">
-          <div className="payment-qr payment-qr--placeholder">
-            <span>El QR aparecerá aquí</span>
-          </div>
+          {bankQrUrl ? (
+            <img className="payment-qr payment-qr--bank" src={bankQrUrl} alt="Código QR bancario del gimnasio" />
+          ) : (
+            <div className="payment-qr payment-qr--placeholder" />
+          )}
         </div>
         <div className="payment-side">
           <h1>Pagar {formatBs(cart.total)}</h1>
-          <p className="payment-note">El QR bancario estará disponible pronto. Escanea con tu app del banco para pagar.</p>
+          <p className="payment-note">{t.bankQrNote(formatBs(cart.total))}</p>
           {error && <p className="payment-error" role="alert">{error}</p>}
           <div className="bank-qr-actions">
             <button className="bank-qr-cancel" onClick={onCancel} disabled={confirming}>
@@ -210,5 +236,29 @@ export function PaymentScreen({
         </button>
       </div>
     </div>
+  )
+}
+
+/** The cart's lines (photo, quantity, name), styled like the done screen's list. */
+function OrderLines({ cart }: { cart: HttpTypes.StoreCart }) {
+  const items = cart.items ?? []
+  if (!items.length) return null
+  return (
+    <section className="done-items cash-items">
+      <h2 className="done-items__title">{t.yourPurchase}</h2>
+      <ul className="done-items__list">
+        {items.map((item) => (
+          <li key={item.id} className="done-item">
+            <div className="done-item__photo">
+              {item.thumbnail && <img src={item.thumbnail} alt="" draggable={false} decoding="async" />}
+            </div>
+            <span className="done-item__qty">{item.quantity}×</span>
+            <span className="done-item__text">
+              <span className="done-item__name">{item.product_title ?? item.title}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

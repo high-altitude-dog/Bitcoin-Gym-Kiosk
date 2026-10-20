@@ -35,6 +35,12 @@ export type UnpaidCashData = {
   admin_url?: string | null
 }
 
+export type CashAutoPaidData = {
+  display_id: number
+  total: number
+  admin_url?: string | null
+}
+
 export type HandoverOrderData = {
   display_id: number
   items: { title: string; quantity: number }[]
@@ -49,6 +55,7 @@ export const SLACK_TEMPLATES = [
   "staff-order",
   "cafe-order",
   "unpaid-cash",
+  "cash-auto-paid",
 ] as const
 export type SlackTemplate = (typeof SLACK_TEMPLATES)[number]
 
@@ -158,6 +165,15 @@ export function cafeOrderMessage(data: HandoverOrderData): string {
 
 // A cash order still not captured: the member may not have paid at the
 // desk. Its items are held until it is (or it's cancelled, which frees them).
+export function cashAutoPaidMessage(data: CashAutoPaidData): string {
+  const lines = [
+    `*Pedido #${data.display_id} en efectivo dado por pagado* · ${formatBs(data.total)}`,
+    `Nadie confirmó ni canceló en el kiosko en 5 minutos, así que se registró como cobrado y entregado. Verificar que el dinero esté en caja.`,
+  ]
+  if (data.admin_url) lines.push(`<${data.admin_url}|Ver pedido en el admin>`)
+  return lines.join("\n")
+}
+
 export function unpaidCashMessage(data: UnpaidCashData): string {
   const lines = [
     `*Pedido #${data.display_id} en efectivo sin cobrar* desde hace ${data.minutes_waiting} min · ${formatBs(data.total)}`,
@@ -183,6 +199,8 @@ export function renderSlackMessage(template: string, data: Record<string, unknow
       return cafeOrderMessage(data as unknown as HandoverOrderData)
     case "unpaid-cash":
       return unpaidCashMessage(data as unknown as UnpaidCashData)
+    case "cash-auto-paid":
+      return cashAutoPaidMessage(data as unknown as CashAutoPaidData)
     default:
       throw new Error(`slack-notification: unknown template "${template}"`)
   }

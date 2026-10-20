@@ -48,10 +48,12 @@ export const t = {
   // Cash: the order is placed here and paid at the front desk.
   cashTitle: (total: string) => `Pagar ${total} en efectivo`,
   cashNote: "Confirma tu pedido y paga en recepción con tu número de pedido.",
+  cashAutoIn: (time: string) => `Si nadie toca, se dará por pagado en ${time}`,
   confirmOrder: "Confirmar pedido",
   errorCashConfirm: "No pudimos registrar tu pedido. Intenta de nuevo o avisa a un miembro del personal.",
   payAtDesk: "Paga en recepción",
   paymentReceived: "¡Pago recibido!",
+  bankQrNote: (total: string) => `Escanea con la app de tu banco, escribe ${total} y paga. Luego toca «Pagado».`,
   cashDue: (total: string) => `${total} en efectivo`,
   checkingPayment: "Verificando el pago...",
   cartReference: (id: string) => `Referencia: ${id}`,
