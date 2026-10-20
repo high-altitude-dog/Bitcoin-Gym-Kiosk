@@ -602,6 +602,15 @@ The first real payment through the deployed webhook took ~7 s from Coinos's webh
 - **Kiosk polling** went from 3 s to 0.5 s, with a guard so a slow tick makes the next one skip instead of overlapping.
 - **Measured with a real payment (order #2, Bs 1):** webhook arrived → processing started 0.19 s later → the kiosk saw the payment confirmed ~1.3 s after that → order done 2.7 s after the webhook arrived (was ~7.2 s for order #1). What's left is mostly Medusa's own work: ~1 s for `processPaymentWorkflow` (it re-checks the invoice with Coinos before marking it paid) and ~0.7 s for `complete()`. Neither is worth trimming further.
 
+## New Coinos account (Oct 20, 2026)
+
+The live kiosk takes Lightning payments into a **new Coinos account**, created by the developer; its API token replaced the old one on the VM at 22:38 UTC on Oct 20, 2026, and is also in local dev's `.env` (so local and the VM still share one account). The old account keeps every payment before that (30 incoming since Oct 1) and its balance; its token still works, and the VM's previous `.env` is at `~/env.backup-2026-10-20` for rollback. `COINOS_WEBHOOK_SECRET` is ours, not tied to an account, and was not changed.
+
+- **Applied without a rebuild:** the token line was replaced in the VM's `backend/apps/backend/.env` (no other line changed), the file copied to `.medusa/server/.env` (the two were identical before), and `medusa` restarted.
+- **Invoices from before the switch still confirm:** the provider checks an invoice with `GET /invoice/:id`, which needs no token, and each invoice carries its own webhook URL and secret.
+- **Expected false alarm:** the 06:00 UTC run on Oct 21 checks Oct 20 against the new account, which doesn't have that day's 3 Lightning payments, so Slack gets one reconciliation mismatch listing 3 captured payments. They are real and were paid to the old account. Reconciling any day before the switch needs the old token.
+- **Verified:** the new token reads payments (none yet) and created a test BOLT12 offer (`single_use`, 60 s, unpaid) directly with Coinos; the VM's two `.env` files carry it; the backend restarted cleanly and `https://api.paywithbitcoin.lol/health` answers. **Not verified:** an invoice created by the running backend: no test cart was made on the live shop. The first real Lightning sale should appear in the new account's history.
+
 ## Database backups (Oct 6, 2026)
 
 `deploy/backup/` holds the script and systemd units, installed on the VM as `/usr/local/sbin/bitcoin-gym-kiosk-backup` and `bitcoin-gym-kiosk-backup.{service,timer}`. Every night at 07:30 UTC (03:30 Bolivia) it writes `bitcoin-gym-kiosk-<time>.dump` (`pg_dump --format=custom`) and `static-<time>.tar.gz` (the uploaded images in `.medusa/server/static`) to `/var/backups/bitcoin-gym-kiosk` (root-only), and deletes files older than 14 days. Run one by hand with `sudo systemctl start bitcoin-gym-kiosk-backup.service`; check with `journalctl -u bitcoin-gym-kiosk-backup.service`.
