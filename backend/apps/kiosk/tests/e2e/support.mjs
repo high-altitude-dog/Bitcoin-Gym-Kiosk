@@ -88,6 +88,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   categories         the product categories the store lists
  *   completeDelay      ms cart completion takes (the order being created)
  *   shippingDelay      ms attaching the pickup shipping method takes
+ * and read cashDesk (the bodies of the front-desk "cobrar" calls, in order),
  *   completeFailures   how many completion calls fail (500) before one succeeds
  * and read cart and calls (every request, as "METHOD /path").
  */
@@ -107,6 +108,7 @@ export function createMock() {
     categories: [],
     completeDelay: 0,
     shippingDelay: 0,
+    cashDesk: [],
     completeFailures: 0,
     /** Answers every request to API from this page or context. */
     install(target) {
@@ -158,6 +160,7 @@ export function createMock() {
           return json({ payment_collection: { id: "pc_1", payment_sessions: [{ id: "ps_1", provider_id: body().provider_id, status: "pending", data }] } })
         }
         if (/^\/store\/cash-orders\/[^/]+\/auto-capture$/.test(url.pathname)) return json({ captured: true })
+        if (/^\/store\/cash-collect\/[^/]+$/.test(url.pathname)) { mock.cashDesk.push(body()); return json({ notified: true }) }
         if (url.pathname.endsWith("/complete")) {
           await wait(mock.completeDelay)
           if (mock.completeFailures > 0) { mock.completeFailures--; return route.fulfill({ status: 500, headers: cors, body: "{}" }) }

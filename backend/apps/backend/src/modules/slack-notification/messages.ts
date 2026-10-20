@@ -41,6 +41,11 @@ export type CashAutoPaidData = {
   admin_url?: string | null
 }
 
+export type CashCollectData = {
+  total: number
+  items: { title: string; quantity: number }[]
+}
+
 export type HandoverOrderData = {
   display_id: number
   items: { title: string; quantity: number }[]
@@ -56,6 +61,8 @@ export const SLACK_TEMPLATES = [
   "cafe-order",
   "unpaid-cash",
   "cash-auto-paid",
+  "cash-collect",
+  "cash-collect-cancelled",
 ] as const
 export type SlackTemplate = (typeof SLACK_TEMPLATES)[number]
 
@@ -174,6 +181,17 @@ export function cashAutoPaidMessage(data: CashAutoPaidData): string {
   return lines.join("\n")
 }
 
+export function cashCollectMessage(data: CashCollectData): string {
+  return [
+    `*Cobrar ${formatBs(data.total)} en efectivo* (kiosko)`,
+    ...listed(data.items, (i) => `• ${i.quantity} × ${escapeSlack(i.title)}`),
+  ].join("\n")
+}
+
+export function cashCollectCancelledMessage(data: CashCollectData): string {
+  return `Cancelado: *no cobrar ${formatBs(data.total)}* (kiosko)`
+}
+
 export function unpaidCashMessage(data: UnpaidCashData): string {
   const lines = [
     `*Pedido #${data.display_id} en efectivo sin cobrar* desde hace ${data.minutes_waiting} min · ${formatBs(data.total)}`,
@@ -201,6 +219,10 @@ export function renderSlackMessage(template: string, data: Record<string, unknow
       return unpaidCashMessage(data as unknown as UnpaidCashData)
     case "cash-auto-paid":
       return cashAutoPaidMessage(data as unknown as CashAutoPaidData)
+    case "cash-collect":
+      return cashCollectMessage(data as unknown as CashCollectData)
+    case "cash-collect-cancelled":
+      return cashCollectCancelledMessage(data as unknown as CashCollectData)
     default:
       throw new Error(`slack-notification: unknown template "${template}"`)
   }

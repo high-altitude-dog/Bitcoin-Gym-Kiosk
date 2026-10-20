@@ -51,6 +51,7 @@ const calls = (mock, re) => mock.calls.filter((c) => re.test(c)).length
   check("A: at 5 minutes the kiosk is back on the start screen", idle)
   check("A: one cash session, one order, one auto-capture", JSON.stringify(mock.sessionProviders) === '["pp_cash_cash"]' && calls(mock, /complete$/) === 1 && calls(mock, /^POST \/store\/cash-orders\/order_1\/auto-capture$/) === 1,
     JSON.stringify({ sessions: mock.sessionProviders, complete: calls(mock, /complete$/), capture: calls(mock, /auto-capture/) }))
+  check("A: the desk was told to collect once, and never told to cancel", mock.cashDesk.length === 1 && mock.cashDesk[0].cancelled === false && /^\d+$/.test(mock.cashDesk[0].attempt), JSON.stringify(mock.cashDesk))
   check("A: no page errors", errors.length === 0, errors.join(" | "))
   await ctx.close()
 }
@@ -67,6 +68,7 @@ const calls = (mock, re) => mock.calls.filter((c) => re.test(c)).length
   await page.waitForSelector(".done-title")
   await page.clock.fastForward(310_000)
   check("B: confirmed by hand: no auto-capture later", calls(mock, /auto-capture/) === 0 && calls(mock, /complete$/) === 1)
+  check("B: the desk was told to collect once, no cancel", mock.cashDesk.length === 1 && mock.cashDesk[0].cancelled === false, JSON.stringify(mock.cashDesk))
   await ctx.close()
 }
 
@@ -82,6 +84,31 @@ const calls = (mock, re) => mock.calls.filter((c) => re.test(c)).length
   await page.waitForSelector(".k-method")
   await page.clock.fastForward(310_000)
   check("C: cancelled: no order and no auto-capture", calls(mock, /auto-capture/) === 0 && calls(mock, /complete$/) === 0)
+  check("C: 'cobrar' then 'no cobrar' for the same opening", mock.cashDesk.length === 2 && !mock.cashDesk[0].cancelled && mock.cashDesk[1].cancelled === true && mock.cashDesk[0].attempt === mock.cashDesk[1].attempt, JSON.stringify(mock.cashDesk))
+  await ctx.close()
+}
+
+// ---- D. "Cancelar" before the cart is ready: the desk is told nothing at all
+{
+  const ctx = await browser.newContext({ viewport: PORTRAIT, serviceWorkers: "block" })
+  const page = await ctx.newPage()
+  const mock = createMock()
+  await mock.install(page)
+  await page.goto(server.url)
+  await page.waitForSelector(".k-idle")
+  await page.click(".k-idle")
+  await page.waitForSelector(".k-card")
+  await page.evaluate(() => document.querySelectorAll(".k-card .k-add")[0].click())
+  await page.waitForTimeout(1500)
+  await page.click(".k-bar .k-pay")
+  await page.waitForSelector(".k-method")
+  mock.shippingDelay = 1500
+  await page.click(".k-method__option--cash")
+  await page.waitForSelector(".bank-qr-cancel")
+  await page.click(".bank-qr-cancel")
+  await page.waitForSelector(".k-method")
+  await page.waitForTimeout(2500)
+  check("D: cancelled before the cart was ready: no message to the desk", mock.cashDesk.length === 0, JSON.stringify(mock.cashDesk))
   await ctx.close()
 }
 

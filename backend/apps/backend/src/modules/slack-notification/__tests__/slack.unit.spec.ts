@@ -12,6 +12,8 @@ import {
   cafeOrderMessage,
   unpaidCashMessage,
   cashAutoPaidMessage,
+  cashCollectMessage,
+  cashCollectCancelledMessage,
 } from "../messages"
 
 describe("slack messages (Spanish)", () => {
@@ -192,5 +194,12 @@ describe("slack provider routing", () => {
     expect(text).toContain("*Pedido #8 en efectivo dado por pagado* · Bs 2")
     expect(text).toContain("Verificar que el dinero esté en caja")
     expect(renderSlackMessage("cash-auto-paid", { display_id: 8, total: 2 })).toContain("#8")
+  })
+
+  it("tells the desk how much cash to collect, and when not to", () => {
+    const text = cashCollectMessage({ total: 4, items: [{ title: "Banana", quantity: 2 }] })
+    expect(text).toBe("*Cobrar Bs 4 en efectivo* (kiosko)\n• 2 × Banana")
+    expect(cashCollectCancelledMessage({ total: 4, items: [] })).toBe("Cancelado: *no cobrar Bs 4* (kiosko)")
+    expect(renderSlackMessage("cash-collect-cancelled", { total: 4, items: [] })).toContain("no cobrar")
   })
 })

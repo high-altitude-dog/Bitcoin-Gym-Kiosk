@@ -106,6 +106,11 @@ export function useKiosk() {
   // attached) while their screen is already showing; "Pagado" and
   // "Confirmar pedido" wait for it. Resolves to null if it failed.
   const manualPrepRef = useRef<Promise<HttpTypes.StoreCart | null> | null>(null)
+  // The open cash screen (its deadline, as an id) and whether the front desk
+  // was told to collect for it, so "Cancelar" only says "no cobrar" after a
+  // "cobrar". Cleared when the screen closes any other way.
+  const cashOpenRef = useRef<string | null>(null)
+  const cashToldRef = useRef<string | null>(null)
   // Bumped by reset(): work started for the previous member checks it and
   // drops its result instead of writing into the next member's session.
   const epochRef = useRef(0)
@@ -521,12 +526,16 @@ export function useKiosk() {
     (method: "bank_qr" | "cash") => {
       const epoch = epochRef.current
       const nav = navRef.current
+      const cashDeadline = method === "cash" ? Date.now() + CASH_AUTO_PAY_MS : null
+      const attempt = cashDeadline ? String(cashDeadline) : null
+      cashOpenRef.current = attempt
+      cashToldRef.current = null
       setState((s) => ({
         ...s,
         error: null,
         paymentMethod: method,
         screen: "payment",
-        cashDeadline: method === "cash" ? Date.now() + CASH_AUTO_PAY_MS : null,
+        cashDeadline,
       }))
       // Something went wrong getting the cart ready: back to the payment
       // choice with the error, as before (unless the member already left).
@@ -550,6 +559,12 @@ export function useKiosk() {
           const withShipping = await ensureShippingMethod(cart)
           if (epoch !== epochRef.current) return null
           commitCart(withShipping)
+          // Cash: tell the front desk how much to collect, now that the cart's
+          // total is final (unless the member already left the screen).
+          if (attempt && cashOpenRef.current === attempt) {
+            cashToldRef.current = attempt
+            notifyCashDesk(withShipping.id, attempt, false)
+          }
           return withShipping
         } catch {
           backWithError(t.errorPayment)
@@ -585,6 +600,7 @@ export function useKiosk() {
         // The cart may still be getting ready behind the screen.
         const ready = await manualPrepRef.current
         if (epoch !== epochRef.current || !ready) return
+        cashOpenRef.current = null
         await sdk.store.payment.initiatePaymentSession(cartRef.current ?? ready, { provider_id: providerId })
         const result = await sdk.store.cart.complete(cart.id)
         if (epoch !== epochRef.current) return
@@ -617,11 +633,17 @@ export function useKiosk() {
   // the invoice anyway. If it gets paid, the order completes and the kiosk
   // moves to "done" from whichever screen it's on.
   const cancelPayment = useCallback(() => {
+    const told = cashToldRef.current
+    if (told && told === cashOpenRef.current && cartRef.current) notifyCashDesk(cartRef.current.id, told, true)
+    cashOpenRef.current = null
+    cashToldRef.current = null
     setState((s) => ({ ...s, error: null, screen: "payment-method", cashDeadline: null }))
   }, [])
 
   const reset = useCallback(() => {
     epochRef.current += 1
+    cashOpenRef.current = null
+    cashToldRef.current = null
     queueRef.current = Promise.resolve()
     pendingRef.current = {}
     syncQueuedRef.current = false
@@ -657,6 +679,7 @@ export function useKiosk() {
     try {
       const ready = await manualPrepRef.current
       if (epoch !== epochRef.current || !ready) return
+      cashOpenRef.current = null
       await sdk.store.payment.initiatePaymentSession(cartRef.current ?? ready, { provider_id: CASH_PAYMENT_PROVIDER_ID })
       const result = await sdk.store.cart.complete(cart.id)
       if (result.type === "order") {
@@ -707,4 +730,13 @@ export function nextCartChange(
     }
   }
   return null
+}
+
+// Tells the front desk (staff Slack channel, via the backend) how much cash to
+// collect for this cart, or, with cancelled, not to. Best effort: a failure
+// changes nothing at the kiosk.
+function notifyCashDesk(cartId: string, attempt: string, cancelled: boolean) {
+  sdk.client
+    .fetch(`/store/cash-collect/${cartId}`, { method: "POST", body: { attempt, cancelled } })
+    .catch(() => {})
 }
