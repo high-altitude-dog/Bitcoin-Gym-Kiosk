@@ -53,7 +53,8 @@ export const t = {
   errorCashConfirm: "No pudimos registrar tu pedido. Intenta de nuevo o avisa a un miembro del personal.",
   payAtDesk: "Paga en recepción",
   paymentReceived: "¡Pago recibido!",
-  bankQrNote: (total: string) => `Escanea con la app de tu banco, escribe ${total} y paga. Luego toca «Pagado».`,
+  // The amount stays (a static QR has none); its space can't break, so "Bs" and the number stay together.
+  bankQrNote: (total: string) => `Escanea y paga ${total.replace(" ", "\u00a0")} con la app de tu banco.`,
   cashDue: (total: string) => `${total} en efectivo`,
   checkingPayment: "Verificando el pago...",
   cartReference: (id: string) => `Referencia: ${id}`,
