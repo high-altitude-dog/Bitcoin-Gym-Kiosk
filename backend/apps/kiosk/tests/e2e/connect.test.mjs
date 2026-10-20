@@ -1,0 +1,49 @@
+// The faint Wi-Fi button on the start screen and the "Wi-Fi y acceso al gimnasio" screen it opens.
+import fs from "node:fs"
+import { createChecker, createMock, launch, LANDSCAPE, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
+
+const server = await startServer()
+const browser = await launch()
+const { check, finish } = createChecker()
+const ctx = await browser.newContext({ viewport: PORTRAIT, serviceWorkers: "block" })
+const page = await ctx.newPage()
+const mock = createMock()
+await mock.install(page)
+const errors = watchErrors(page)
+const centre = (sel) => page.evaluate((sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), w: Math.round(r.width) } }, sel)
+// Everything on the connect screen inside the stage, and the two cards apart.
+const layout = () => page.evaluate(() => {
+  const st = document.querySelector(".k-stage").getBoundingClientRect()
+  const inside = [...document.querySelectorAll(".connect *")].every((e) => { const r = e.getBoundingClientRect(); return r.width === 0 || (r.left >= st.left - 1 && r.right <= st.right + 1 && r.top >= st.top - 1 && r.bottom <= st.bottom + 1) })
+  const [a, b] = [...document.querySelectorAll(".connect-card")].map((e) => e.getBoundingClientRect())
+  const apart = a.right <= b.left || a.bottom <= b.top
+  const back = document.querySelector(".connect__back").getBoundingClientRect()
+  const clearOfCards = back.top >= Math.max(a.bottom, b.bottom)
+  return { inside, apart, clearOfCards, sideBySide: Math.abs(a.top - b.top) < 2, stacked: a.bottom <= b.top }
+})
+
+for (const [name, viewport, arrow] of [["portrait", PORTRAIT, { x: 1164, y: 1873 }], ["landscape", LANDSCAPE, { x: 1340, y: 1071 }]]) {
+  await page.setViewportSize(viewport)
+  await page.goto(server.url)
+  await page.waitForSelector(".k-idle-connect")
+  await page.waitForTimeout(300)
+  const c = await centre(".k-idle-connect")
+  check(`${name}: the Wi-Fi button covers the wall's arrow`, Math.abs(c.x - arrow.x) <= 1 && Math.abs(c.y - arrow.y) <= 1, JSON.stringify(c))
+  await page.screenshot({ path: `${SHOTS}/connect-button-${name}.png`, clip: { x: arrow.x - 150, y: arrow.y - 120, width: 300, height: 220 } })
+  await page.click(".k-idle-connect")
+  await page.waitForSelector(".connect")
+  await page.waitForSelector(".connect-card__qr[src]")
+  check(`${name}: it opens the connect screen, not the shop`, !(await page.$(".k-card")) && !mock.calls.some((c) => c === "POST /store/carts"))
+  const l = await layout()
+  check(`${name}: everything on the stage, cards apart, 'Atrás' below them`, l.inside && l.apart && l.clearOfCards && (name === "portrait" ? l.stacked : l.sideBySide), JSON.stringify(l))
+  check(`${name}: Wi-Fi is a placeholder for now, the access QR is drawn`, /Próximamente/.test(await page.textContent(".connect-card__qr--placeholder")) && !!(await page.getAttribute(".connect-card img.connect-card__qr", "src")))
+  await page.screenshot({ path: `${SHOTS}/connect-${name}.png` })
+  if (name === "portrait") fs.writeFileSync(`${SHOTS}/access-qr.png`, Buffer.from((await page.getAttribute(".connect-card img.connect-card__qr", "src")).split(",")[1], "base64"))
+  await page.click(".connect__back")
+  const idle = await page.waitForSelector(".k-idle", { timeout: 3000 }).then(() => true, () => false)
+  check(`${name}: 'Atrás' goes back to 'Toca para empezar'`, idle)
+}
+check("no page errors", errors.length === 0, errors.join(" | "))
+await browser.close()
+await server.close()
+finish()

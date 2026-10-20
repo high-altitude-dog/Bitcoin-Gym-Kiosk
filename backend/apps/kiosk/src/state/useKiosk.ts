@@ -11,7 +11,7 @@ import {
   type LightningInvoice,
 } from "../lib/payment"
 
-export type Screen = "idle" | "shop" | "payment-method" | "payment" | "done"
+export type Screen = "idle" | "connect" | "shop" | "payment-method" | "payment" | "done"
 // "confirmed": the Lightning payment is confirmed and the order is being
 // created; the done screen shows "¡Pago recibido!" and fills in the order
 // once it exists (about a second later).

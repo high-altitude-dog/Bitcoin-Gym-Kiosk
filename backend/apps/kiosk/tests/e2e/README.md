@@ -14,6 +14,8 @@ npm run test:e2e -- rotation  # only suites whose file name contains "rotation"
 - `manual-prep.test.mjs`: bank QR and cash screens show at once while the cart is made ready behind them; confirming early waits for it.
 - `screens.test.mjs`: payment method, invoice wait, Lightning QR, bank QR, "¡Gracias!" and the connection error, in both orientations.
 - `cash-auto-pay.test.mjs`: the cash screen's item list and 5-minute countdown; with no tap the order is placed and auto-captured, and the kiosk starts over (fake clock).
+- `connect.test.mjs`: the faint Wi-Fi button on the start screen (over the wall's arrow) and the Wi-Fi and gym-access QR screen, both orientations.
+- `exit-button.test.mjs`: the faint back-to-start button at the top right of the shop (both orientations), which clears the cart.
 - `lightning-confirmed.test.mjs`: a confirmed payment shows "¡Pago recibido!" at once and the order once it exists, including a failed first attempt.
 - `shop-order.test.mjs`: sold-out products last, in "Todo" and inside a category, and only from the next member's start.
 - `rotation-stress.test.mjs`: turning during taps, saving, a live invoice, a payment and the idle timer.

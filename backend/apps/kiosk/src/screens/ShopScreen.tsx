@@ -44,9 +44,11 @@ interface Props {
   pending: Record<string, number>
   onSetQuantity: (variantId: string, quantity: number) => void
   onPay: () => void
+  // The small, faint button at the top right: back to "Toca para empezar", cart cleared.
+  onExit: () => void
 }
 
-export function ShopScreen({ products, categories, cart, pending, onSetQuantity, onPay }: Props) {
+export function ShopScreen({ products, categories, cart, pending, onSetQuantity, onPay, onExit }: Props) {
   const greeting = useGreeting()
   const [categoryId, setCategoryId] = useState<string | null>(null)
 
@@ -140,6 +142,8 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
     <>
       <header className="k-header">
         <h1 className="k-title">{greeting}</h1>
+        {/* Deliberately small and faint: for staff, not a member's next step. */}
+        <button className="k-exit" onClick={onExit} aria-label={t.backToStart} />
       </header>
       <CategoryChips categories={kioskCategories} value={categoryId} onChange={setCategoryId} />
       <section

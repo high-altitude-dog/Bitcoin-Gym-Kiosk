@@ -8,6 +8,7 @@ import { useIdleReset } from "./hooks/useIdleReset"
 import { useOnlineStatus } from "./hooks/useOnlineStatus"
 import { useTapFeedback } from "./hooks/useTapFeedback"
 import { IdleScreen } from "./screens/IdleScreen"
+import { ConnectScreen } from "./screens/ConnectScreen"
 import { ShopScreen } from "./screens/ShopScreen"
 import { Stage } from "./screens/Stage"
 import { PaymentMethodScreen } from "./screens/PaymentMethodScreen"
@@ -83,6 +84,10 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
     return plain(<ConnectionErrorScreen message={kiosk.error} retrying={false} onRetry={kiosk.reset} />)
   }
 
+  if (kiosk.screen === "connect") {
+    return plain(<ConnectScreen onBack={() => kiosk.goTo("idle")} />)
+  }
+
   // No cart needed yet: "Pagar" can come before Medusa has created it.
   if (kiosk.screen === "payment-method") {
     return plain(
@@ -132,6 +137,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
           pending={kiosk.pending}
           onSetQuantity={kiosk.setItemQuantity}
           onPay={kiosk.goToPaymentMethod}
+          onExit={kiosk.reset}
         />
       </Stage>
     )
@@ -139,7 +145,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
 
   return (
     <Stage variant="idle">
-      <IdleScreen onStart={() => kiosk.goTo("shop")} />
+      <IdleScreen onStart={() => kiosk.goTo("shop")} onConnect={() => kiosk.goTo("connect")} />
     </Stage>
   )
 }

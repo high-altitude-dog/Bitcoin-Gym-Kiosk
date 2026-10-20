@@ -53,6 +53,13 @@ export const t = {
   errorCashConfirm: "No pudimos registrar tu pedido. Intenta de nuevo o avisa a un miembro del personal.",
   payAtDesk: "Paga en recepción",
   paymentReceived: "¡Pago recibido!",
+  backToStart: "Volver al inicio",
+  connectTitle: "Wi-Fi y acceso al gimnasio",
+  wifiLabel: "Wi-Fi del gimnasio",
+  wifiNote: "Escanea para conectarte",
+  accessLabel: "Acceso al gimnasio",
+  accessNote: "Escanea para abrir la app",
+  comingSoon: "Próximamente",
   // The amount stays (a static QR has none); its space can't break, so "Bs" and the number stay together.
   bankQrNote: (total: string) => `Escanea y paga ${total.replace(" ", "\u00a0")} con la app de tu banco.`,
   cashDue: (total: string) => `${total} en efectivo`,
