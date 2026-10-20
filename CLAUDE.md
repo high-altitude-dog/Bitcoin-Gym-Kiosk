@@ -259,6 +259,7 @@ A faint Wi-Fi button on "Toca para empezar" (`.k-idle-connect` in `IdleScreen.ts
 
 - **Wi-Fi:** a dashed "Próximamente" placeholder until `WIFI_QR_PAYLOAD` in `src/lib/connectQr.ts` is set on site (`WIFI:T:WPA;S:<ssid>;P:<password>;;`). That password would ship in the public web bundle.
 - **Acceso al gimnasio:** a QR for the open-gym PWA, `https://high-altitude-dog.github.io/open-gym/` (`OPEN_GYM_URL`); the rendered image decodes to exactly that URL.
+- **Touch to reveal** (Oct 20, 2026): each QR starts hidden (`visibility: hidden`, so it can't be scanned through the cover) under a "Toca para mostrar" panel with an animated helper, a fingertip dot pressing and two rings rippling out (still under reduced motion). One tap reveals that QR only; reopening the screen covers it again (`RevealQr` in `ConnectScreen.tsx`). The Wi-Fi placeholder gets the cover once its QR exists.
 - Both QR images are drawn once when the app loads. Test: `tests/e2e/connect.test.mjs` (button over the arrow in both orientations, opens the screen without starting a cart, layout fits, "Atrás").
 
 ## Back-to-start button on the shop screen (Oct 20, 2026)

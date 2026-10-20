@@ -412,3 +412,43 @@
 .k-stage[data-orientation="landscape"] .connect-card__qr { grid-row: auto; width: 520px; height: 520px; margin-bottom: 24px; }
 .k-stage[data-orientation="landscape"] .connect-card__label { align-self: auto; }
 
+/* Touch to reveal: the QR stays hidden (visibility, so it can't be scanned
+   through the cover) under a dark panel with a tapping-finger helper: a dot
+   with two rings rippling out of it. */
+.connect-reveal { position: relative; overflow: hidden; }
+.connect-reveal__img { display: block; width: 100%; height: 100%; visibility: hidden; }
+.connect-reveal[data-revealed="true"] .connect-reveal__img { visibility: visible; animation: connect-reveal-in 240ms ease-out; }
+@keyframes connect-reveal-in { from { opacity: 0; } to { opacity: 1; } }
+.connect-reveal__cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  border-radius: inherit;
+  background: var(--k-card-lift);
+  color: var(--k-text);
+}
+.connect-reveal__tap { position: relative; width: 120px; height: 120px; }
+.connect-reveal__dot,
+.connect-reveal__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.connect-reveal__dot { width: 36px; height: 36px; background: var(--k-text); animation: connect-tap 1.8s ease-in-out infinite; }
+.connect-reveal__ring { width: 36px; height: 36px; border: 4px solid var(--k-text); opacity: 0; animation: connect-ripple 1.8s ease-out infinite; }
+.connect-reveal__ring--late { animation-delay: 0.45s; }
+@keyframes connect-tap { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 15% { transform: translate(-50%, -50%) scale(0.78); } 30% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes connect-ripple { 0% { width: 36px; height: 36px; opacity: 0.9; } 100% { width: 120px; height: 120px; opacity: 0; } }
+.connect-reveal__label { font: 700 40px/1.2 var(--k-font); }
+@media (prefers-reduced-motion: reduce) {
+  .connect-reveal__dot, .connect-reveal__ring { animation: none; }
+  .connect-reveal__ring { width: 80px; height: 80px; opacity: 0.6; }
+  .connect-reveal__ring--late { display: none; }
+}
+

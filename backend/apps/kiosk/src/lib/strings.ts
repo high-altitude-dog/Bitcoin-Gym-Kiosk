@@ -60,6 +60,7 @@ export const t = {
   accessLabel: "Acceso al gimnasio",
   accessNote: "Escanea para abrir la app",
   comingSoon: "Próximamente",
+  tapToReveal: "Toca para mostrar",
   // The amount stays (a static QR has none); its space can't break, so "Bs" and the number stay together.
   bankQrNote: (total: string) => `Escanea y paga ${total.replace(" ", "\u00a0")} con la app de tu banco.`,
   cashDue: (total: string) => `${total} en efectivo`,
