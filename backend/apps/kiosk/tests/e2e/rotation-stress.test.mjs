@@ -92,7 +92,7 @@ await page.evaluate(() => { document.querySelector(".k-card .k-stepper__plus").c
 const expectedQty = (await shownQty())
 await page.click(".k-bar .k-pay")
 await page.waitForSelector(".k-method")
-await page.click(".k-method__option:not(.k-method__option--secondary)")
+await page.click(".k-method__option >> nth=0")
 await page.waitForSelector('.k-method__option[aria-busy="true"]', { timeout: 3000 })
 check("C: 'Guardando tu pedido…' is showing", /Guardando/.test(await page.textContent('.k-method__option[aria-busy="true"]')))
 await turn(LAND); await page.waitForTimeout(200); await turn(PORT); await page.waitForTimeout(200); await turn(LAND)

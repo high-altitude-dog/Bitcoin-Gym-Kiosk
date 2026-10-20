@@ -31,10 +31,10 @@ export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBa
         <button className="k-method__option" onClick={onLightning} disabled={saving} aria-busy={savingFor === "lightning"}>
           {savingFor === "lightning" ? t.savingOrder : t.payWithLightning}
         </button>
-        <button className="k-method__option k-method__option--secondary" onClick={onBankQr} disabled={saving} aria-busy={savingFor === "bank_qr"}>
+        <button className="k-method__option k-method__option--bank-qr" onClick={onBankQr} disabled={saving} aria-busy={savingFor === "bank_qr"}>
           {savingFor === "bank_qr" ? t.savingOrder : t.payWithBankQr}
         </button>
-        <button className="k-method__option k-method__option--secondary" onClick={onCash} disabled={saving} aria-busy={savingFor === "cash"}>
+        <button className="k-method__option k-method__option--cash" onClick={onCash} disabled={saving} aria-busy={savingFor === "cash"}>
           {savingFor === "cash" ? t.savingOrder : t.payWithCash}
         </button>
       </div>

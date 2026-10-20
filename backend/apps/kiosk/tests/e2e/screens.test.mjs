@@ -78,10 +78,15 @@ await both("1-payment-method", async () => {
   const opts = await page.evaluate(() => [...document.querySelectorAll(".k-method__option")].map((e) => { const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } }))
   check("payment method landscape: three options side by side, same row", opts.length === 3 && opts.every((o) => o.y === opts[0].y) && opts[0].x < opts[1].x && opts[1].x < opts[2].x, JSON.stringify(opts))
 })
+{
+  const colours = await page.evaluate(() => [...document.querySelectorAll(".k-method__option")].map((e) => { const s = getComputedStyle(e); return `${s.backgroundColor} / ${s.color}` }))
+  check("payment method: Bitcoin orange, bank QR blue, cash green, white text on blue and green",
+    JSON.stringify(colours) === JSON.stringify(["rgb(255, 141, 0) / rgb(28, 28, 28)", "rgb(31, 111, 209) / rgb(255, 255, 255)", "rgb(31, 157, 77) / rgb(255, 255, 255)"]), colours.join(" | "))
+}
 const callsBefore = mock.calls.length
 
 // 2. creating the invoice (Byte) then 3. the QR
-await page.click(".k-method__option:not(.k-method__option--secondary)")
+await page.click(".k-method__option >> nth=0")
 await page.waitForSelector(".byte-loader")
 await both("2-creating-invoice")
 await page.waitForSelector(".payment-qr", { timeout: 15000 })
@@ -98,7 +103,7 @@ check("turning on the QR screen: only payment polling requests", mock.calls.slic
 // 4. bank QR
 await page.click(".back-button")
 await page.waitForSelector(".k-method")
-await page.click(".k-method__option--secondary")
+await page.click(".k-method__option--bank-qr")
 await page.waitForSelector(".payment-qr--placeholder")
 await both("4-bank-qr", async () => {
   const ph = await rect(".payment-qr--placeholder"), h1 = await rect(".payment-side h1")
@@ -132,7 +137,7 @@ await page.evaluate(() => { document.querySelectorAll(".k-card .k-add")[1].click
 await page.waitForTimeout(1500)
 await page.click(".k-bar .k-pay")
 await page.waitForSelector(".k-method")
-await page.click(".k-method__option--secondary")
+await page.click(".k-method__option--bank-qr")
 await page.waitForSelector(".payment-qr--placeholder")
 await page.click(".bank-qr-paid")
 await page.waitForSelector(".done-title")
