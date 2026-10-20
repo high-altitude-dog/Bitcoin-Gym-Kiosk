@@ -51,6 +51,7 @@ export const t = {
   confirmOrder: "Confirmar pedido",
   errorCashConfirm: "No pudimos registrar tu pedido. Intenta de nuevo o avisa a un miembro del personal.",
   payAtDesk: "Paga en recepción",
+  paymentReceived: "¡Pago recibido!",
   cashDue: (total: string) => `${total} en efectivo`,
   checkingPayment: "Verificando el pago...",
   cartReference: (id: string) => `Referencia: ${id}`,

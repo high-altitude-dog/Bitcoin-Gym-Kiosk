@@ -25,6 +25,7 @@ function App() {
     kiosk.reset,
     kiosk.screen !== "idle" &&
       kiosk.paymentStatus !== "awaiting" &&
+      kiosk.paymentStatus !== "confirmed" &&
       kiosk.paymentStatus !== "needs_staff"
   )
 
@@ -111,7 +112,8 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
     )
   }
 
-  if (kiosk.screen === "done" && kiosk.order) {
+  // A confirmed Lightning payment shows the done screen before its order exists.
+  if (kiosk.screen === "done" && (kiosk.order || kiosk.paymentStatus === "confirmed")) {
     return plain(
       <DoneScreen order={kiosk.order} payAtDesk={kiosk.paymentMethod === "cash"} onNewOrder={kiosk.reset} />
     )

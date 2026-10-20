@@ -86,6 +86,8 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   orderItems         the lines the completed order returns
  *   sessionProviders   provider ids of the payment sessions created, in order
  *   categories         the product categories the store lists
+ *   completeDelay      ms cart completion takes (the order being created)
+ *   completeFailures   how many completion calls fail (500) before one succeeds
  * and read cart and calls (every request, as "METHOD /path").
  */
 export function createMock() {
@@ -102,6 +104,8 @@ export function createMock() {
     orderItems: [],
     sessionProviders: [],
     categories: [],
+    completeDelay: 0,
+    completeFailures: 0,
     /** Answers every request to API from this page or context. */
     install(target) {
       return target.route(`${API}/**`, async (route) => {
@@ -145,6 +149,10 @@ export function createMock() {
           mock.sessionProviders.push(body().provider_id)
           const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: 600 } : {}
           return json({ payment_collection: { id: "pc_1", payment_sessions: [{ id: "ps_1", provider_id: body().provider_id, status: "pending", data }] } })
+        }
+        if (url.pathname.endsWith("/complete")) {
+          await wait(mock.completeDelay)
+          if (mock.completeFailures > 0) { mock.completeFailures--; return route.fulfill({ status: 500, headers: cors, body: "{}" }) }
         }
         if (url.pathname.endsWith("/complete")) return json({ type: "order", order: { id: "order_1", display_id: 12, total: mock.cart?.total ?? 0, items: mock.orderItems } })
         if (url.pathname.startsWith("/store/carts/")) {

@@ -12,10 +12,13 @@ import {
 } from "../lib/payment"
 
 export type Screen = "idle" | "shop" | "payment-method" | "payment" | "done"
+// "confirmed": the Lightning payment is confirmed and the order is being
+// created; the done screen shows "¡Pago recibido!" and fills in the order
+// once it exists (about a second later).
 // "needs_staff": the payment was confirmed but the order could not be
 // completed. The member has paid, so the kiosk must not offer to pay again
 // or reset itself until staff step in.
-export type PaymentStatus = "awaiting" | "expired" | "needs_staff" | null
+export type PaymentStatus = "awaiting" | "confirmed" | "expired" | "needs_staff" | null
 // "bank_qr" is a placeholder while the Baneco API request is pending: it
 // shows a static QR square instead of a real invoice. Swap in the real
 // Baneco flow here once credentials arrive. "cash": the member confirms the
@@ -338,6 +341,14 @@ export function useKiosk() {
             (s) => s.provider_id === COINOS_LIGHTNING_PROVIDER_ID
           )
           if (session?.status === "authorized") {
+            // A Lightning payment is final once confirmed, so say so at once
+            // rather than after the order exists (about a second later).
+            invoiceRef.current = null
+            setState((s) =>
+              s.paymentStatus === "confirmed"
+                ? s
+                : { ...s, screen: "done", order: null, invoice: null, paymentStatus: "confirmed", error: null }
+            )
             const result = await sdk.store.cart.complete(cartId)
             if (epoch !== epochRef.current) return
             stopPolling()
