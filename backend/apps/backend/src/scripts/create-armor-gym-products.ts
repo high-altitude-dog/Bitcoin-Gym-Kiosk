@@ -14,6 +14,7 @@ import {
 } from "@medusajs/medusa/core-flows";
 
 import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
+import { findGymStockLocation } from "../lib/gym-stock-location";
 import { syncInventoryNames } from "../lib/inventory-naming";
 
 const GYM_NAME = "Armor Gym";
@@ -72,7 +73,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 // Creates the real product catalogue (region-priced in Bs, managed inventory
-// at the Armor Gym stock location, images uploaded from static/). Safe to
+// at the gym's stock location, images uploaded from static/). Safe to
 // re-run: any product whose handle already exists is left untouched and
 // skipped, exactly like setup-armor-gym.ts does for everything else.
 //
@@ -91,9 +92,10 @@ export default async function createArmorGymProducts({ container }: ExecArgs) {
   };
 
   const region = await find("region", { name: REGION_NAME });
-  const stockLocation = await find("stock_location", { name: GYM_NAME });
   const channel =
     (await find("sales_channel", { name: GYM_NAME })) ?? (await find("sales_channel", { name: `${GYM_NAME} Kiosk` }));
+  // The location the kiosk channel sells from, whatever it is called now.
+  const stockLocation = await findGymStockLocation(container, channel?.id, GYM_NAME);
   const { data: shippingProfiles } = await query.graph({
     entity: "shipping_profile",
     fields: ["id"],
@@ -225,7 +227,7 @@ export default async function createArmorGymProducts({ container }: ExecArgs) {
   const stocked = new Set(levels.map((l) => l.inventory_item_id));
   const missing = inventoryItemIds.filter((id) => !stocked.has(id));
   if (!missing.length) {
-    logger.info(`Every catalogue product already has stock at ${GYM_NAME}. Nothing to do.`);
+    logger.info(`Every catalogue product already has stock at ${stockLocation.name}. Nothing to do.`);
     return;
   }
 
@@ -238,5 +240,5 @@ export default async function createArmorGymProducts({ container }: ExecArgs) {
       })),
     },
   });
-  logger.info(`Stocked ${missing.length} variant(s) with ${STOCK_PER_PRODUCT} units at ${GYM_NAME}.`);
+  logger.info(`Stocked ${missing.length} variant(s) with ${STOCK_PER_PRODUCT} units at ${stockLocation.name}.`);
 }

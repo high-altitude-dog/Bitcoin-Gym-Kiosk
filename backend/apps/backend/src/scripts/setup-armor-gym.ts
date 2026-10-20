@@ -23,6 +23,7 @@ import {
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types";
 import { CASH_PAYMENT_PROVIDER_ID } from "../modules/cash-payment/types";
 import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
+import { findGymStockLocation } from "../lib/gym-stock-location";
 
 const GYM_NAME = "Armor Gym";
 const REGION_NAME = "Bolivia";
@@ -96,8 +97,27 @@ export default async function setupArmorGym({ container }: ExecArgs) {
     });
   }
 
-  // Stock location named after the gym.
-  let stockLocation = await find("stock_location", { name: GYM_NAME });
+  // Kiosk sales channel: found (or renamed) first, so the stock location can be
+  // found through it. Created further down if missing.
+  let channel = await find("sales_channel", { name: CHANNEL_NAME });
+  if (!channel) {
+    const legacy = await find("sales_channel", { name: LEGACY_CHANNEL_NAME });
+    if (legacy) {
+      await updateSalesChannelsWorkflow(container).run({
+        input: { selector: { id: legacy.id }, update: { name: CHANNEL_NAME } },
+      });
+      channel = legacy;
+      logger.info(`Renamed sales channel ${LEGACY_CHANNEL_NAME} to ${CHANNEL_NAME}.`);
+    }
+  }
+
+  // Stock location: the one the kiosk channel sells from, whatever staff have
+  // renamed it to. Only a database without one gets a new one, named after the gym.
+  let stockLocation: { id: string; name?: string } | undefined = await findGymStockLocation(
+    container,
+    channel?.id,
+    GYM_NAME
+  );
   if (!stockLocation) {
     const { result } = await createStockLocationsWorkflow(container).run({
       input: {
@@ -115,17 +135,6 @@ export default async function setupArmorGym({ container }: ExecArgs) {
   }
 
   // Kiosk sales channel, tied to this gym's stock.
-  let channel = await find("sales_channel", { name: CHANNEL_NAME });
-  if (!channel) {
-    const legacy = await find("sales_channel", { name: LEGACY_CHANNEL_NAME });
-    if (legacy) {
-      await updateSalesChannelsWorkflow(container).run({
-        input: { selector: { id: legacy.id }, update: { name: CHANNEL_NAME } },
-      });
-      channel = legacy;
-      logger.info(`Renamed sales channel ${LEGACY_CHANNEL_NAME} to ${CHANNEL_NAME}.`);
-    }
-  }
   if (!channel) {
     const { result } = await createSalesChannelsWorkflow(container).run({
       input: {
@@ -135,10 +144,20 @@ export default async function setupArmorGym({ container }: ExecArgs) {
       },
     });
     channel = result[0];
+    logger.info(`Created sales channel ${CHANNEL_NAME}.`);
+  }
+  const { data: channelLocations } = await query.graph({
+    entity: "sales_channel",
+    fields: ["stock_locations.id"],
+    filters: { id: channel.id },
+  });
+  const linkedIds = ((channelLocations[0] as { stock_locations?: ({ id: string } | null)[] } | undefined)
+    ?.stock_locations ?? []).map((l) => l?.id);
+  if (!linkedIds.includes(stockLocation.id)) {
     await linkSalesChannelsToStockLocationWorkflow(container).run({
       input: { id: stockLocation.id, add: [channel.id] },
     });
-    logger.info(`Created sales channel ${CHANNEL_NAME}.`);
+    logger.info(`Linked sales channel ${CHANNEL_NAME} to its stock location.`);
   }
 
   // Publishable API key for the kiosk storefront, scoped to this channel.
