@@ -102,6 +102,10 @@ export function useKiosk() {
   // Bumped on every screen change the member makes, so a payment button
   // still waiting for the cart drops out if the member has moved on.
   const navRef = useRef(0)
+  // Bank QR and cash: the cart being made ready (taps saved, pickup shipping
+  // attached) while their screen is already showing; "Pagado" and
+  // "Confirmar pedido" wait for it. Resolves to null if it failed.
+  const manualPrepRef = useRef<Promise<HttpTypes.StoreCart | null> | null>(null)
   // Bumped by reset(): work started for the previous member checks it and
   // drops its result instead of writing into the next member's session.
   const epochRef = useRef(0)
@@ -510,26 +514,50 @@ export function useKiosk() {
   // access is still pending (see CLAUDE.md), so bank QR shows a static
   // placeholder QR. Neither touches a live Lightning invoice or its polling:
   // if the member already paid that invoice, the order still completes.
+  // The screen shows at once: the static bank QR and the cash screen don't
+  // need the server. Saving taps and attaching pickup shipping (about 1-1.5 s
+  // on the VM) run behind it; the confirm buttons wait for them.
   const startManualPayment = useCallback(
-    async (method: "bank_qr" | "cash") => {
-      const cart = await settleForPayment(method)
-      if (!cart) return
+    (method: "bank_qr" | "cash") => {
       const epoch = epochRef.current
-      try {
-        const withShipping = await ensureShippingMethod(cart)
-        if (epoch !== epochRef.current) return
-        commitCart(withShipping)
-        setState((s) => ({
-          ...s,
-          error: null,
-          paymentMethod: method,
-          screen: "payment",
-          cashDeadline: method === "cash" ? Date.now() + CASH_AUTO_PAY_MS : null,
-        }))
-      } catch {
-        if (epoch !== epochRef.current) return
-        setState((s) => ({ ...s, error: t.errorPayment, screen: "payment-method" }))
-      }
+      const nav = navRef.current
+      setState((s) => ({
+        ...s,
+        error: null,
+        paymentMethod: method,
+        screen: "payment",
+        cashDeadline: method === "cash" ? Date.now() + CASH_AUTO_PAY_MS : null,
+      }))
+      // Something went wrong getting the cart ready: back to the payment
+      // choice with the error, as before (unless the member already left).
+      const backWithError = (error: string) =>
+        setState((s) =>
+          epoch === epochRef.current && s.screen === "payment" && s.paymentMethod === method
+            ? { ...s, error, screen: "payment-method", cashDeadline: null }
+            : s
+        )
+      const prep = (async () => {
+        const cart = await settleForPayment(method)
+        if (!cart) {
+          // settleForPayment already moved to the shop (empty cart) or set an
+          // error for the payment choice.
+          if (epoch === epochRef.current && nav === navRef.current) {
+            setState((s) => (s.screen === "payment" && s.paymentMethod === method ? { ...s, screen: "payment-method", cashDeadline: null } : s))
+          }
+          return null
+        }
+        try {
+          const withShipping = await ensureShippingMethod(cart)
+          if (epoch !== epochRef.current) return null
+          commitCart(withShipping)
+          return withShipping
+        } catch {
+          backWithError(t.errorPayment)
+          return null
+        }
+      })()
+      manualPrepRef.current = prep
+      return prep.then(() => undefined)
     },
     [ensureShippingMethod, commitCart, settleForPayment]
   )
@@ -554,7 +582,10 @@ export function useKiosk() {
       confirmingRef.current = true
       const epoch = epochRef.current
       try {
-        await sdk.store.payment.initiatePaymentSession(cart, { provider_id: providerId })
+        // The cart may still be getting ready behind the screen.
+        const ready = await manualPrepRef.current
+        if (epoch !== epochRef.current || !ready) return
+        await sdk.store.payment.initiatePaymentSession(cartRef.current ?? ready, { provider_id: providerId })
         const result = await sdk.store.cart.complete(cart.id)
         if (epoch !== epochRef.current) return
         if (result.type !== "order") throw new Error("cart did not complete")
@@ -624,7 +655,9 @@ export function useKiosk() {
     confirmingRef.current = true
     const epoch = epochRef.current
     try {
-      await sdk.store.payment.initiatePaymentSession(cart, { provider_id: CASH_PAYMENT_PROVIDER_ID })
+      const ready = await manualPrepRef.current
+      if (epoch !== epochRef.current || !ready) return
+      await sdk.store.payment.initiatePaymentSession(cartRef.current ?? ready, { provider_id: CASH_PAYMENT_PROVIDER_ID })
       const result = await sdk.store.cart.complete(cart.id)
       if (result.type === "order") {
         await sdk.client.fetch(`/store/cash-orders/${result.order.id}/auto-capture`, { method: "POST" })

@@ -87,6 +87,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   sessionProviders   provider ids of the payment sessions created, in order
  *   categories         the product categories the store lists
  *   completeDelay      ms cart completion takes (the order being created)
+ *   shippingDelay      ms attaching the pickup shipping method takes
  *   completeFailures   how many completion calls fail (500) before one succeeds
  * and read cart and calls (every request, as "METHOD /path").
  */
@@ -105,6 +106,7 @@ export function createMock() {
     sessionProviders: [],
     categories: [],
     completeDelay: 0,
+    shippingDelay: 0,
     completeFailures: 0,
     /** Answers every request to API from this page or context. */
     install(target) {
@@ -143,7 +145,11 @@ export function createMock() {
         }
         if (url.pathname === "/store/lightning-availability") { await wait(mock.availabilityDelay); return json({ available: true }) }
         if (url.pathname === "/store/shipping-options") return json({ shipping_options: [{ id: "so_1" }] })
-        if (url.pathname.endsWith("/shipping-methods")) { mock.cart = { ...mock.cart, shipping_methods: [{ id: "sm_1" }] }; return json({ cart: mock.cart }) }
+        if (url.pathname.endsWith("/shipping-methods")) {
+          await wait(mock.shippingDelay)
+          mock.cart = { ...mock.cart, shipping_methods: [{ id: "sm_1" }] }
+          return json({ cart: mock.cart })
+        }
         if (url.pathname === "/store/payment-collections") { mock.cart = { ...mock.cart, payment_collection: { id: "pc_1", payment_sessions: [] } }; return json({ payment_collection: mock.cart.payment_collection }) }
         if (url.pathname.endsWith("/payment-sessions")) {
           const isLightning = body().provider_id === LIGHTNING_PROVIDER

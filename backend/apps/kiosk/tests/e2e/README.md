@@ -11,6 +11,7 @@ npm run test:e2e -- rotation  # only suites whose file name contains "rotation"
 ```
 
 - `shop-landscape.test.mjs`: the shop in landscape (4 columns, the order panel, the fade and chevrons) and a turn with a cart.
+- `manual-prep.test.mjs`: bank QR and cash screens show at once while the cart is made ready behind them; confirming early waits for it.
 - `screens.test.mjs`: payment method, invoice wait, Lightning QR, bank QR, "¡Gracias!" and the connection error, in both orientations.
 - `cash-auto-pay.test.mjs`: the cash screen's item list and 5-minute countdown; with no tap the order is placed and auto-captured, and the kiosk starts over (fake clock).
 - `lightning-confirmed.test.mjs`: a confirmed payment shows "¡Pago recibido!" at once and the order once it exists, including a failed first attempt.

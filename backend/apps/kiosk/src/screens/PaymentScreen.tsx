@@ -48,15 +48,21 @@ function usePaymentQrCode(bolt11: string | undefined) {
   return qrDataUrl
 }
 
-// The static bank QR, drawn once; the same size and quiet zone as the Lightning QR.
+// The static bank QR, drawn once when the app loads (not when its screen
+// opens), the same size and quiet zone as the Lightning QR.
+const bankQrImage: Promise<string | null> = QRCode.toDataURL(
+  [{ data: new TextEncoder().encode(BANK_QR_PAYLOAD), mode: "byte" as const }],
+  { ...BANK_QR_OPTIONS, width: 720, margin: 1 }
+).catch(() => null)
+let bankQrUrlReady: string | null = null
+void bankQrImage.then((u) => (bankQrUrlReady = u))
+
 function useBankQrCode(enabled: boolean) {
-  const [url, setUrl] = useState<string | null>(null)
+  const [url, setUrl] = useState<string | null>(bankQrUrlReady)
   useEffect(() => {
     if (!enabled || url) return
     let cancelled = false
-    QRCode.toDataURL([{ data: new TextEncoder().encode(BANK_QR_PAYLOAD), mode: "byte" as const }], { ...BANK_QR_OPTIONS, width: 720, margin: 1 })
-      .then((u) => !cancelled && setUrl(u))
-      .catch(() => !cancelled && setUrl(null))
+    void bankQrImage.then((u) => !cancelled && setUrl(u))
     return () => {
       cancelled = true
     }
