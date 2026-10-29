@@ -87,7 +87,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   check(`${name}: the QR holds the BIP 321 URI (Ark + Lightning)`, onScreen === expected, `${modules.size}x${modules.size}`)
   check(`${name}: Bitcoin Ark mark, sats and the Ark-or-Lightning note`, shown.mark === "Bitcoin Ark/Bolt11" && /588/.test(shown.sats) && /Ark o Lightning/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
   const inv = await invoiceLayout(page)
-  check(`${name}: chip "Bitcoin Ark/Bolt11", wallets Arké and Noah, logos loaded, nothing overlapping`, inv.chip === "Bitcoin Ark/Bolt11" && inv.wallets === "Arké,Noah" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
+  check(`${name}: chip "Bitcoin Ark/Bolt11", wallets Arké, Noah and Coinos, logos loaded, nothing overlapping`, inv.chip === "Bitcoin Ark/Bolt11" && inv.wallets === "Arké,Noah,Coinos" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
   await page.screenshot({ path: `${SHOTS}/ark-qr-${name}.png` })
 
   if (name === "portrait") {

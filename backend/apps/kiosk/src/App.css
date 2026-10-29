@@ -480,8 +480,9 @@
 /* One card, as wide as the QR: the QR, then how to pay it. */
 .invoice-wallets { display: flex; flex-direction: column; align-items: center; gap: 24px; box-sizing: border-box; width: 720px; padding: 32px 40px; border-radius: var(--k-radius-card); background: var(--k-card); box-shadow: inset 0 0 0 2px var(--k-border); }
 .invoice-wallets__title { font: 600 36px/1.2 var(--k-font); color: var(--k-text); }
-.invoice-wallets__list { display: flex; justify-content: center; gap: 40px; margin: 0; padding: 0; list-style: none; }
-.invoice-wallet { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 168px; }
+/* Up to four tiles across the 640 px inside the card. */
+.invoice-wallets__list { display: flex; justify-content: center; gap: 24px; margin: 0; padding: 0; list-style: none; }
+.invoice-wallet { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 136px; }
 /* A faint outline keeps the black tiles (Binance, Noah) from melting into the card. */
 .invoice-wallet__logo { display: block; width: 128px; height: 128px; border-radius: 32px; object-fit: cover; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14); }
 .invoice-wallet__logo--initial {

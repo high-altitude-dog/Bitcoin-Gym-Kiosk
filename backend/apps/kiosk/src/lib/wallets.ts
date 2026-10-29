@@ -13,15 +13,17 @@ export const WALLETS = {
   binance: { name: "Binance", logo: "binance.webp" },
   arke: { name: "Arké", logo: "arke.webp" },
   noah: { name: "Noah", logo: "noah.webp" },
+  // Pays Bolt11, Bolt12 and Ark (the developer, Oct 29, 2026), so it is on every screen.
+  coinos: { name: "Coinos", logo: "coinos.webp" },
 } satisfies Record<string, Wallet>
 
 export type WalletId = keyof typeof WALLETS
 
 export const SUGGESTED_WALLETS: Record<InvoiceMethod, WalletId[]> = {
   // "Pagar con Bitcoin - Bolt11"
-  lightning: ["phoenix", "blink", "binance"],
+  lightning: ["phoenix", "blink", "binance", "coinos"],
   // "Pagar con Bitcoin Ark/Bolt11"
-  ark: ["arke", "noah"],
+  ark: ["arke", "noah", "coinos"],
   // "Pagar con Bitcoin (Bolt12/Ark)"
-  bip321: ["arke", "noah", "phoenix"],
+  bip321: ["arke", "noah", "phoenix", "coinos"],
 }
