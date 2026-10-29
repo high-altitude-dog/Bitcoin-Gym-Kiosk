@@ -1,6 +1,6 @@
 // Every other screen in both orientations: payment method, invoice wait, Lightning QR, bank QR, done (3 and 9 lines), cash, connection error.
 import fs from "node:fs"
-import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
+import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, invoiceLayout, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -98,6 +98,10 @@ await both("3-lightning-qr", async () => {
   check("lightning landscape: QR 720x720 on the left, amounts and button on the right", qr.w === 720 && qr.h === 720 && qr.x < sats.x && qr.x < cancel.x, `qr ${JSON.stringify(qr)} sats ${JSON.stringify(sats)}`)
   check("lightning landscape: QR image is the same element (not rebuilt)", await page.evaluate(() => document.querySelector(".payment-qr").__tag === "same"))
 })
+{
+  const inv = await invoiceLayout(page)
+  check("lightning: chip \"Bitcoin - Bolt11\", wallets Phoenix, Blink and Binance, nothing overlapping", inv.chip === "Bitcoin - Bolt11" && inv.wallets === "Phoenix,Blink,Binance" && inv.inside && inv.apart, JSON.stringify(inv))
+}
 check("QR image survived both turns", await page.evaluate(() => document.querySelector(".payment-qr").__tag === "same"))
 check("turning on the QR screen: only payment polling requests", mock.calls.slice(callsBefore).every((c) => /GET \/store\/carts\/cart_1|payment|shipping|lightning/.test(c)), mock.calls.slice(callsBefore).filter((c) => !/GET \/store\/carts\/cart_1/.test(c)).join(","))
 

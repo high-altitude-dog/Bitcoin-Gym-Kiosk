@@ -7,6 +7,7 @@ import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
 import { ByteLoader } from "./ByteLoader"
+import { SUGGESTED_WALLETS, WALLETS, type Wallet } from "../lib/wallets"
 import { BANK_QR_OPTIONS, BANK_QR_PAYLOAD } from "../lib/bankQr"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
@@ -190,7 +191,7 @@ export function PaymentScreen({
           {t.tryAgain}
         </button>
         <button className="back-button" onClick={onCancel}>
-          Cancelar
+          {t.cancel}
         </button>
       </div>
     )
@@ -201,7 +202,7 @@ export function PaymentScreen({
       <div className="screen screen--center screen--black">
         <ByteLoader label={t.creatingInvoice} />
         <button className="back-button" onClick={onCancel}>
-          Cancelar
+          {t.cancel}
         </button>
       </div>
     )
@@ -216,42 +217,70 @@ export function PaymentScreen({
         <h1>{t.payAmount(formatBs(invoice.bobAmount))}</h1>
         <p className="payment-note">{t.checkingPayment}</p>
         <button className="back-button" onClick={onCancel}>
-          Cancelar
+          {t.cancel}
         </button>
       </div>
     )
   }
 
-  // Portrait stacks amounts, QR, logo, countdown, note and button in one column;
-  // landscape puts the QR on the left and everything else on the right. The two
-  // groups are layout-only (see App.css), so turning the tablet keeps the same
-  // elements: the QR image is never rebuilt.
+  // Portrait is one column: the method chip, the amount, the QR card with its
+  // time bar, the suggested wallets and "Cancelar". Landscape puts the QR card
+  // on the left and the rest on the right. The two groups are layout-only (see
+  // App.css), so turning the tablet keeps the same elements: the QR image is
+  // never rebuilt.
+  const method = invoice.method
+  const left = invoice.durationMs > 0 ? Math.min(1, msLeft / invoice.durationMs) : null
   return (
-    <div className="screen screen--center payment-layout">
+    <div className={`screen screen--center payment-layout invoice invoice--${method}`}>
       <div className="payment-qrbox">
-        {qrDataUrl ? (
-          <img className="payment-qr" src={qrDataUrl} alt={ark ? t.arkQrAlt : bip321 ? t.bip321QrAlt : t.lightningQrAlt} />
-        ) : (
-          <p className="payment-note">{t.generatingQr}</p>
-        )}
+        <div className="invoice-qrcard">
+          {qrDataUrl ? (
+            <img className="payment-qr" src={qrDataUrl} alt={ark ? t.arkQrAlt : bip321 ? t.bip321QrAlt : t.lightningQrAlt} />
+          ) : (
+            <p className="payment-note invoice-qr-pending">{t.generatingQr}</p>
+          )}
+          <div className="invoice-timer">
+            {left !== null && (
+              <div className="invoice-timer__track" aria-hidden="true">
+                <div className="invoice-timer__fill" style={{ width: `${left * 100}%` }} />
+              </div>
+            )}
+            <p className="payment-countdown">{t.expiresIn(formatCountdown(msLeft))}</p>
+          </div>
+        </div>
       </div>
       <div className="payment-side">
-        {/* The amount being charged (sats) leads; the Bs price follows, smaller. */}
-        <div className="payment-amounts">
-          <p className="payment-sats">{invoice.satsAmount.toLocaleString("es-BO")} sats</p>
-          <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
+        <div className="invoice-head">
+          <p className="payment-ark-mark invoice-method">{ark ? t.arkMark : bip321 ? t.bip321Mark : t.lightningMark}</p>
+          {/* The amount being charged (sats) leads; the Bs price follows, smaller. */}
+          <div className="payment-amounts">
+            <p className="payment-sats">{invoice.satsAmount.toLocaleString("es-BO")} sats</p>
+            <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
+          </div>
         </div>
-        {ark ? (
-          <p className="payment-ark-mark">{t.arkMark}</p>
-        ) : bip321 ? (
-          <p className="payment-ark-mark">{t.bip321Mark}</p>
-        ) : (
-          <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
-        )}
-        <p className="payment-countdown">{t.expiresIn(formatCountdown(msLeft))}</p>
-        <p className="payment-note">{ark ? t.scanArk : bip321 ? t.scanBip321 : t.scanLightning}</p>
+        <section className="invoice-wallets" aria-label={t.scanWith}>
+          <p className="invoice-wallets__title">{t.scanWith}</p>
+          <ul className="invoice-wallets__list">
+            {SUGGESTED_WALLETS[method].map((id) => {
+              const wallet: Wallet = WALLETS[id]
+              return (
+                <li key={id} className="invoice-wallet">
+                  {wallet.logo ? (
+                    <img className="invoice-wallet__logo" src={`${KIOSK.assets}wallets/${wallet.logo}`} alt="" draggable={false} />
+                  ) : (
+                    <span className="invoice-wallet__logo invoice-wallet__logo--initial" aria-hidden="true">
+                      {wallet.name.charAt(0)}
+                    </span>
+                  )}
+                  <span className="invoice-wallet__name">{wallet.name}</span>
+                </li>
+              )
+            })}
+          </ul>
+          <p className="payment-note">{ark ? t.scanArk : bip321 ? t.scanBip321 : t.scanLightning}</p>
+        </section>
         <button className="back-button" onClick={onCancel}>
-          Cancelar
+          {t.cancel}
         </button>
       </div>
     </div>

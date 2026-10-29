@@ -2,7 +2,7 @@
 // region offers it), one QR holding a BIP 321 URI with an Ark address and a BOLT12 offer, and a paid
 // session completing the order once.
 import QRCode from "qrcode"
-import { ARK_PROVIDER, BIP321_PROVIDER, BIP321_URI, createChecker, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
+import { ARK_PROVIDER, BIP321_PROVIDER, BIP321_URI, createChecker, invoiceLayout, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -87,6 +87,8 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   check(`${name}: a BIP321 session was created`, mock.sessionProviders.at(-1) === BIP321_PROVIDER, JSON.stringify(mock.sessionProviders))
   check(`${name}: the QR holds the BIP 321 URI (Ark + BOLT12)`, onScreen === expected, `${modules.size}x${modules.size}`)
   check(`${name}: BIP321 mark and the Ark-or-Bolt12 note`, shown.mark === "Bitcoin (Bolt12/Ark)" && /Ark o Bolt12/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
+  const inv = await invoiceLayout(page)
+  check(`${name}: chip "Bitcoin (Bolt12/Ark)", wallets Arké, Noah and Phoenix, nothing overlapping`, inv.chip === "Bitcoin (Bolt12/Ark)" && inv.wallets === "Arké,Noah,Phoenix" && inv.inside && inv.apart, JSON.stringify(inv))
   await page.screenshot({ path: `${SHOTS}/bip321-qr-${name}.png` })
 
   if (name === "portrait") {

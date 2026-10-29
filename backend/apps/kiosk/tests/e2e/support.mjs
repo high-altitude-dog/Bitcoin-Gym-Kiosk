@@ -191,3 +191,25 @@ export function createMock() {
   }
   return mock
 }
+
+/**
+ * A Bitcoin QR screen's layout: the method chip, the suggested wallets, and
+ * whether the chip, amount, QR, time bar, wallet card and "Cancelar" all sit
+ * inside the stage without overlapping.
+ */
+export async function invoiceLayout(page) {
+  return page.evaluate(() => {
+    const stage = document.querySelector(".k-stage").getBoundingClientRect()
+    const parts = [".invoice-method", ".payment-sats", ".payment-qr", ".invoice-timer", ".invoice-wallets", ".back-button"].map((s) => document.querySelector(s)?.getBoundingClientRect())
+    const present = parts.every(Boolean)
+    const inside = present && parts.every((r) => r.left >= stage.left - 1 && r.right <= stage.right + 1 && r.top >= stage.top - 1 && r.bottom <= stage.bottom + 1)
+    const apart = present && parts.every((a, i) => parts.every((b, j) => i === j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top))
+    return {
+      chip: document.querySelector(".invoice-method")?.textContent,
+      wallets: [...document.querySelectorAll(".invoice-wallet__name")].map((n) => n.textContent).join(","),
+      present,
+      inside,
+      apart,
+    }
+  })
+}

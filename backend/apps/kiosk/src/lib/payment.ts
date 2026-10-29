@@ -39,6 +39,8 @@ export type LightningInvoice = {
   bobAmount: number
   // A deadline on the tablet's own clock, not the server's.
   expiresAt: number
+  // The invoice's whole lifetime, for the time bar; 0 when unknown.
+  durationMs: number
 }
 
 // `receivedAt` is when the kiosk got the invoice back (Date.now()). The
@@ -62,5 +64,6 @@ export function readLightningInvoice(
     satsAmount: Number(data.sats_amount ?? 0),
     bobAmount: Number(data.bob_amount ?? 0),
     expiresAt: expirySeconds > 0 ? receivedAt + expirySeconds * 1000 : Number(data.expires_at ?? 0),
+    durationMs: expirySeconds > 0 ? expirySeconds * 1000 : 0,
   }
 }

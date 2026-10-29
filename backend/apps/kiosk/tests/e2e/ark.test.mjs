@@ -1,7 +1,7 @@
 // "Bitcoin Ark": a purple fourth payment button (only when the region offers Bark Pay), one QR
 // holding the BIP 321 URI (Ark + Lightning), and a paid charge completing the order once.
 import QRCode from "qrcode"
-import { ARK_PROVIDER, ARK_URI, createChecker, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
+import { ARK_PROVIDER, ARK_URI, createChecker, invoiceLayout, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -86,6 +86,8 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   check(`${name}: an Ark session was created`, mock.sessionProviders.at(-1) === ARK_PROVIDER, JSON.stringify(mock.sessionProviders))
   check(`${name}: the QR holds the BIP 321 URI (Ark + Lightning)`, onScreen === expected, `${modules.size}x${modules.size}`)
   check(`${name}: Bitcoin Ark mark, sats and the Ark-or-Lightning note`, shown.mark === "Bitcoin Ark/Bolt11" && /588/.test(shown.sats) && /Ark o Lightning/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
+  const inv = await invoiceLayout(page)
+  check(`${name}: chip "Bitcoin Ark/Bolt11", wallets Arké and Noah, nothing overlapping`, inv.chip === "Bitcoin Ark/Bolt11" && inv.wallets === "Arké,Noah" && inv.inside && inv.apart, JSON.stringify(inv))
   await page.screenshot({ path: `${SHOTS}/ark-qr-${name}.png` })
 
   if (name === "portrait") {
