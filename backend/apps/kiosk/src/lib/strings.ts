@@ -30,7 +30,7 @@ const es = {
   currency: "Bs",
   // Added for the payment-method screen (the kit has no concept of payment methods).
   choosePayment: "¿Cómo quieres pagar?",
-  payWithLightning: "Pagar con Bitcoin⚡",
+  payWithLightning: "Pagar con Bitcoin - Bolt11",
   payWithBankQr: "Pagar con QR bancario",
   payWithCash: "Pagar en efectivo",
   payWithArk: "Pagar con Bitcoin Ark",
@@ -131,7 +131,7 @@ const en: Strings = {
   loadError: "We couldn't load the products. Tap to try again.",
   currency: "Bs",
   choosePayment: "How would you like to pay?",
-  payWithLightning: "Pay with Bitcoin⚡",
+  payWithLightning: "Pay with Bitcoin - Bolt11",
   payWithBankQr: "Pay with bank QR",
   payWithCash: "Pay with cash",
   payWithArk: "Pay with Bitcoin Ark",
