@@ -50,12 +50,12 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
       inside,
       apart,
       labels: options.map((o) => o.textContent),
-      arkLast: options.at(-1) === ark,
+      arkSecond: options[1] === ark,
       bg: getComputedStyle(ark).backgroundColor,
       fits: options.every((o) => o.scrollWidth <= o.clientWidth + 1 && o.scrollHeight <= o.clientHeight + 1),
     }
   })
-  check(`${name}: four options, Bitcoin Ark last (next to cash), purple`, layout.labels.length === 4 && layout.arkLast && layout.labels.at(-1) === "Pagar con Bitcoin Ark/Bolt11" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
+  check(`${name}: four options, Bitcoin Ark right after Bolt11, purple`, layout.labels.length === 4 && layout.arkSecond && layout.labels[1] === "Pagar con Bitcoin Ark/Bolt11" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
   check(`${name}: buttons inside the stage, not overlapping, text fits`, layout.inside && layout.apart && layout.fits, JSON.stringify(layout))
   await page.screenshot({ path: `${SHOTS}/ark-method-${name}.png` })
 

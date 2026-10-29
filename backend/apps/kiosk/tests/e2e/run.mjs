@@ -19,7 +19,8 @@ const build = spawnSync("npx", ["vite", "build", "--outDir", dist, "--emptyOutDi
   cwd: kiosk,
   stdio: "inherit",
   // These override the kiosk's .env, so the tests never depend on (or touch) a real backend.
-  env: { ...process.env, VITE_MEDUSA_BACKEND_URL: API, VITE_MEDUSA_PUBLISHABLE_KEY: "pk_e2e" },
+  // VITE_SHOW_ARK_BUTTON: the Ark/Bolt11 button is hidden in production builds, shown here so its flow stays tested.
+  env: { ...process.env, VITE_MEDUSA_BACKEND_URL: API, VITE_MEDUSA_PUBLISHABLE_KEY: "pk_e2e", VITE_SHOW_ARK_BUTTON: "true" },
 })
 if (build.status !== 0) process.exit(build.status ?? 1)
 

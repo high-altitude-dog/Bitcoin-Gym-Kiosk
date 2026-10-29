@@ -4,6 +4,11 @@ export const COINOS_LIGHTNING_PROVIDER_ID = "pp_coinos-lightning_coinos-lightnin
 // "Bitcoin Ark" through our self-hosted Bark Pay. Must match BARK_ARK_PROVIDER_ID
 // in backend/apps/backend/src/modules/bark-ark/types.ts.
 export const BARK_ARK_PROVIDER_ID = "pp_bark-ark_bark-ark"
+// "Pagar con Bitcoin Ark/Bolt11" is hidden at the developer's request (Oct 29,
+// 2026), though its provider stays on (the Bolt12/Ark button uses Bark Pay
+// too). Build with VITE_SHOW_ARK_BUTTON=true to show it again; the e2e tests
+// do, so its flow stays tested.
+export const ARK_BUTTON_HIDDEN = import.meta.env.VITE_SHOW_ARK_BUTTON !== "true"
 // "BIP321 Ark/Bolt12": a Bark Pay Ark address and a Coinos BOLT12 offer in one
 // QR. Must match BIP321_PROVIDER_ID in
 // backend/apps/backend/src/modules/bip321-ark-bolt12/types.ts.

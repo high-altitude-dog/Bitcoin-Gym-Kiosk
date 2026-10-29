@@ -53,12 +53,12 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
       inside,
       apart,
       labels: options.map((o) => o.textContent),
-      afterArk: options.at(-1) === bip && options.at(-2) === ark,
+      bitcoinFirst: options[1] === bip && options[2] === ark,
       bg: getComputedStyle(bip).backgroundColor,
       fits: options.every((o) => o.scrollWidth <= o.clientWidth + 1 && o.scrollHeight <= o.clientHeight + 1),
     }
   })
-  check(`${name}: five options, BIP321 last (after Ark), purple`, layout.labels.length === 5 && layout.afterArk && layout.labels.at(-1) === "Pagar con Bitcoin (Bolt12/Ark)" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
+  check(`${name}: five options, Bolt12/Ark right after Bolt11 (then Ark/Bolt11), purple`, layout.labels.length === 5 && layout.bitcoinFirst && layout.labels[1] === "Pagar con Bitcoin (Bolt12/Ark)" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
   check(`${name}: buttons inside the stage, not overlapping, text fits`, layout.inside && layout.apart && layout.fits, JSON.stringify(layout))
   await page.screenshot({ path: `${SHOTS}/bip321-method-${name}.png` })
 

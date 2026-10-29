@@ -30,27 +30,28 @@ export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBa
       <p className="k-method__total">{formatBs(total)}</p>
       <p>{t.choosePayment}</p>
       {error && <p className="k-method__error" role="alert">{error}</p>}
-      {/* Stacked in portrait, side by side in landscape (see kiosk.css) */}
+      {/* Stacked in portrait, side by side in landscape (see kiosk.css). The Bitcoin
+          buttons first (Bolt11, Bolt12/Ark, then Ark/Bolt11 when shown), then bank QR and cash. */}
       <div className="k-method__options">
         <button className="k-method__option" onClick={onLightning} disabled={saving} aria-busy={savingFor === "lightning"}>
           {savingFor === "lightning" ? t.savingOrder : t.payWithLightning}
         </button>
+        {onBip321 && (
+          <button className="k-method__option k-method__option--bip321" onClick={onBip321} disabled={saving} aria-busy={savingFor === "bip321"}>
+            {savingFor === "bip321" ? t.savingOrder : t.payWithBip321}
+          </button>
+        )}
+        {onArk && (
+          <button className="k-method__option k-method__option--ark" onClick={onArk} disabled={saving} aria-busy={savingFor === "ark"}>
+            {savingFor === "ark" ? t.savingOrder : t.payWithArk}
+          </button>
+        )}
         <button className="k-method__option k-method__option--bank-qr" onClick={onBankQr} disabled={saving} aria-busy={savingFor === "bank_qr"}>
           {savingFor === "bank_qr" ? t.savingOrder : t.payWithBankQr}
         </button>
         <button className="k-method__option k-method__option--cash" onClick={onCash} disabled={saving} aria-busy={savingFor === "cash"}>
           {savingFor === "cash" ? t.savingOrder : t.payWithCash}
         </button>
-        {onArk && (
-          <button className="k-method__option k-method__option--ark" onClick={onArk} disabled={saving} aria-busy={savingFor === "ark"}>
-            {savingFor === "ark" ? t.savingOrder : t.payWithArk}
-          </button>
-        )}
-        {onBip321 && (
-          <button className="k-method__option k-method__option--bip321" onClick={onBip321} disabled={saving} aria-busy={savingFor === "bip321"}>
-            {savingFor === "bip321" ? t.savingOrder : t.payWithBip321}
-          </button>
-        )}
       </div>
       <button className="k-method__back" onClick={onBack}>{t.back}</button>
     </div>

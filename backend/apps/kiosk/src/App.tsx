@@ -4,6 +4,7 @@ import "./kiosk.css"
 import { toKioskCart, toKioskProduct } from "./lib/kioskMapping"
 import { t, useLang } from "./lib/strings"
 import { useKiosk } from "./state/useKiosk"
+import { ARK_BUTTON_HIDDEN } from "./lib/payment"
 import { useIdleReset } from "./hooks/useIdleReset"
 import { useOnlineStatus } from "./hooks/useOnlineStatus"
 import { useTapFeedback } from "./hooks/useTapFeedback"
@@ -102,7 +103,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
         onLightning={() => kiosk.startPayment()}
         onBankQr={kiosk.startBankQrPayment}
         onCash={kiosk.startCashPayment}
-        onArk={kiosk.arkEnabled ? kiosk.startArkPayment : null}
+        onArk={kiosk.arkEnabled && !ARK_BUTTON_HIDDEN ? kiosk.startArkPayment : null}
         onBip321={kiosk.bip321Enabled ? kiosk.startBip321Payment : null}
         onBack={() => kiosk.goTo("shop")}
       />
