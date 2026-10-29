@@ -2,6 +2,7 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, getVariantAvailability } from "@medusajs/framework/utils"
 import { notifySlack } from "../lib/notify-slack"
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types"
+import { BARK_ARK_PROVIDER_ID } from "../modules/bark-ark/types"
 import { CASH_PAYMENT_PROVIDER_ID } from "../modules/cash-payment/types"
 
 // Items at or below this many units left are reported after a sale.
@@ -35,11 +36,14 @@ export default async function orderPlacedSlack({ event: { data }, container }: S
   const items = (order.items ?? []) as { title: string; product_title?: string; quantity: number; variant_id?: string }[]
   const payments = (order.payment_collections ?? []).flatMap((pc: any) => pc?.payments ?? [])
   const lightning = payments.find((p: any) => p?.provider_id === COINOS_LIGHTNING_PROVIDER_ID)
+  const ark = payments.find((p: any) => p?.provider_id === BARK_ARK_PROVIDER_ID)
   const providers = new Set(payments.map((p: any) => p?.provider_id))
   // pp_system_default is only used by the kiosk's bank QR "Pagado" button.
   const paymentMethod = lightning
     ? "lightning"
-    : providers.has(CASH_PAYMENT_PROVIDER_ID)
+    : ark
+      ? "ark"
+      : providers.has(CASH_PAYMENT_PROVIDER_ID)
       ? "cash"
       : providers.has("pp_system_default")
         ? "bank_qr"
@@ -53,7 +57,7 @@ export default async function orderPlacedSlack({ event: { data }, container }: S
       total: Number(order.total),
       items: items.map((i) => ({ title: i.product_title || i.title, quantity: Number(i.quantity) })),
       payment_method: paymentMethod,
-      sats: lightning ? Number(lightning.data?.sats_amount ?? 0) || null : null,
+      sats: lightning || ark ? Number((lightning ?? ark).data?.sats_amount ?? 0) || null : null,
       admin_url: backendUrl ? `${backendUrl}/app/orders/${order.id}` : null,
     },
     idempotencyKey: `slack:order-placed:${order.id}`,

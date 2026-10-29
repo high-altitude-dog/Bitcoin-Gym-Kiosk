@@ -97,9 +97,10 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
         total={shownTotal(kiosk)}
         savingFor={kiosk.savingFor}
         error={kiosk.error}
-        onLightning={kiosk.startPayment}
+        onLightning={() => kiosk.startPayment()}
         onBankQr={kiosk.startBankQrPayment}
         onCash={kiosk.startCashPayment}
+        onArk={kiosk.arkEnabled ? kiosk.startArkPayment : null}
         onBack={() => kiosk.goTo("shop")}
       />
     )

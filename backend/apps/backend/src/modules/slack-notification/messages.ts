@@ -5,7 +5,7 @@ export type OrderPlacedData = {
   display_id: number
   total: number
   items: { title: string; quantity: number }[]
-  payment_method: "lightning" | "bank_qr" | "cash" | "other"
+  payment_method: "lightning" | "ark" | "bank_qr" | "cash" | "other"
   sats?: number | null
   admin_url?: string | null
 }
@@ -90,6 +90,9 @@ export function formatSats(sats: number): string {
 function paymentLabel(data: OrderPlacedData): string {
   if (data.payment_method === "lightning") {
     return data.sats ? `Lightning (${formatSats(data.sats)})` : "Lightning"
+  }
+  if (data.payment_method === "ark") {
+    return data.sats ? `Bitcoin Ark (${formatSats(data.sats)})` : "Bitcoin Ark"
   }
   if (data.payment_method === "bank_qr") return "QR bancario"
   if (data.payment_method === "cash") return "efectivo, *por cobrar en recepción*"

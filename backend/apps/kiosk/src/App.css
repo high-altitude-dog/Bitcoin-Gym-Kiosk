@@ -91,6 +91,16 @@
   width: 240px;
   height: auto;
 }
+/* Where the Lightning logo sits, for a Bitcoin Ark invoice (no logo file yet). */
+.payment-ark-mark {
+  margin: 0;
+  padding: 10px 28px;
+  border-radius: 999px;
+  background: #7b3fe4;
+  color: #fff;
+  font-weight: 700;
+  font-size: 36px;
+}
 
 /* Under the bank QR: BCP's mark in a white box on a navy band, like the card on the front desk. */
 .bank-logo {

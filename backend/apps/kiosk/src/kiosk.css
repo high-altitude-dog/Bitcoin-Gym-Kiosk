@@ -525,6 +525,8 @@
 /* Bitcoin keeps the orange; bank QR is blue and cash is green (the bank QR "Pagado" button's green), both with white text. */
 .k-method__option--bank-qr { background: #1f6fd1; color: #fff; }
 .k-method__option--cash { background: #1f9d4d; color: #fff; }
+/* Bitcoin Ark (Bark Pay): purple, next to cash. */
+.k-method__option--ark { background: #7b3fe4; color: #fff; }
 .k-method__back {
   min-width: 280px;
   height: 96px;

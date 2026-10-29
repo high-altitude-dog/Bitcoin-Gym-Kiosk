@@ -86,6 +86,22 @@ module.exports = defineConfig({
               invoiceType: process.env.COINOS_INVOICE_TYPE || undefined,
             },
           },
+          // "Bitcoin Ark": our self-hosted Bark Pay (see src/modules/bark-ark).
+          // Registered only where it's configured, like Slack below.
+          ...(process.env.BARKPAY_API_KEY
+            ? [
+                {
+                  resolve: './src/modules/bark-ark',
+                  id: 'bark-ark',
+                  options: {
+                    barkPayUrl: process.env.BARKPAY_URL,
+                    barkPayApiKey: process.env.BARKPAY_API_KEY,
+                    webhookSecret: process.env.BARKPAY_WEBHOOK_SECRET,
+                    yadioApiUrl: process.env.YADIO_API_URL,
+                  },
+                },
+              ]
+            : []),
           // Cash at the front desk: authorized at the kiosk, captured by
           // staff in the admin (see src/modules/cash-payment).
           {

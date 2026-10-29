@@ -21,5 +21,11 @@ export default defineMiddlewares({
       matcher: '/hooks/coinos',
       bodyParser: { preserveRawBody: true },
     },
+    {
+      // Bark Pay signs the raw body (see src/modules/bark-ark).
+      method: ['POST'],
+      matcher: '/hooks/bark',
+      bodyParser: { preserveRawBody: true },
+    },
   ],
 })

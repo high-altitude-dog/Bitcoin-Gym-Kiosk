@@ -24,16 +24,16 @@ interface Props {
   onCancel: () => void
 }
 
-function usePaymentQrCode(bolt11: string | undefined) {
+function usePaymentQrCode(text: string | undefined) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!bolt11) {
+    if (!text) {
       setQrDataUrl(null)
       return
     }
     let cancelled = false
-    QRCode.toDataURL(`lightning:${bolt11}`, { width: 720, margin: 1 })
+    QRCode.toDataURL(text, { width: 720, margin: 1 })
       .then((url) => {
         if (!cancelled) setQrDataUrl(url)
       })
@@ -43,7 +43,7 @@ function usePaymentQrCode(bolt11: string | undefined) {
     return () => {
       cancelled = true
     }
-  }, [bolt11])
+  }, [text])
 
   return qrDataUrl
 }
@@ -82,7 +82,8 @@ export function PaymentScreen({
   onRetry,
   onCancel,
 }: Props) {
-  const qrDataUrl = usePaymentQrCode(invoice?.bolt11)
+  const qrDataUrl = usePaymentQrCode(invoice?.qr)
+  const ark = invoice?.method === "ark"
   const bankQrUrl = useBankQrCode(paymentMethod === "bank_qr")
   // One confirmation at a time: a double tap must not complete twice.
   const [confirming, setConfirming] = useState(false)
@@ -228,7 +229,7 @@ export function PaymentScreen({
     <div className="screen screen--center payment-layout">
       <div className="payment-qrbox">
         {qrDataUrl ? (
-          <img className="payment-qr" src={qrDataUrl} alt={t.lightningQrAlt} />
+          <img className="payment-qr" src={qrDataUrl} alt={ark ? t.arkQrAlt : t.lightningQrAlt} />
         ) : (
           <p className="payment-note">{t.generatingQr}</p>
         )}
@@ -239,9 +240,13 @@ export function PaymentScreen({
           <p className="payment-sats">{invoice.satsAmount.toLocaleString("es-BO")} sats</p>
           <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
         </div>
-        <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
+        {ark ? (
+          <p className="payment-ark-mark">Bitcoin Ark</p>
+        ) : (
+          <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
+        )}
         <p className="payment-countdown">{t.expiresIn(formatCountdown(msLeft))}</p>
-        <p className="payment-note">{t.scanLightning}</p>
+        <p className="payment-note">{ark ? t.scanArk : t.scanLightning}</p>
         <button className="back-button" onClick={onCancel}>
           Cancelar
         </button>

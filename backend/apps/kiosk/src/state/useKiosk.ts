@@ -4,10 +4,12 @@ import { isHttpError, sdk } from "../lib/medusa"
 import { toKioskCart } from "../lib/kioskMapping"
 import { setLang, t } from "../lib/strings"
 import {
+  BARK_ARK_PROVIDER_ID,
   CASH_PAYMENT_PROVIDER_ID,
-  COINOS_LIGHTNING_PROVIDER_ID,
+  INVOICE_PROVIDER_ID,
   MANUAL_PAYMENT_PROVIDER_ID,
   readLightningInvoice,
+  type InvoiceMethod,
   type LightningInvoice,
 } from "../lib/payment"
 
@@ -23,7 +25,9 @@ export type PaymentStatus = "awaiting" | "confirmed" | "expired" | "needs_staff"
 // shows a static QR square instead of a real invoice. Swap in the real
 // Baneco flow here once credentials arrive. "cash": the member confirms the
 // order here and pays at the front desk; staff capture it in the admin.
-export type PaymentMethod = "lightning" | "bank_qr" | "cash" | null
+// "ark": "Bitcoin Ark", the same invoice flow as "lightning" through our Bark
+// Pay (one QR with an Ark address and a Lightning invoice).
+export type PaymentMethod = "lightning" | "ark" | "bank_qr" | "cash" | null
 
 // "*categories", not "+categories.id,+categories.name": that "+" form returns
 // categories as null in Medusa 2.21.2, so no product ever matched a category chip.
@@ -52,6 +56,8 @@ interface KioskState {
   region: HttpTypes.StoreRegion | null
   products: HttpTypes.StoreProduct[]
   categories: HttpTypes.StoreProductCategory[]
+  // Whether the region offers "Bitcoin Ark" (Bark Pay configured on the backend).
+  arkEnabled: boolean
   cart: HttpTypes.StoreCart | null
   // Quantities tapped in but not yet confirmed by Medusa, by variant id.
   // The screen shows these at once; syncCart() sends them in the background.
@@ -75,6 +81,7 @@ export function useKiosk() {
     region: null,
     products: [],
     categories: [],
+    arkEnabled: false,
     cart: null,
     pending: {},
     order: null,
@@ -92,6 +99,8 @@ export function useKiosk() {
   const cartRef = useRef<HttpTypes.StoreCart | null>(null)
   const regionRef = useRef<HttpTypes.StoreRegion | null>(null)
   const invoiceRef = useRef<LightningInvoice | null>(null)
+  // The invoice method last asked for, so "Intentar de nuevo" makes the same kind.
+  const invoiceMethodRef = useRef<InvoiceMethod>("lightning")
   const queueRef = useRef<Promise<unknown>>(Promise.resolve())
   const pendingRef = useRef<Record<string, number>>({})
   const syncQueuedRef = useRef(false)
@@ -138,7 +147,7 @@ export function useKiosk() {
       const { regions } = await sdk.store.region.list()
       const region = regions[0] ?? null
       regionRef.current = region
-      const [{ products }, { product_categories }] = await Promise.all([
+      const [{ products }, { product_categories }, arkEnabled] = await Promise.all([
         sdk.store.product.list({
           region_id: region?.id,
           fields: PRODUCT_FIELDS,
@@ -147,11 +156,16 @@ export function useKiosk() {
           fields: "id,name,rank,parent_category_id",
           limit: 50,
         }),
+        // Hidden, not an error, if this lookup fails.
+        sdk.store.payment
+          .listPaymentProviders({ region_id: region?.id ?? "" })
+          .then(({ payment_providers }) => payment_providers.some((p) => p.id === BARK_ARK_PROVIDER_ID))
+          .catch(() => false),
       ])
       const categories = product_categories
         .filter((c) => !c.parent_category_id)
         .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
-      setState((s) => ({ ...s, region, products, categories, loading: false }))
+      setState((s) => ({ ...s, region, products, categories, arkEnabled, loading: false }))
     } catch {
       setState((s) => ({
         ...s,
@@ -354,9 +368,10 @@ export function useKiosk() {
             fields: PAYMENT_SESSION_FIELDS,
           })
           const session = cart.payment_collection?.payment_sessions?.find(
-            (s) => s.provider_id === COINOS_LIGHTNING_PROVIDER_ID
+            (s) => s.provider_id === INVOICE_PROVIDER_ID.lightning || s.provider_id === INVOICE_PROVIDER_ID.ark
           )
           if (session?.status === "authorized") {
+            const paidWith: InvoiceMethod = session.provider_id === INVOICE_PROVIDER_ID.ark ? "ark" : "lightning"
             // A Lightning payment is final once confirmed, so say so at once
             // rather than after the order exists (about a second later).
             invoiceRef.current = null
@@ -382,7 +397,7 @@ export function useKiosk() {
                 ...s,
                 error: t.errorOrderIncomplete,
                 screen: "payment",
-                paymentMethod: "lightning",
+                paymentMethod: paidWith,
                 paymentStatus: "needs_staff",
               }))
             }
@@ -424,8 +439,10 @@ export function useKiosk() {
   }, [])
 
   const initiateLightningPayment = useCallback(
-    async (cart: HttpTypes.StoreCart, byteSince = Date.now()) => {
+    async (cart: HttpTypes.StoreCart, byteSince = Date.now(), method: InvoiceMethod = "lightning") => {
       const epoch = epochRef.current
+      const providerId = INVOICE_PROVIDER_ID[method]
+      invoiceMethodRef.current = method
       stopPolling()
       invoiceRef.current = null
       setState((s) => ({
@@ -433,32 +450,34 @@ export function useKiosk() {
         error: null,
         invoice: null,
         paymentStatus: null,
-        paymentMethod: "lightning",
+        paymentMethod: method,
         screen: "payment",
       }))
 
       try {
-        const { available } = await sdk.client.fetch<{ available: boolean }>(
+        const availability = await sdk.client.fetch<{ available: boolean; ark?: boolean }>(
           "/store/lightning-availability"
         )
         if (epoch !== epochRef.current) return
-        if (!available) {
-          setState((s) => ({ ...s, error: t.errorLightningUnavailable, screen: "payment-method" }))
+        if (!(method === "ark" ? availability.ark : availability.available)) {
+          setState((s) => ({
+            ...s,
+            error: method === "ark" ? t.errorArkUnavailable : t.errorLightningUnavailable,
+            screen: "payment-method",
+          }))
           return
         }
 
         const { payment_collection } = await sdk.store.payment.initiatePaymentSession(
           cart,
-          { provider_id: COINOS_LIGHTNING_PROVIDER_ID },
+          { provider_id: providerId },
           { fields: "+payment_sessions.data,+payment_sessions.provider_id" }
         )
         if (epoch !== epochRef.current) return
-        const session = payment_collection.payment_sessions?.find(
-          (s) => s.provider_id === COINOS_LIGHTNING_PROVIDER_ID
-        )
-        const invoice = readLightningInvoice(session?.data, Date.now())
+        const session = payment_collection.payment_sessions?.find((s) => s.provider_id === providerId)
+        const invoice = readLightningInvoice(session?.data, Date.now(), method)
         if (!invoice) {
-          throw new Error("coinos-lightning did not return invoice data")
+          throw new Error(`${providerId} did not return invoice data`)
         }
         const wait = MIN_BYTE_MS - (Date.now() - byteSince)
         if (wait > 0) await new Promise((r) => setTimeout(r, wait))
@@ -476,17 +495,17 @@ export function useKiosk() {
     [pollForPayment, stopPolling]
   )
 
-  const startPayment = useCallback(async () => {
-    const cart = await settleForPayment("lightning")
+  const startPayment = useCallback(async (method: InvoiceMethod = "lightning") => {
+    const cart = await settleForPayment(method)
     if (!cart) return
 
     // Coinos can't cancel an invoice, so one replaced by a new invoice stays
-    // payable with no order behind it. If the member comes back to Lightning
-    // with the same total while their invoice is still live, show that one
-    // again instead of creating another.
+    // payable with no order behind it. If the member comes back to the same
+    // method with the same total while their invoice is still live, show that
+    // one again instead of creating another.
     const live = invoiceRef.current
-    if (live && Date.now() < live.expiresAt && live.bobAmount === Number(cart.total)) {
-      setState((s) => ({ ...s, error: null, paymentMethod: "lightning", screen: "payment" }))
+    if (live && live.method === method && Date.now() < live.expiresAt && live.bobAmount === Number(cart.total)) {
+      setState((s) => ({ ...s, error: null, paymentMethod: method, screen: "payment" }))
       return
     }
 
@@ -498,12 +517,12 @@ export function useKiosk() {
       error: null,
       invoice: null,
       paymentStatus: null,
-      paymentMethod: "lightning",
+      paymentMethod: method,
       screen: "payment",
     }))
     try {
       const withShipping = await ensureShippingMethod(cart)
-      await initiateLightningPayment(withShipping, byteSince)
+      await initiateLightningPayment(withShipping, byteSince, method)
     } catch {
       setState((s) => ({ ...s, error: t.errorInvoiceFailed, screen: "payment-method" }))
     }
@@ -512,8 +531,10 @@ export function useKiosk() {
   const retryPayment = useCallback(async () => {
     const cart = cartRef.current
     if (!cart) return
-    await initiateLightningPayment(cart)
+    await initiateLightningPayment(cart, Date.now(), invoiceMethodRef.current)
   }, [initiateLightningPayment])
+
+  const startArkPayment = useCallback(() => startPayment("ark"), [startPayment])
 
   // Bank QR and cash both open a confirm screen with no invoice. Baneco
   // access is still pending (see CLAUDE.md), so bank QR shows a static
@@ -707,6 +728,7 @@ export function useKiosk() {
     goToPaymentMethod,
     goTo,
     startPayment,
+    startArkPayment,
     startBankQrPayment,
     confirmBankQrPaid,
     startCashPayment,

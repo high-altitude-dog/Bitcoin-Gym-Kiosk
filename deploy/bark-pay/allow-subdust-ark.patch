@@ -1,0 +1,31 @@
+diff --git a/packages/core/src/charges.ts b/packages/core/src/charges.ts
+index ac4eb90..7399473 100644
+--- a/packages/core/src/charges.ts
++++ b/packages/core/src/charges.ts
+@@ -46,9 +46,15 @@ function onchainEligible(amountSat: number): boolean {
+   return amountSat >= DUST_LIMIT_SAT;
+ }
+ 
+-// An ark payment lands as a VTXO: capped by maxVtxoAmount, floored at dust so it stays exitable.
++// Ark (arkoor) payments can carry sub-dust amounts: bark isolates dust outputs
++// in their own transaction (bark lib/src/arkoor/mod.rs, "Dust isolation"), so
++// a small payment can't make larger VTXOs harder to exit. Patched for the Armor
++// Gym kiosk: upstream floors Ark at the on-chain dust limit (546 sat).
++export const MIN_ARK_SAT = 1;
++
++// An ark payment lands as a VTXO: capped by maxVtxoAmount.
+ function arkEligible(amountSat: number, maxVtxoAmount: number): boolean {
+-  return amountSat >= DUST_LIMIT_SAT && amountSat <= maxVtxoAmount;
++  return amountSat >= MIN_ARK_SAT && amountSat <= maxVtxoAmount;
+ }
+ 
+ function assertRequestedRailEligible(
+@@ -79,7 +85,7 @@ function assertRequestedRailEligible(
+       tooLarge ? "amount_too_large" : "amount_too_small",
+       tooLarge
+         ? `Amount exceeds the max VTXO size of ${maxVtxoAmount} sat for ark`
+-        : `Amount must be at least ${DUST_LIMIT_SAT} sat for ark`,
++        : `Amount must be at least ${MIN_ARK_SAT} sat for ark`,
+       "amount"
+     );
+   }

@@ -11,6 +11,8 @@ interface Props {
   onLightning: () => void
   onBankQr: () => void
   onCash: () => void
+  // "Bitcoin Ark": null hides the button (Bark Pay not configured).
+  onArk: (() => void) | null
   onBack: () => void
 }
 
@@ -19,7 +21,7 @@ interface Props {
  * all (payment is out of scope for it) — this screen is new, filling the gap so the existing
  * Lightning-vs-bank-QR choice (previously CartScreen's two buttons) has somewhere to live.
  */
-export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBankQr, onCash, onBack }: Props) {
+export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBankQr, onCash, onArk, onBack }: Props) {
   const saving = savingFor !== null
   return (
     <div className="k-method">
@@ -37,6 +39,11 @@ export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBa
         <button className="k-method__option k-method__option--cash" onClick={onCash} disabled={saving} aria-busy={savingFor === "cash"}>
           {savingFor === "cash" ? t.savingOrder : t.payWithCash}
         </button>
+        {onArk && (
+          <button className="k-method__option k-method__option--ark" onClick={onArk} disabled={saving} aria-busy={savingFor === "ark"}>
+            {savingFor === "ark" ? t.savingOrder : t.payWithArk}
+          </button>
+        )}
       </div>
       <button className="k-method__back" onClick={onBack}>{t.back}</button>
     </div>
