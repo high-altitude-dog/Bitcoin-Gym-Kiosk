@@ -7,6 +7,7 @@ import { useKiosk } from "./state/useKiosk"
 import { useIdleReset } from "./hooks/useIdleReset"
 import { useOnlineStatus } from "./hooks/useOnlineStatus"
 import { useTapFeedback } from "./hooks/useTapFeedback"
+import { usePaymentBark } from "./hooks/usePaymentBark"
 import { IdleScreen } from "./screens/IdleScreen"
 import { ConnectScreen } from "./screens/ConnectScreen"
 import { ShopScreen } from "./screens/ShopScreen"
@@ -22,6 +23,7 @@ function App() {
   useLang()
   const isOnline = useOnlineStatus()
   useTapFeedback()
+  usePaymentBark(kiosk.paymentStatus)
   // Never reset while a Lightning invoice is live (the member may be paying
   // from their phone) or while a paid order is waiting on staff.
   useIdleReset(

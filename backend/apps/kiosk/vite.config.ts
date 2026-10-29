@@ -20,7 +20,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       manifest: false,
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico,webp,woff2,webm}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico,webp,woff2,webm,mp3}'],
         navigateFallback: 'index.html',
       },
     }) as unknown as PluginOption,

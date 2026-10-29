@@ -16,6 +16,7 @@ npm run test:e2e -- rotation  # only suites whose file name contains "rotation"
 - `cash-auto-pay.test.mjs`: the cash screen's item list and 5-minute countdown; with no tap the order is placed and auto-captured, and the kiosk starts over (fake clock).
 - `connect.test.mjs`: the faint Wi-Fi button on the start screen (over the wall's arrow) and the Wi-Fi and gym-access QR screen, both orientations.
 - `exit-button.test.mjs`: the "Inicio" back-to-start button at the top right of the shop (both orientations), which clears the cart.
+- `bark.test.mjs`: one dog bark as "¡Pago recibido!" appears for Lightning, Bitcoin Ark and BIP321 (not again when the order arrives), none for cash or bank QR; the mp3 is in the build and precached.
 - `bip321.test.mjs`: the yellow "BIP321 Ark/Bolt12" button after Bitcoin Ark (five options in both orientations), its QR (Ark address + BOLT12 offer), reuse after "Cancelar", and a paid session completing once.
 - `lang.test.mjs`: the Bolivia and UK flags (start screen, shop, Wi-Fi screen), English through a whole visit, and the reset to Spanish.
 - `lightning-confirmed.test.mjs`: a confirmed payment shows "¡Pago recibido!" at once and the order once it exists, including a failed first attempt.

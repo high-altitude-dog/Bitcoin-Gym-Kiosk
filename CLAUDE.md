@@ -413,6 +413,10 @@ The member's phone showed "paid" 0.9-2 s before the kiosk. VM logs for a real pa
 
 Now the kiosk switches to the done screen the moment it sees the session authorized (payment status `"confirmed"` in `useKiosk.ts`): "¡Pago recibido!", Byte, "Tu pedido #…", and no item list or "Nuevo pedido" until `complete()` returns the order, about a second later, when the title becomes "¡Gracias!" and the number, list and button appear. A Lightning payment is final once confirmed, so this is true; "done" in the sense of the order still waits for Medusa. A failed `complete()` is retried on the next poll as before; if Medusa returns a cart instead of an order, the "tell a staff member" screen takes over. The idle reset stays off while `"confirmed"`. Cash and bank QR are unchanged. Test: `tests/e2e/lightning-confirmed.test.mjs` (done screen 0.2 s after the payment while the order takes 2.4 s with one failed attempt; Byte's video the same element throughout). Not yet seen on the tablet. Not built: watching Coinos directly from the tablet (Coinos's API allows the kiosk's origin by CORS), which could show "¡Pago recibido!" before the webhook chain.
 
+## A dog barks when a Bitcoin payment arrives (Oct 29, 2026)
+
+When the kiosk sees a Bitcoin payment confirmed (Lightning, Bitcoin Ark or BIP321), it plays `public/kiosk/sounds/dog-bark.mp3` once, as "¡Pago recibido!" appears (`hooks/usePaymentBark.ts`, on the payment status becoming `"confirmed"`). Not again when the order fills in, and never for cash or bank QR, which don't go through that status. The file is the developer's (about 0.6 s, 18 KB) and is precached with the app shell (`mp3` added to the PWA `globPatterns`). It plays through an `<audio>` element; the member tapped a payment button earlier in the visit, which is what Android's autoplay rule asks for, and a blocked play is ignored. Test: `tests/e2e/bark.test.mjs`. Not yet heard on the tablet (volume, and Fully Kiosk's own autoplay setting if it blocks it).
+
 ## Sold-out products show no price (Oct 19, 2026)
 
 A sold-out card shows only "Agotado", without the Bs price (`ProductCard.tsx`; checked in `shop-order.test.mjs`).
