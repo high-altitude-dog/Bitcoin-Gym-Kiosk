@@ -1,4 +1,4 @@
-// "BIP321 Ark/Bolt12": a yellow fifth payment button to the right of Bitcoin Ark (only when the
+// "Pagar con Bitcoin (Bolt12/Ark)" (the BIP321 experiment): a purple fifth payment button to the right of Bitcoin Ark (only when the
 // region offers it), one QR holding a BIP 321 URI with an Ark address and a BOLT12 offer, and a paid
 // session completing the order once.
 import QRCode from "qrcode"
@@ -58,7 +58,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
       fits: options.every((o) => o.scrollWidth <= o.clientWidth + 1 && o.scrollHeight <= o.clientHeight + 1),
     }
   })
-  check(`${name}: five options, BIP321 last (after Ark), yellow`, layout.labels.length === 5 && layout.afterArk && layout.labels.at(-1) === "Pagar con BIP321 Ark/Bolt12" && layout.bg === "rgb(245, 197, 24)", JSON.stringify(layout))
+  check(`${name}: five options, BIP321 last (after Ark), purple`, layout.labels.length === 5 && layout.afterArk && layout.labels.at(-1) === "Pagar con Bitcoin (Bolt12/Ark)" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
   check(`${name}: buttons inside the stage, not overlapping, text fits`, layout.inside && layout.apart && layout.fits, JSON.stringify(layout))
   await page.screenshot({ path: `${SHOTS}/bip321-method-${name}.png` })
 
@@ -86,7 +86,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   const expected = Array.from(modules.data, (b) => (b ? 1 : 0)).join("")
   check(`${name}: a BIP321 session was created`, mock.sessionProviders.at(-1) === BIP321_PROVIDER, JSON.stringify(mock.sessionProviders))
   check(`${name}: the QR holds the BIP 321 URI (Ark + BOLT12)`, onScreen === expected, `${modules.size}x${modules.size}`)
-  check(`${name}: BIP321 mark and the Ark-or-Bolt12 note`, shown.mark === "BIP321 Ark/Bolt12" && /Ark o Bolt12/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
+  check(`${name}: BIP321 mark and the Ark-or-Bolt12 note`, shown.mark === "Bitcoin (Bolt12/Ark)" && /Ark o Bolt12/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
   await page.screenshot({ path: `${SHOTS}/bip321-qr-${name}.png` })
 
   if (name === "portrait") {
@@ -104,7 +104,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
     await page.click(".back-button")
     await page.waitForSelector(".k-method")
     await page.click(".k-method__option--bip321")
-    await page.waitForFunction(() => document.querySelector(".payment-ark-mark")?.textContent === "BIP321 Ark/Bolt12")
+    await page.waitForFunction(() => document.querySelector(".payment-ark-mark")?.textContent === "Bitcoin (Bolt12/Ark)")
 
     mock.orderItems = [{ id: "i1", quantity: 1, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
     mock.paid = true

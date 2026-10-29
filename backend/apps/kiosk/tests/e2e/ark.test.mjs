@@ -55,7 +55,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
       fits: options.every((o) => o.scrollWidth <= o.clientWidth + 1 && o.scrollHeight <= o.clientHeight + 1),
     }
   })
-  check(`${name}: four options, Bitcoin Ark last (next to cash), purple`, layout.labels.length === 4 && layout.arkLast && layout.labels.at(-1) === "Pagar con Bitcoin Ark" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
+  check(`${name}: four options, Bitcoin Ark last (next to cash), purple`, layout.labels.length === 4 && layout.arkLast && layout.labels.at(-1) === "Pagar con Bitcoin Ark/Bolt11" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
   check(`${name}: buttons inside the stage, not overlapping, text fits`, layout.inside && layout.apart && layout.fits, JSON.stringify(layout))
   await page.screenshot({ path: `${SHOTS}/ark-method-${name}.png` })
 
@@ -85,7 +85,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   const expected = Array.from(modules.data, (b) => (b ? 1 : 0)).join("")
   check(`${name}: an Ark session was created`, mock.sessionProviders.at(-1) === ARK_PROVIDER, JSON.stringify(mock.sessionProviders))
   check(`${name}: the QR holds the BIP 321 URI (Ark + Lightning)`, onScreen === expected, `${modules.size}x${modules.size}`)
-  check(`${name}: Bitcoin Ark mark, sats and the Ark-or-Lightning note`, shown.mark === "Bitcoin Ark" && /588/.test(shown.sats) && /Ark o Lightning/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
+  check(`${name}: Bitcoin Ark mark, sats and the Ark-or-Lightning note`, shown.mark === "Bitcoin Ark/Bolt11" && /588/.test(shown.sats) && /Ark o Lightning/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
   await page.screenshot({ path: `${SHOTS}/ark-qr-${name}.png` })
 
   if (name === "portrait") {

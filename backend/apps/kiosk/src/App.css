@@ -101,7 +101,6 @@
   font-weight: 700;
   font-size: 36px;
 }
-.payment-ark-mark--bip321 { background: #f5c518; color: #1c1c1c; }
 
 /* Under the bank QR: BCP's mark in a white box on a navy band, like the card on the front desk. */
 .bank-logo {

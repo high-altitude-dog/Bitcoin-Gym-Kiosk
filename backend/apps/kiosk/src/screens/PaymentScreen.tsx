@@ -242,9 +242,9 @@ export function PaymentScreen({
           <p className="payment-bs">{formatBs(invoice.bobAmount)}</p>
         </div>
         {ark ? (
-          <p className="payment-ark-mark">Bitcoin Ark</p>
+          <p className="payment-ark-mark">{t.arkMark}</p>
         ) : bip321 ? (
-          <p className="payment-ark-mark payment-ark-mark--bip321">BIP321 Ark/Bolt12</p>
+          <p className="payment-ark-mark">{t.bip321Mark}</p>
         ) : (
           <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
         )}
