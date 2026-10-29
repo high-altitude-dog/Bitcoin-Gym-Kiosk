@@ -1,7 +1,7 @@
 // "Bitcoin Ark": a purple fourth payment button (only when the region offers Bark Pay), one QR
 // holding the BIP 321 URI (Ark + Lightning), and a paid charge completing the order once.
 import QRCode from "qrcode"
-import { ARK_PROVIDER, ARK_URI, createChecker, invoiceLayout, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
+import { ARK_PROVIDER, ARK_URI, createChecker, invoiceLayout, methodLayout, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -49,7 +49,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
     return {
       inside,
       apart,
-      labels: options.map((o) => o.textContent),
+      labels: options.map((o) => o.getAttribute("aria-label") ?? o.textContent),
       arkSecond: options[1] === ark,
       bg: getComputedStyle(ark).backgroundColor,
       fits: options.every((o) => o.scrollWidth <= o.clientWidth + 1 && o.scrollHeight <= o.clientHeight + 1),
@@ -57,6 +57,8 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   })
   check(`${name}: four options, Bitcoin Ark right after Bolt11, purple`, layout.labels.length === 4 && layout.arkSecond && layout.labels[1] === "Pagar con Bitcoin Ark/Bolt11" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
   check(`${name}: buttons inside the stage, not overlapping, text fits`, layout.inside && layout.apart && layout.fits, JSON.stringify(layout))
+  const m = await methodLayout(page)
+  check(`${name}: Bitcoin group above bank QR and cash, "Pagar con Bitcoin" on one line`, m.grouped && m.titles === 2 && m.oneLine && m.inside && m.apart && m.fits, JSON.stringify(m))
   await page.screenshot({ path: `${SHOTS}/ark-method-${name}.png` })
 
   await page.click(".k-method__option--ark")

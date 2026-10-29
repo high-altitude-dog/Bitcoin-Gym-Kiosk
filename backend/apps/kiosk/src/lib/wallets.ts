@@ -21,9 +21,9 @@ export type WalletId = keyof typeof WALLETS
 
 export const SUGGESTED_WALLETS: Record<InvoiceMethod, WalletId[]> = {
   // "Pagar con Bitcoin - Bolt11"
-  lightning: ["phoenix", "blink", "binance", "coinos"],
+  lightning: ["phoenix", "coinos", "blink", "binance"],
   // "Pagar con Bitcoin Ark/Bolt11"
   ark: ["arke", "noah", "coinos"],
-  // "Pagar con Bitcoin (Bolt12/Ark)"
+  // "Pagar con Bitcoin - Bolt12/Ark"
   bip321: ["arke", "noah", "phoenix", "coinos"],
 }

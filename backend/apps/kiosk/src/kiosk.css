@@ -508,27 +508,63 @@
   font: var(--k-bar-label);
   text-align: center;
 }
+/* Options in two groups (Oct 29, 2026 redesign): Bitcoin first, then the Bs options.
+   Portrait: one 900 px column, the groups 48 px apart. Landscape: each group is one
+   row across 1600 px, so a Bitcoin button is 784 px wide (512 with three) and
+   "Pagar con Bitcoin" never wraps. */
+.k-method__options { display: flex; flex-direction: column; gap: 48px; width: 100%; max-width: 900px; }
+.k-method__group { display: flex; flex-direction: column; gap: 24px; }
+.k-stage[data-orientation="landscape"] .k-method__options { max-width: 1600px; gap: 32px; }
+.k-stage[data-orientation="landscape"] .k-method__group { flex-direction: row; gap: 32px; }
+.k-stage[data-orientation="landscape"] .k-method__group > .k-method__option { flex: 1; min-width: 0; }
 .k-method__option {
+  position: relative;
   width: 100%;
-  max-width: 900px;
-  height: 180px;
+  height: 140px;
+  padding: 0 32px;
   border-radius: var(--k-radius-card);
   background: var(--k-action);
   color: var(--k-action-text);
-  font: 700 48px/1 var(--k-font);
+  font: 700 44px/1.1 var(--k-font);
 }
+/* Bitcoin: taller, "Pagar con Bitcoin" over the method. */
+.k-method__option--btc { height: 180px; }
+.k-stage[data-orientation="landscape"] .k-method__option--btc { height: 200px; }
+.k-method__label { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.k-method__title { font: 700 48px/1.05 var(--k-font); white-space: nowrap; }
+.k-method__rail { font: 600 36px/1 var(--k-font); opacity: 0.85; white-space: nowrap; }
 /* While a tapped button waits for the cart to save, the other one dims. */
 .k-method__option:disabled { opacity: 0.4; cursor: default; }
 .k-method__option[aria-busy="true"] { opacity: 1; animation: k-saving 1.2s ease-in-out infinite; }
 @keyframes k-saving { 50% { opacity: 0.7; } }
 @media (prefers-reduced-motion: reduce) { .k-method__option[aria-busy="true"] { animation: none; } }
-/* Bitcoin keeps the orange; bank QR is blue and cash is green (the bank QR "Pagado" button's green), both with white text. */
+/* Bolt11 keeps the orange; the other Bitcoin options are purple; bank QR is blue and
+   cash green (the bank QR "Pagado" button's green), all with white text. */
 .k-method__option--bank-qr { background: #1f6fd1; color: #fff; }
 .k-method__option--cash { background: #1f9d4d; color: #fff; }
-/* Bitcoin Ark (Bark Pay): purple, next to cash. */
 .k-method__option--ark { background: #7b3fe4; color: #fff; }
-/* "Pagar con Bitcoin (Bolt12/Ark)", the BIP321 experiment: the same purple as Ark, to its right. */
 .k-method__option--bip321 { background: #7b3fe4; color: #fff; }
+/* "Ahorrá el 10%": a yellow sash across the bottom-right corner of the Bolt12/Ark
+   button, clipped to its rounded corner by its own box (so the button doesn't
+   overflow). Placed so its text sits wholly inside the corner. */
+.k-method__sash-clip { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.k-method__sash {
+  position: absolute;
+  right: -52px;
+  bottom: 38px;
+  width: 260px;
+  padding: 10px 0;
+  transform: rotate(-35deg);
+  background: #f5c518;
+  color: #1c1c1c;
+  font: 700 24px/1 var(--k-font);
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+/* Three Bitcoin buttons in a landscape row (512 px each, only when Ark/Bolt11 is
+   shown): a slightly smaller title leaves the sash's corner clear. */
+.k-stage[data-orientation="landscape"] .k-method__group--btc:has(> :nth-child(3)) .k-method__title { font-size: 42px; }
 .k-method__back {
   min-width: 280px;
   height: 96px;
@@ -538,9 +574,3 @@
   color: var(--k-text);
   font: 600 34px/1 var(--k-font);
 }
-
-/* Landscape: the two payment options side by side. The group changes nothing in portrait (display: contents). */
-.k-method__options { display: contents; }
-.k-stage[data-orientation="landscape"] .k-method__options { display: flex; gap: 40px; width: 100%; max-width: 1600px; }
-/* Up to five in a row: a little side padding and smaller text so the longest labels keep clear of the edges. */
-.k-stage[data-orientation="landscape"] .k-method__option { width: auto; max-width: none; flex: 1; height: 220px; padding: 0 20px; font-size: 42px; }

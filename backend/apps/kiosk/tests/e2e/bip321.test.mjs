@@ -1,8 +1,8 @@
-// "Pagar con Bitcoin (Bolt12/Ark)" (the BIP321 experiment): a purple fifth payment button to the right of Bitcoin Ark (only when the
+// "Pagar con Bitcoin - Bolt12/Ark" (the BIP321 experiment): a purple fifth payment button to the right of Bitcoin Ark (only when the
 // region offers it), one QR holding a BIP 321 URI with an Ark address and a BOLT12 offer, and a paid
 // session completing the order once.
 import QRCode from "qrcode"
-import { ARK_PROVIDER, BIP321_PROVIDER, BIP321_URI, createChecker, invoiceLayout, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
+import { ARK_PROVIDER, BIP321_PROVIDER, BIP321_URI, createChecker, invoiceLayout, methodLayout, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -52,14 +52,33 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
     return {
       inside,
       apart,
-      labels: options.map((o) => o.textContent),
+      labels: options.map((o) => o.getAttribute("aria-label") ?? o.textContent),
       bitcoinFirst: options[1] === bip && options[2] === ark,
       bg: getComputedStyle(bip).backgroundColor,
       fits: options.every((o) => o.scrollWidth <= o.clientWidth + 1 && o.scrollHeight <= o.clientHeight + 1),
     }
   })
-  check(`${name}: five options, Bolt12/Ark right after Bolt11 (then Ark/Bolt11), purple`, layout.labels.length === 5 && layout.bitcoinFirst && layout.labels[1] === "Pagar con Bitcoin (Bolt12/Ark)" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
+  check(`${name}: five options, Bolt12/Ark right after Bolt11 (then Ark/Bolt11), purple`, layout.labels.length === 5 && layout.bitcoinFirst && layout.labels[1] === "Pagar con Bitcoin - Bolt12/Ark" && layout.bg === "rgb(123, 63, 228)", JSON.stringify(layout))
   check(`${name}: buttons inside the stage, not overlapping, text fits`, layout.inside && layout.apart && layout.fits, JSON.stringify(layout))
+  // The "Ahorrá el 10%" sash: shown, clipped inside the button, clear of the label's text.
+  const sash = await page.evaluate(() => {
+    const b = document.querySelector(".k-method__option--bip321").getBoundingClientRect()
+    const clip = document.querySelector(".k-method__sash-clip").getBoundingClientRect()
+    const el = document.querySelector(".k-method__sash"), r = el.getBoundingClientRect()
+    const range = document.createRange(); range.selectNodeContents(document.querySelector(".k-method__option--bip321 .k-method__label"))
+    const words = [...range.getClientRects()]
+    // Sample points along the sash's centre line: none may land on the label's text boxes.
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2, a = (-35 * Math.PI) / 180, half = el.offsetWidth / 2
+    let hits = 0
+    for (let d = -half; d <= half; d += 6) {
+      const x = cx + d * Math.cos(a), y = cy + d * Math.sin(a)
+      if (words.some((w) => x >= w.left && x <= w.right && y >= w.top && y <= w.bottom)) hits++
+    }
+    return { text: el.textContent, clipMatchesButton: Math.abs(clip.left - b.left) < 1 && Math.abs(clip.right - b.right) < 1 && Math.abs(clip.top - b.top) < 1 && Math.abs(clip.bottom - b.bottom) < 1, clipped: getComputedStyle(el.parentElement).overflow === "hidden", visible: r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom, hits }
+  })
+  check(`${name}: "Ahorrá el 10%" sash clipped inside the button, clear of its label`, sash.text === "Ahorrá el 10%" && sash.clipMatchesButton && sash.clipped && sash.visible && sash.hits === 0, JSON.stringify(sash))
+  const m = await methodLayout(page)
+  check(`${name}: three Bitcoin buttons grouped above bank QR and cash, each "Pagar con Bitcoin" on one line, sash text wholly inside its corner`, m.grouped && m.titles === 3 && m.oneLine && m.inside && m.apart && m.fits && m.sash?.textInside && m.sash?.hits === 0, JSON.stringify(m))
   await page.screenshot({ path: `${SHOTS}/bip321-method-${name}.png` })
 
   await page.click(".k-method__option--bip321")
@@ -86,9 +105,9 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   const expected = Array.from(modules.data, (b) => (b ? 1 : 0)).join("")
   check(`${name}: a BIP321 session was created`, mock.sessionProviders.at(-1) === BIP321_PROVIDER, JSON.stringify(mock.sessionProviders))
   check(`${name}: the QR holds the BIP 321 URI (Ark + BOLT12)`, onScreen === expected, `${modules.size}x${modules.size}`)
-  check(`${name}: BIP321 mark and the Ark-or-Bolt12 note`, shown.mark === "Bitcoin (Bolt12/Ark)" && /Ark o Bolt12/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
+  check(`${name}: BIP321 mark and the Ark-or-Bolt12 note`, shown.mark === "Bitcoin - Bolt12/Ark" && /Ark o Bolt12/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
   const inv = await invoiceLayout(page)
-  check(`${name}: chip "Bitcoin (Bolt12/Ark)", wallets Arké, Noah, Phoenix and Coinos, logos loaded, nothing overlapping`, inv.chip === "Bitcoin (Bolt12/Ark)" && inv.wallets === "Arké,Noah,Phoenix,Coinos" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
+  check(`${name}: chip "Bitcoin - Bolt12/Ark", wallets Arké, Noah, Phoenix and Coinos, logos loaded, nothing overlapping`, inv.chip === "Bitcoin - Bolt12/Ark" && inv.wallets === "Arké,Noah,Phoenix,Coinos" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
   await page.screenshot({ path: `${SHOTS}/bip321-qr-${name}.png` })
 
   if (name === "portrait") {
@@ -106,7 +125,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
     await page.click(".back-button")
     await page.waitForSelector(".k-method")
     await page.click(".k-method__option--bip321")
-    await page.waitForFunction(() => document.querySelector(".payment-ark-mark")?.textContent === "Bitcoin (Bolt12/Ark)")
+    await page.waitForFunction(() => document.querySelector(".payment-ark-mark")?.textContent === "Bitcoin - Bolt12/Ark")
 
     mock.orderItems = [{ id: "i1", quantity: 1, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
     mock.paid = true

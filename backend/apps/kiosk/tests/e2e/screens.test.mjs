@@ -1,6 +1,6 @@
 // Every other screen in both orientations: payment method, invoice wait, Lightning QR, bank QR, done (3 and 9 lines), cash, connection error.
 import fs from "node:fs"
-import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, invoiceLayout, watchErrors } from "./support.mjs"
+import { API, cors, createChecker, createMock, launch, PORTRAIT, SHOTS, startServer, invoiceLayout, methodLayout, watchErrors } from "./support.mjs"
 
 const server = await startServer()
 const browser = await launch()
@@ -77,7 +77,8 @@ await page.click(".k-bar .k-pay")
 await page.waitForSelector(".k-method")
 await both("1-payment-method", async () => {
   const opts = await page.evaluate(() => [...document.querySelectorAll(".k-method__option")].map((e) => { const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } }))
-  check("payment method landscape: three options side by side, same row", opts.length === 3 && opts.every((o) => o.y === opts[0].y) && opts[0].x < opts[1].x && opts[1].x < opts[2].x, JSON.stringify(opts))
+  const m = await methodLayout(page)
+  check("payment method landscape: Bitcoin row above the Bs row, \"Pagar con Bitcoin\" on one line, nothing overlapping", opts.length === 3 && m.grouped && m.oneLine && m.titles === 1 && m.inside && m.apart && m.fits, JSON.stringify({ opts, m }))
 })
 {
   const colours = await page.evaluate(() => [...document.querySelectorAll(".k-method__option")].map((e) => { const s = getComputedStyle(e); return `${s.backgroundColor} / ${s.color}` }))
@@ -100,7 +101,7 @@ await both("3-lightning-qr", async () => {
 })
 {
   const inv = await invoiceLayout(page)
-  check("lightning: chip \"Bitcoin - Bolt11\", wallets Phoenix, Blink, Binance and Coinos, logos loaded, nothing overlapping", inv.chip === "Bitcoin - Bolt11" && inv.wallets === "Phoenix,Blink,Binance,Coinos" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
+  check("lightning: chip \"Bitcoin - Bolt11\", wallets Phoenix, Coinos, Blink and Binance, logos loaded, nothing overlapping", inv.chip === "Bitcoin - Bolt11" && inv.wallets === "Phoenix,Coinos,Blink,Binance" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
 }
 check("QR image survived both turns", await page.evaluate(() => document.querySelector(".payment-qr").__tag === "same"))
 check("turning on the QR screen: only payment polling requests", mock.calls.slice(callsBefore).every((c) => /GET \/store\/carts\/cart_1|payment|shipping|lightning/.test(c)), mock.calls.slice(callsBefore).filter((c) => !/GET \/store\/carts\/cart_1/.test(c)).join(","))

@@ -214,3 +214,63 @@ export async function invoiceLayout(page) {
     }
   })
 }
+
+/**
+ * The payment-options screen: each option's name (its accessible label when it has
+ * one), whether every "Pagar con Bitcoin" title is on one line, whether the Bitcoin
+ * group comes before the Bs group (side by side within each group in landscape),
+ * whether everything is inside the stage without overlapping or overflowing, and the
+ * "Ahorrá el 10%" sash: its text wholly inside its button and clear of the label.
+ */
+export async function methodLayout(page) {
+  return page.evaluate(() => {
+    const stage = document.querySelector(".k-stage").getBoundingClientRect()
+    const landscape = document.querySelector(".k-stage").dataset.orientation === "landscape"
+    const options = [...document.querySelectorAll(".k-method__option")]
+    const rects = options.map((o) => o.getBoundingClientRect())
+    const titles = [...document.querySelectorAll(".k-method__title")]
+    const oneLine = titles.every((t) => { const r = document.createRange(); r.selectNodeContents(t); const lines = new Set([...r.getClientRects()].map((c) => Math.round(c.top))); return lines.size === 1 })
+    const groupRects = (sel) => [...document.querySelectorAll(`${sel} > .k-method__option`)].map((o) => o.getBoundingClientRect())
+    const btc = groupRects(".k-method__group--btc"), bs = groupRects(".k-method__group--bs")
+    const row = (rs) => rs.every((r) => Math.abs(r.top - rs[0].top) < 1) && rs.every((r, i) => i === 0 || r.left > rs[i - 1].left)
+    const column = (rs) => rs.every((r, i) => i === 0 || r.top > rs[i - 1].top)
+    const grouped = btc.length > 0 && bs.length === 2 && Math.min(...bs.map((r) => r.top)) > Math.max(...btc.map((r) => r.bottom)) && (landscape ? row(btc) && row(bs) : column(btc) && column(bs))
+    const all = [...rects, document.querySelector(".k-method__back").getBoundingClientRect()]
+    const inside = all.every((r) => r.left >= stage.left - 1 && r.right <= stage.right + 1 && r.top >= stage.top - 1 && r.bottom <= stage.bottom + 1)
+    const apart = all.every((a, i) => all.every((b, j) => i === j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top))
+    const fits = options.every((o) => o.scrollWidth <= o.clientWidth + 1 && o.scrollHeight <= o.clientHeight + 1)
+    let sash = null
+    const sashEl = document.querySelector(".k-method__sash")
+    if (sashEl) {
+      const button = sashEl.closest(".k-method__option").getBoundingClientRect()
+      const tr = document.createRange(); tr.selectNodeContents(sashEl)
+      // The text's own box, rotated with the sash: its four corners must be inside the button.
+      const w = tr.getBoundingClientRect(), box = sashEl.getBoundingClientRect()
+      const a = (-35 * Math.PI) / 180, cx = box.left + box.width / 2, cy = box.top + box.height / 2
+      const textW = (() => { const s = document.createElement("span"); s.style.font = getComputedStyle(sashEl).font; s.style.position = "absolute"; s.style.whiteSpace = "nowrap"; s.textContent = sashEl.textContent; document.body.append(s); const width = s.offsetWidth; s.remove(); return width })()
+      const textH = parseFloat(getComputedStyle(sashEl).fontSize)
+      const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => { const dx = (sx * textW) / 2, dy = (sy * textH) / 2; return [cx + dx * Math.cos(a) - dy * Math.sin(a), cy + dx * Math.sin(a) + dy * Math.cos(a)] })
+      const textInside = corners.every(([x, y]) => x >= button.left && x <= button.right && y >= button.top && y <= button.bottom)
+      const label = sashEl.closest(".k-method__option").querySelector(".k-method__label")
+      const lr = document.createRange(); lr.selectNodeContents(label)
+      const words = [...lr.getClientRects()]
+      const half = sashEl.offsetWidth / 2, h2 = sashEl.offsetHeight / 2
+      let hits = 0
+      for (let d = -half; d <= half; d += 4) for (const off of [-h2, 0, h2]) {
+        const x = cx + d * Math.cos(a) - off * Math.sin(a), y = cy + d * Math.sin(a) + off * Math.cos(a)
+        if (words.some((r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) hits++
+      }
+      sash = { text: sashEl.textContent, textInside, hits, unusedTextBox: Math.round(w.width) }
+    }
+    return {
+      labels: options.map((o) => o.getAttribute("aria-label") ?? o.textContent),
+      titles: titles.length,
+      oneLine,
+      grouped,
+      inside,
+      apart,
+      fits,
+      sash,
+    }
+  })
+}
