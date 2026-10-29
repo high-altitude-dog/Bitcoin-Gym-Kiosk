@@ -520,16 +520,16 @@
 .k-method__option {
   position: relative;
   width: 100%;
-  height: 140px;
+  height: 180px;
   padding: 0 32px;
   border-radius: var(--k-radius-card);
   background: var(--k-action);
   color: var(--k-action-text);
   font: 700 44px/1.1 var(--k-font);
 }
-/* Bitcoin: taller, "Pagar con Bitcoin" over the method. */
-.k-method__option--btc { height: 180px; }
-.k-stage[data-orientation="landscape"] .k-method__option--btc { height: 200px; }
+/* Every option the same size (the developer's request, Oct 29, 2026): 180 px tall,
+   200 in landscape; on the Bitcoin ones "Pagar con Bitcoin" sits over the method. */
+.k-stage[data-orientation="landscape"] .k-method__option { height: 200px; }
 .k-method__label { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .k-method__title { font: 700 48px/1.05 var(--k-font); white-space: nowrap; }
 .k-method__rail { font: 600 36px/1 var(--k-font); opacity: 0.85; white-space: nowrap; }
