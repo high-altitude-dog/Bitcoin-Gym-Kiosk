@@ -13,6 +13,7 @@ const LOOKBACK_HOURS = 24
 
 export type SessionRow = {
   id: string
+  provider_id: string
   amount: number
   data: Record<string, unknown> | null
   payment_collection_id: string
@@ -25,9 +26,30 @@ export type StuckPayment = {
   amount: number
   sats: number | null
   minutesWaiting: number
+  rail: string
 }
 
-// A confirmed Lightning session whose cart has no order after the grace
+// Which rail the bitcoin arrived on, and so which wallet to refund from.
+// Bitcoin Ark's and BIP321's own `paid_rail` is set when the payment is
+// confirmed (null after an Ark top-up); Coinos's invoice text says BOLT11 or
+// BOLT12 (an offer starts with "lno").
+export function paidRail(providerId: string, data: Record<string, unknown> | null): string {
+  const paid = data?.paid_rail
+  if (providerId === BARK_ARK_PROVIDER_ID) {
+    if (paid === "ark") return "Ark (Bark Pay, botón Bitcoin Ark)"
+    if (paid === "lightning") return "Lightning Bolt11 (Bark Pay, botón Bitcoin Ark)"
+    return "Ark o Lightning, no se sabe cuál (Bark Pay, botón Bitcoin Ark)"
+  }
+  if (providerId === BIP321_PROVIDER_ID) {
+    if (paid === "ark") return "Ark (Bark Pay, botón BIP321)"
+    if (paid === "bolt12") return "Lightning Bolt12 (Coinos, botón BIP321)"
+    return "Ark o Bolt12, no se sabe cuál (botón BIP321)"
+  }
+  const invoice = typeof data?.bolt11 === "string" ? data.bolt11.toLowerCase() : ""
+  return invoice.startsWith("lno") ? "Lightning Bolt12 (Coinos)" : "Lightning Bolt11 (Coinos)"
+}
+
+// A confirmed Bitcoin session (Lightning, Ark or BIP321) whose cart has no order after the grace
 // period. Pure, so it's unit-testable without a database.
 export function findStuckPayments(
   sessions: SessionRow[],
@@ -41,7 +63,7 @@ export function findStuckPayments(
     const minutesWaiting = Math.floor((now - new Date(s.updated_at).getTime()) / 60_000)
     if (minutesWaiting < STUCK_AFTER_MINUTES) return []
     const sats = Number(s.data?.sats_amount ?? 0) || null
-    return [{ sessionId: s.id, cartId, amount: Number(s.amount), sats, minutesWaiting }]
+    return [{ sessionId: s.id, cartId, amount: Number(s.amount), sats, minutesWaiting, rail: paidRail(s.provider_id, s.data) }]
   })
 }
 
@@ -54,7 +76,7 @@ export default async function alertPaidWithoutOrder(container: MedusaContainer) 
 
   const { data: sessions } = await query.graph({
     entity: "payment_session",
-    fields: ["id", "amount", "data", "payment_collection_id", "updated_at"],
+    fields: ["id", "provider_id", "amount", "data", "payment_collection_id", "updated_at"],
     filters: {
       // Every method the kiosk waits on: Coinos Lightning, Bitcoin Ark and BIP321.
       provider_id: [COINOS_LIGHTNING_PROVIDER_ID, BARK_ARK_PROVIDER_ID, BIP321_PROVIDER_ID],
@@ -88,6 +110,7 @@ export default async function alertPaidWithoutOrder(container: MedusaContainer) 
         amount: stuck.amount,
         sats: stuck.sats,
         minutes_waiting: stuck.minutesWaiting,
+        rail: stuck.rail,
       },
       idempotencyKey: `slack:paid-without-order:${stuck.sessionId}`,
       triggerType: "job:alert-paid-without-order",

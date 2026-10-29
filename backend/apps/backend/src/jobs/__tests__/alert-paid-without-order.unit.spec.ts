@@ -1,12 +1,13 @@
-import { findStuckPayments, STUCK_AFTER_MINUTES } from "../alert-paid-without-order"
+import { findStuckPayments, paidRail, STUCK_AFTER_MINUTES } from "../alert-paid-without-order"
 
 describe("findStuckPayments", () => {
   const now = Date.parse("2026-10-04T12:00:00Z")
   const minutesAgo = (m: number) => new Date(now - m * 60_000).toISOString()
   const session = (id: string, collection: string, updatedMinutesAgo: number) => ({
     id,
+    provider_id: "pp_coinos-lightning_coinos-lightning",
     amount: 10,
-    data: { sats_amount: 1430 },
+    data: { sats_amount: 1430, bolt11: "lnbc1430n1example" },
     payment_collection_id: collection,
     updated_at: minutesAgo(updatedMinutesAgo),
   })
@@ -30,7 +31,18 @@ describe("findStuckPayments", () => {
       now
     )
     expect(stuck).toEqual([
-      { sessionId: "ps_stuck", cartId: "cart_stuck", amount: 10, sats: 1430, minutesWaiting: 10 },
+      { sessionId: "ps_stuck", cartId: "cart_stuck", amount: 10, sats: 1430, minutesWaiting: 10, rail: "Lightning Bolt11 (Coinos)" },
     ])
+  })
+
+  it("names the rail the bitcoin arrived on, and so the wallet to refund from", () => {
+    expect(paidRail("pp_coinos-lightning_coinos-lightning", { bolt11: "lnbc1n1x" })).toBe("Lightning Bolt11 (Coinos)")
+    expect(paidRail("pp_coinos-lightning_coinos-lightning", { bolt11: "lno1qx" })).toBe("Lightning Bolt12 (Coinos)")
+    expect(paidRail("pp_bark-ark_bark-ark", { paid_rail: "ark" })).toBe("Ark (Bark Pay, botón Bitcoin Ark)")
+    expect(paidRail("pp_bark-ark_bark-ark", { paid_rail: "lightning" })).toBe("Lightning Bolt11 (Bark Pay, botón Bitcoin Ark)")
+    expect(paidRail("pp_bark-ark_bark-ark", { paid_rail: null })).toBe("Ark o Lightning, no se sabe cuál (Bark Pay, botón Bitcoin Ark)")
+    expect(paidRail("pp_bip321_bip321", { paid_rail: "ark" })).toBe("Ark (Bark Pay, botón BIP321)")
+    expect(paidRail("pp_bip321_bip321", { paid_rail: "bolt12" })).toBe("Lightning Bolt12 (Coinos, botón BIP321)")
+    expect(paidRail("pp_bip321_bip321", null)).toBe("Ark o Bolt12, no se sabe cuál (botón BIP321)")
   })
 })

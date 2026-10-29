@@ -61,6 +61,9 @@ describe("slack messages (Spanish)", () => {
     const text = paidWithoutOrderMessage({ cart_id: "cart_abc", amount: 10, sats: 1430, minutes_waiting: 4 })
     expect(text).toContain("hace 4 min · Bs 10 (1.430 sats)")
     expect(text).toContain("`cart_abc`")
+    expect(text).toContain("pagó con Bitcoin (Lightning, Ark o BIP321)")
+    const withRail = paidWithoutOrderMessage({ cart_id: "cart_abc", amount: 1, sats: 103, minutes_waiting: 4, rail: "Ark (Bark Pay, botón BIP321)" })
+    expect(withRail).toContain("El cliente pagó con Bitcoin por *Ark (Bark Pay, botón BIP321)*, pero el pedido no se completó.")
   })
 
   it("lists both kinds of reconciliation mismatch, capped at 10 lines each", () => {

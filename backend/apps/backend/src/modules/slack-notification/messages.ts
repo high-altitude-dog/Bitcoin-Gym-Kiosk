@@ -22,6 +22,8 @@ export type PaidWithoutOrderData = {
   amount: number
   sats?: number | null
   minutes_waiting: number
+  // Which rail the bitcoin arrived on, e.g. "Ark (Bark Pay, botón BIP321)".
+  rail?: string | null
 }
 
 export type ReconciliationMismatchData = {
@@ -135,7 +137,7 @@ export function paidWithoutOrderMessage(data: PaidWithoutOrderData): string {
   const amount = data.sats ? `${formatBs(data.amount)} (${formatSats(data.sats)})` : formatBs(data.amount)
   return [
     `*Pago confirmado sin pedido* desde hace ${data.minutes_waiting} min · ${amount}`,
-    `El cliente pagó con Bitcoin (Lightning, Ark o BIP321), pero el pedido no se completó. Revisar y completar el pedido o reembolsar manualmente.`,
+    `El cliente pagó con Bitcoin ${data.rail ? `por *${escapeSlack(data.rail)}*` : "(Lightning, Ark o BIP321)"}, pero el pedido no se completó. Revisar y completar el pedido o reembolsar manualmente.`,
     `Referencia del carrito (la misma que muestra el kiosko): \`${escapeSlack(data.cart_id)}\``,
   ].join("\n")
 }
