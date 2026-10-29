@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { KioskCart, KioskLine, KioskProduct } from "./kioskTypes"
+import type { Lang } from "./strings"
 
 /**
  * Maps the real Medusa StoreProduct/StoreCart (already fetched by useKiosk.ts) onto the
@@ -80,4 +81,14 @@ export function toKioskLines(
   return products
     .map((p) => ({ ...p, qty: shownQuantity(cart, pending, p.variantId) }))
     .filter((line) => line.qty > 0)
+}
+
+/**
+ * A category chip's label: in English, the category's `name_en` metadata
+ * (set by staff in the admin, on the category's page under Metadata) when it
+ * has one; otherwise, and in Spanish, its name as entered.
+ */
+export function categoryName(category: { name: string; metadata?: Record<string, unknown> | null }, lang: Lang): string {
+  const en = category.metadata?.name_en
+  return lang === "en" && typeof en === "string" && en.trim() ? en.trim() : category.name
 }

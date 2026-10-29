@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { LangFlags } from "./LangFlags"
 import type { HttpTypes } from "@medusajs/types"
-import { t } from "../lib/strings"
+import { t, useLang } from "../lib/strings"
 import { useGreeting } from "../hooks/useGreeting"
 import { useOrientation } from "../hooks/useStage"
-import { shownQuantity, soldOutLast, toKioskCart, toKioskLines, toKioskProduct } from "../lib/kioskMapping"
+import { categoryName, shownQuantity, soldOutLast, toKioskCart, toKioskLines, toKioskProduct } from "../lib/kioskMapping"
 import { CategoryChips } from "./CategoryChips"
 import { OrderBar } from "./OrderBar"
 import { OrderPanel } from "./OrderPanel"
@@ -50,6 +50,7 @@ interface Props {
 }
 
 export function ShopScreen({ products, categories, cart, pending, onSetQuantity, onPay, onExit }: Props) {
+  const lang = useLang()
   const greeting = useGreeting()
   const [categoryId, setCategoryId] = useState<string | null>(null)
 
@@ -134,7 +135,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
     return () => observer.disconnect()
   }, [checkMore, visible])
 
-  const kioskCategories = categories.map((c) => ({ id: c.id, name: c.name }))
+  const kioskCategories = categories.map((c) => ({ id: c.id, name: categoryName(c, lang) }))
   const allProducts = useMemo(() => products.map(toKioskProduct).filter((p) => p !== null), [products])
   const kioskCart = toKioskCart(cart, pending, allProducts)
   const lines = toKioskLines(cart, pending, allProducts)

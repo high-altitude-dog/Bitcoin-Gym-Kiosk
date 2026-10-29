@@ -159,7 +159,8 @@ export function useKiosk() {
           fields: PRODUCT_FIELDS,
         }),
         sdk.store.category.list({
-          fields: "id,name,rank,parent_category_id",
+          // metadata.name_en: the English chip label (see categoryName).
+          fields: "id,name,rank,parent_category_id,metadata",
           limit: 50,
         }),
         // Hidden, not an error, if this lookup fails.

@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from "react"
 
-// The kiosk's text in Spanish (Bolivia, the default) and English. Product and
-// category names come from Medusa as entered in the admin, in Spanish, and are
-// not translated. The language is chosen with the flags (start screen, shop,
+// The kiosk's text in Spanish (Bolivia, the default) and English. Product
+// names come from Medusa as entered in the admin, in Spanish, and are not
+// translated; category chips use a category's `name_en` metadata in English
+// (categoryName in kioskMapping.ts). The language is chosen with the flags (start screen, shop,
 // Wi-Fi screen) and goes back to Spanish whenever the kiosk resets.
 
 const es = {

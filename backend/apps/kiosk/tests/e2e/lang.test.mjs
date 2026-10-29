@@ -9,6 +9,12 @@ const ctx = await browser.newContext({ viewport: PORTRAIT, serviceWorkers: "bloc
 const page = await ctx.newPage()
 const mock = createMock()
 mock.orderItems = [{ id: "i1", quantity: 1, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
+// One category with an English name in its metadata, one without (it keeps its Spanish name).
+mock.categories = [
+  { id: "pcat_1", name: "Bebidas", rank: 0, parent_category_id: null, metadata: { name_en: "Drinks" } },
+  { id: "pcat_2", name: "Donaciones", rank: 1, parent_category_id: null, metadata: null },
+]
+const chips = () => page.evaluate(() => [...document.querySelectorAll(".k-chip")].map((c) => c.textContent).join(","))
 await mock.install(page)
 const errors = watchErrors(page)
 const text = (sel) => page.textContent(sel)
@@ -26,11 +32,13 @@ await page.screenshot({ path: `${SHOTS}/lang-idle-en.png`, clip: { x: 900, y: 0,
 
 await page.click(".k-idle")
 await page.waitForSelector(".k-card")
+check("category chips in English: name_en when set, Spanish name otherwise", (await chips()) === "All,Drinks,Donaciones", await chips())
 check("shop in English: greeting, 'All' chip, empty order bar", /^Good (morning|afternoon|evening)!$/.test(await text(".k-title")) && (await text(".k-chip")) === "All" && /Pick something to start/.test(await text(".k-bar")), await text(".k-title"))
 const sf = await box(".k-header .k-flags"), ex = await box(".k-exit")
 check("shop: flags left of the exit ring", sf.r < ex.x && (await active()) === "en", JSON.stringify({ sf, ex }))
 await page.screenshot({ path: `${SHOTS}/lang-shop-en.png`, clip: { x: 0, y: 0, width: 1200, height: 200 } })
 await page.click('.k-header .k-flag[lang="es"]')
+check("switching to Spanish turns the chips back at once", (await chips()) === "Todo,Bebidas,Donaciones", await chips())
 check("switching to Spanish mid-visit updates the greeting at once", /^¡Buen(os|as) /.test(await text(".k-title")) && (await text(".k-chip")) === "Todo", await text(".k-title"))
 await page.click('.k-header .k-flag[lang="en"]')
 
