@@ -207,6 +207,7 @@ export async function invoiceLayout(page) {
     return {
       chip: document.querySelector(".invoice-method")?.textContent,
       wallets: [...document.querySelectorAll(".invoice-wallet__name")].map((n) => n.textContent).join(","),
+      logosLoaded: [...document.querySelectorAll("img.invoice-wallet__logo")].every((i) => i.complete && i.naturalWidth === 256) && document.querySelectorAll("img.invoice-wallet__logo").length === document.querySelectorAll(".invoice-wallet").length,
       present,
       inside,
       apart,

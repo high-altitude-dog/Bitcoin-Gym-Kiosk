@@ -100,7 +100,7 @@ await both("3-lightning-qr", async () => {
 })
 {
   const inv = await invoiceLayout(page)
-  check("lightning: chip \"Bitcoin - Bolt11\", wallets Phoenix, Blink and Binance, nothing overlapping", inv.chip === "Bitcoin - Bolt11" && inv.wallets === "Phoenix,Blink,Binance" && inv.inside && inv.apart, JSON.stringify(inv))
+  check("lightning: chip \"Bitcoin - Bolt11\", wallets Phoenix, Blink and Binance, logos loaded, nothing overlapping", inv.chip === "Bitcoin - Bolt11" && inv.wallets === "Phoenix,Blink,Binance" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
 }
 check("QR image survived both turns", await page.evaluate(() => document.querySelector(".payment-qr").__tag === "same"))
 check("turning on the QR screen: only payment polling requests", mock.calls.slice(callsBefore).every((c) => /GET \/store\/carts\/cart_1|payment|shipping|lightning/.test(c)), mock.calls.slice(callsBefore).filter((c) => !/GET \/store\/carts\/cart_1/.test(c)).join(","))
