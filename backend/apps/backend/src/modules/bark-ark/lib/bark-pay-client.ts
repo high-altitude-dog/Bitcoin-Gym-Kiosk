@@ -107,19 +107,32 @@ export class BarkPayClient {
 }
 
 // One QR for both rails, as BIP 321: `bitcoin:` with no on-chain address,
-// `ark=` (bark's own extension parameter, bark/src/payment_request.rs) and
-// `lightning=`. A bark wallet pays the Ark address first; a Lightning-only
-// wallet ignores `ark=` (BIP 321: unknown parameters without `req-` are ignored)
-// and pays the invoice.
-export function paymentUri(rails: BarkRail[]): string {
+// `amount=` (in BTC, for every method in the URI), `ark=` (bark's own extension
+// parameter, bark/src/payment_request.rs) and `lightning=`. A bark wallet pays
+// the Ark address first; a Lightning-only wallet ignores `ark=` (BIP 321:
+// unknown parameters without `req-` are ignored) and pays the invoice.
+// The amount is required: an Ark address carries none, so without it an Ark
+// wallet (Noah, Oct 28, 2026) let the member pay any amount (they paid 1 sat).
+export function paymentUri(rails: BarkRail[], amountSat: number): string {
   const ark = rails.find((r) => r.rail === "ark")?.value
   const lightning = rails.find((r) => r.rail === "lightning")?.value
   if (!ark && !lightning) {
     throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "Bark Pay charge has no Ark or Lightning rail")
   }
   const params = [
+    `amount=${btcAmount(amountSat)}`,
     ark ? `ark=${encodeURIComponent(ark)}` : null,
     lightning ? `lightning=${encodeURIComponent(lightning)}` : null,
   ].filter(Boolean)
   return `bitcoin:?${params.join("&")}`
+}
+
+// BIP 321 amounts are decimal BTC with no exponent and at most 8 decimals.
+export function btcAmount(sats: number): string {
+  if (!Number.isInteger(sats) || sats <= 0) {
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, `Invalid sats amount: ${sats}`)
+  }
+  const whole = Math.floor(sats / 1e8)
+  const frac = String(sats % 1e8).padStart(8, "0").replace(/0+$/, "")
+  return frac ? `${whole}.${frac}` : String(whole)
 }

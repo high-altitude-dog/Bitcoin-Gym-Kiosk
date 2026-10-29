@@ -1,7 +1,7 @@
 import { createHmac } from "crypto"
 import { PaymentActions } from "@medusajs/framework/utils"
 import BarkArkProviderService from "../service"
-import { paymentUri } from "../lib/bark-pay-client"
+import { btcAmount, paymentUri } from "../lib/bark-pay-client"
 import { verifyBarkSignature } from "../lib/webhook-signature"
 
 const jsonResponse = (body: unknown, ok = true, status = 200) => ({
@@ -42,16 +42,23 @@ const sign = (body: string, t = Math.floor(Date.now() / 1000)) =>
   `t=${t},v1=${createHmac("sha256", SECRET).update(`${t}.${body}`).digest("hex")}`
 
 describe("paymentUri", () => {
-  it("puts both rails in one BIP 321 URI, Ark first", () => {
-    expect(paymentUri(charge().rails as any)).toBe(`bitcoin:?ark=${ARK}&lightning=${LN}`)
+  it("puts the amount and both rails in one BIP 321 URI, Ark first", () => {
+    expect(paymentUri(charge().rails as any, 1000)).toBe(`bitcoin:?amount=0.00001&ark=${ARK}&lightning=${LN}`)
   })
 
   it("works with a single rail", () => {
-    expect(paymentUri([{ rail: "lightning", value: LN, status: "active" }])).toBe(`bitcoin:?lightning=${LN}`)
+    expect(paymentUri([{ rail: "lightning", value: LN, status: "active" }], 103)).toBe(`bitcoin:?amount=0.00000103&lightning=${LN}`)
   })
 
   it("refuses a charge with neither rail", () => {
-    expect(() => paymentUri([{ rail: "onchain", value: "bc1q", status: "active" }])).toThrow()
+    expect(() => paymentUri([{ rail: "onchain", value: "bc1q", status: "active" }], 1)).toThrow()
+  })
+
+  it("writes BIP 321 amounts in decimal BTC", () => {
+    expect([1, 103, 1000, 100_000_000, 150_000_000, 123_456_789].map(btcAmount)).toEqual([
+      "0.00000001", "0.00000103", "0.00001", "1", "1.5", "1.23456789",
+    ])
+    expect(() => btcAmount(0)).toThrow()
   })
 })
 
@@ -117,7 +124,7 @@ describe("BarkArkProviderService", () => {
     expect(result.id).toBe("ch_1")
     expect(result.data).toMatchObject({
       bark_charge_id: "ch_1",
-      payment_uri: `bitcoin:?ark=${ARK}&lightning=${LN}`,
+      payment_uri: `bitcoin:?amount=0.00001&ark=${ARK}&lightning=${LN}`,
       sats_amount: 1000,
       bob_amount: 10,
       expiry_seconds: 600,

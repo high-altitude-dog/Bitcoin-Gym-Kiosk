@@ -94,7 +94,8 @@ class BarkArkProviderService extends AbstractPaymentProvider<BarkArkOptions> {
       data: {
         session_id: sessionId,
         bark_charge_id: charge.id,
-        payment_uri: paymentUri(charge.rails),
+        // Bark Pay's own figure: what it will count as paid.
+        payment_uri: paymentUri(charge.rails, charge.amountSat),
         ark_address: charge.rails.find((r) => r.rail === "ark")?.value ?? null,
         bolt11: charge.rails.find((r) => r.rail === "lightning")?.value ?? null,
         bob_amount: amountBob,

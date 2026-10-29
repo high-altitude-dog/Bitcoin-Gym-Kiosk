@@ -15,7 +15,7 @@ export const LANDSCAPE = { width: 1920, height: 1200 }
 export const LIGHTNING_PROVIDER = "pp_coinos-lightning_coinos-lightning"
 export const ARK_PROVIDER = "pp_bark-ark_bark-ark"
 // What Bark Pay's session data carries: one BIP 321 URI with an Ark address and a Lightning invoice.
-export const ARK_URI = "bitcoin:?ark=ark1p" + "q".repeat(125) + "&lightning=lnbc5880n1" + "q".repeat(280)
+export const ARK_URI = "bitcoin:?amount=0.00000588&ark=ark1p" + "q".repeat(125) + "&lightning=lnbc5880n1" + "q".repeat(280)
 export const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }
 
 // Screenshots go here when a suite takes them. Set E2E_SHOTS to keep them somewhere.
