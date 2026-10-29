@@ -1,3 +1,19 @@
+diff --git a/apps/worker/src/runtime.ts b/apps/worker/src/runtime.ts
+index f10e5f3..9ad5c62 100644
+--- a/apps/worker/src/runtime.ts
++++ b/apps/worker/src/runtime.ts
+@@ -6,7 +6,10 @@ import { watchInstance } from "./ws";
+ 
+ const POLL_INTERVAL_MS = 15_000;
+ const SWEEP_INTERVAL_MS = 30_000;
+-const WEBHOOK_INTERVAL_MS = 5000;
++// Patched for the Armor Gym kiosk (upstream 5000): the kiosk waits on the
++// charge.paid webhook, so a 5 s pickup was most of the wait after a payment.
++// Each tick only sends deliveries that are due; retries keep their backoff.
++const WEBHOOK_INTERVAL_MS = 500;
+ 
+ // A run outlasting the interval must not overlap the next tick: overlap means
+ // duplicate webhook deliveries and double-processed polls/sweeps.
 diff --git a/packages/core/src/charges.ts b/packages/core/src/charges.ts
 index ac4eb90..7399473 100644
 --- a/packages/core/src/charges.ts
