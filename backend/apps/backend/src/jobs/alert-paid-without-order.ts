@@ -2,6 +2,8 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { notifySlack } from "../lib/notify-slack"
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types"
+import { BARK_ARK_PROVIDER_ID } from "../modules/bark-ark/types"
+import { BIP321_PROVIDER_ID } from "../modules/bip321-ark-bolt12/types"
 
 // Give the kiosk's poll and the Coinos webhook this long to complete the
 // order before calling a confirmed payment stuck. Normally it's seconds.
@@ -54,7 +56,8 @@ export default async function alertPaidWithoutOrder(container: MedusaContainer) 
     entity: "payment_session",
     fields: ["id", "amount", "data", "payment_collection_id", "updated_at"],
     filters: {
-      provider_id: COINOS_LIGHTNING_PROVIDER_ID,
+      // Every method the kiosk waits on: Coinos Lightning, Bitcoin Ark and BIP321.
+      provider_id: [COINOS_LIGHTNING_PROVIDER_ID, BARK_ARK_PROVIDER_ID, BIP321_PROVIDER_ID],
       status: ["authorized", "captured"],
       updated_at: { $gte: new Date(now - LOOKBACK_HOURS * 3_600_000).toISOString() },
     },

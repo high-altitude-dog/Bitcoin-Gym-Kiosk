@@ -527,6 +527,8 @@
 .k-method__option--cash { background: #1f9d4d; color: #fff; }
 /* Bitcoin Ark (Bark Pay): purple, next to cash. */
 .k-method__option--ark { background: #7b3fe4; color: #fff; }
+/* BIP321 Ark/Bolt12 (an experiment): yellow with dark text, to the right of Ark. */
+.k-method__option--bip321 { background: #f5c518; color: #1c1c1c; }
 .k-method__back {
   min-width: 280px;
   height: 96px;
@@ -540,4 +542,5 @@
 /* Landscape: the two payment options side by side. The group changes nothing in portrait (display: contents). */
 .k-method__options { display: contents; }
 .k-stage[data-orientation="landscape"] .k-method__options { display: flex; gap: 40px; width: 100%; max-width: 1600px; }
-.k-stage[data-orientation="landscape"] .k-method__option { width: auto; max-width: none; flex: 1; height: 220px; }
+/* Up to five in a row: a little side padding and smaller text so the longest labels keep clear of the edges. */
+.k-stage[data-orientation="landscape"] .k-method__option { width: auto; max-width: none; flex: 1; height: 220px; padding: 0 20px; font-size: 42px; }

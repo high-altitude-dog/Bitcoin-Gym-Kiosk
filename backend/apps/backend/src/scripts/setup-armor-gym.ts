@@ -23,6 +23,7 @@ import {
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types";
 import { CASH_PAYMENT_PROVIDER_ID } from "../modules/cash-payment/types";
 import { BARK_ARK_PROVIDER_ID } from "../modules/bark-ark/types";
+import { BIP321_PROVIDER_ID } from "../modules/bip321-ark-bolt12/types";
 import { FULFILLMENT_TYPES } from "../lib/fulfillment-mode";
 import { findGymStockLocation } from "../lib/gym-stock-location";
 
@@ -34,7 +35,7 @@ const REGION_PAYMENT_PROVIDERS = [
   COINOS_LIGHTNING_PROVIDER_ID,
   CASH_PAYMENT_PROVIDER_ID,
   // Only registered where Bark Pay is configured (medusa-config.ts).
-  ...(process.env.BARKPAY_API_KEY ? [BARK_ARK_PROVIDER_ID] : []),
+  ...(process.env.BARKPAY_API_KEY ? [BARK_ARK_PROVIDER_ID, BIP321_PROVIDER_ID] : []),
 ];
 // The kiosk sales channel and the default shipping profile are both named
 // after the gym, so staff see a single "Armor Gym" in the product form. The

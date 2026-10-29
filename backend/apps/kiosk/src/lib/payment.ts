@@ -4,6 +4,10 @@ export const COINOS_LIGHTNING_PROVIDER_ID = "pp_coinos-lightning_coinos-lightnin
 // "Bitcoin Ark" through our self-hosted Bark Pay. Must match BARK_ARK_PROVIDER_ID
 // in backend/apps/backend/src/modules/bark-ark/types.ts.
 export const BARK_ARK_PROVIDER_ID = "pp_bark-ark_bark-ark"
+// "BIP321 Ark/Bolt12": a Bark Pay Ark address and a Coinos BOLT12 offer in one
+// QR. Must match BIP321_PROVIDER_ID in
+// backend/apps/backend/src/modules/bip321-ark-bolt12/types.ts.
+export const BIP321_PROVIDER_ID = "pp_bip321_bip321"
 // Medusa's built-in provider: records a payment without charging anything.
 // Used by the bank QR "Pagado" button until the Baneco API exists.
 export const MANUAL_PAYMENT_PROVIDER_ID = "pp_system_default"
@@ -12,11 +16,14 @@ export const MANUAL_PAYMENT_PROVIDER_ID = "pp_system_default"
 // backend/apps/backend/src/modules/cash-payment/types.ts.
 export const CASH_PAYMENT_PROVIDER_ID = "pp_cash_cash"
 
-export type InvoiceMethod = "lightning" | "ark"
+export type InvoiceMethod = "lightning" | "ark" | "bip321"
+
+export const INVOICE_METHODS: readonly InvoiceMethod[] = ["lightning", "ark", "bip321"]
 
 export const INVOICE_PROVIDER_ID: Record<InvoiceMethod, string> = {
   lightning: COINOS_LIGHTNING_PROVIDER_ID,
   ark: BARK_ARK_PROVIDER_ID,
+  bip321: BIP321_PROVIDER_ID,
 }
 
 // Shape of the payment session `data` coinos-lightning's and bark-ark's
@@ -25,7 +32,8 @@ export const INVOICE_PROVIDER_ID: Record<InvoiceMethod, string> = {
 export type LightningInvoice = {
   method: InvoiceMethod
   // What the QR encodes: `lightning:<bolt11>` for Coinos; for Bark Pay, one
-  // BIP 321 URI carrying both the Ark address and a Lightning invoice.
+  // BIP 321 URI carrying both the Ark address and a Lightning invoice; for
+  // BIP321, one carrying the Ark address and a Coinos BOLT12 offer.
   qr: string
   satsAmount: number
   bobAmount: number
@@ -43,9 +51,9 @@ export function readLightningInvoice(
 ): LightningInvoice | null {
   if (!data) return null
   const qr =
-    method === "ark"
-      ? typeof data.payment_uri === "string" ? data.payment_uri : null
-      : typeof data.bolt11 === "string" ? `lightning:${data.bolt11}` : null
+    method === "lightning"
+      ? typeof data.bolt11 === "string" ? `lightning:${data.bolt11}` : null
+      : typeof data.payment_uri === "string" ? data.payment_uri : null
   if (!qr) return null
   const expirySeconds = Number(data.expiry_seconds ?? 0)
   return {

@@ -181,6 +181,14 @@ describe("slack provider routing", () => {
     expect(text.split("\n")[0]).toBe("*Venta #7* · Bs 3 · efectivo, *por cobrar en recepción*")
   })
 
+  it("names a BIP321 sale and which half of the QR was paid", () => {
+    const line = (paid_rail: string | null) =>
+      orderPlacedMessage({ display_id: 8, total: 1, items: [{ title: "Banana", quantity: 1 }], payment_method: "bip321", sats: 103, paid_rail }).split("\n")[0]
+    expect(line("bolt12")).toBe("*Venta #8* · Bs 1 · BIP321 Ark/Bolt12 (103 sats, pagado por Bolt12)")
+    expect(line("ark")).toBe("*Venta #8* · Bs 1 · BIP321 Ark/Bolt12 (103 sats, pagado por Ark)")
+    expect(line(null)).toBe("*Venta #8* · Bs 1 · BIP321 Ark/Bolt12 (103 sats)")
+  })
+
   it("tells staff to capture or cancel an unpaid cash order", () => {
     const text = unpaidCashMessage({ display_id: 7, total: 3, minutes_waiting: 20, admin_url: "http://backend.test/app/orders/order_7" })
     expect(text).toContain("*Pedido #7 en efectivo sin cobrar* desde hace 20 min · Bs 3")

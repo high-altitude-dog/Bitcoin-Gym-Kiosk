@@ -9,7 +9,9 @@ import { sharedYadioClient } from "../../../modules/coinos-lightning/lib/yadio-c
 // provider, so "available" here means the provider can price an invoice.
 //
 // `ark` says whether to offer "Bitcoin Ark" (src/modules/bark-ark): it needs
-// the same fresh rate, and Bark Pay configured on this backend.
+// the same fresh rate, and Bark Pay configured on this backend. The kiosk's
+// "BIP321 Ark/Bolt12" button (src/modules/bip321-ark-bolt12) needs the same, so
+// it uses `ark` too.
 //
 // YADIO_API_URL is read per request, not when this file is imported: an
 // unset variable then just reports Lightning unavailable instead of

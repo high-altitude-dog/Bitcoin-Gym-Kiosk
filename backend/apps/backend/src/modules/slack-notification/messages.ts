@@ -5,7 +5,9 @@ export type OrderPlacedData = {
   display_id: number
   total: number
   items: { title: string; quantity: number }[]
-  payment_method: "lightning" | "ark" | "bank_qr" | "cash" | "other"
+  payment_method: "lightning" | "ark" | "bip321" | "bank_qr" | "cash" | "other"
+  // For "bip321": which half of the QR was paid ("ark" or "bolt12").
+  paid_rail?: string | null
   sats?: number | null
   admin_url?: string | null
 }
@@ -94,6 +96,10 @@ function paymentLabel(data: OrderPlacedData): string {
   if (data.payment_method === "ark") {
     return data.sats ? `Bitcoin Ark (${formatSats(data.sats)})` : "Bitcoin Ark"
   }
+  if (data.payment_method === "bip321") {
+    const parts = [data.sats ? formatSats(data.sats) : null, data.paid_rail === "ark" ? "pagado por Ark" : data.paid_rail === "bolt12" ? "pagado por Bolt12" : null].filter(Boolean)
+    return parts.length ? `BIP321 Ark/Bolt12 (${parts.join(", ")})` : "BIP321 Ark/Bolt12"
+  }
   if (data.payment_method === "bank_qr") return "QR bancario"
   if (data.payment_method === "cash") return "efectivo, *por cobrar en recepción*"
   return "otro medio de pago"
@@ -129,7 +135,7 @@ export function paidWithoutOrderMessage(data: PaidWithoutOrderData): string {
   const amount = data.sats ? `${formatBs(data.amount)} (${formatSats(data.sats)})` : formatBs(data.amount)
   return [
     `*Pago confirmado sin pedido* desde hace ${data.minutes_waiting} min · ${amount}`,
-    `El cliente pagó por Lightning, pero el pedido no se completó. Revisar y completar el pedido o reembolsar manualmente.`,
+    `El cliente pagó con Bitcoin (Lightning, Ark o BIP321), pero el pedido no se completó. Revisar y completar el pedido o reembolsar manualmente.`,
     `Referencia del carrito (la misma que muestra el kiosko): \`${escapeSlack(data.cart_id)}\``,
   ].join("\n")
 }

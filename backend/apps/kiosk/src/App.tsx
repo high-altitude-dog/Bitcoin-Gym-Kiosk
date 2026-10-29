@@ -101,6 +101,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
         onBankQr={kiosk.startBankQrPayment}
         onCash={kiosk.startCashPayment}
         onArk={kiosk.arkEnabled ? kiosk.startArkPayment : null}
+        onBip321={kiosk.bip321Enabled ? kiosk.startBip321Payment : null}
         onBack={() => kiosk.goTo("shop")}
       />
     )

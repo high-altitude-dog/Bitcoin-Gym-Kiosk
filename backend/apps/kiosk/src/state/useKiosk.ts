@@ -5,7 +5,9 @@ import { toKioskCart } from "../lib/kioskMapping"
 import { setLang, t } from "../lib/strings"
 import {
   BARK_ARK_PROVIDER_ID,
+  BIP321_PROVIDER_ID,
   CASH_PAYMENT_PROVIDER_ID,
+  INVOICE_METHODS,
   INVOICE_PROVIDER_ID,
   MANUAL_PAYMENT_PROVIDER_ID,
   readLightningInvoice,
@@ -26,8 +28,9 @@ export type PaymentStatus = "awaiting" | "confirmed" | "expired" | "needs_staff"
 // Baneco flow here once credentials arrive. "cash": the member confirms the
 // order here and pays at the front desk; staff capture it in the admin.
 // "ark": "Bitcoin Ark", the same invoice flow as "lightning" through our Bark
-// Pay (one QR with an Ark address and a Lightning invoice).
-export type PaymentMethod = "lightning" | "ark" | "bank_qr" | "cash" | null
+// Pay (one QR with an Ark address and a Lightning invoice). "bip321": "BIP321
+// Ark/Bolt12", the same flow with an Ark address and a Coinos BOLT12 offer.
+export type PaymentMethod = "lightning" | "ark" | "bip321" | "bank_qr" | "cash" | null
 
 // "*categories", not "+categories.id,+categories.name": that "+" form returns
 // categories as null in Medusa 2.21.2, so no product ever matched a category chip.
@@ -58,6 +61,8 @@ interface KioskState {
   categories: HttpTypes.StoreProductCategory[]
   // Whether the region offers "Bitcoin Ark" (Bark Pay configured on the backend).
   arkEnabled: boolean
+  // Whether the region offers "BIP321 Ark/Bolt12".
+  bip321Enabled: boolean
   cart: HttpTypes.StoreCart | null
   // Quantities tapped in but not yet confirmed by Medusa, by variant id.
   // The screen shows these at once; syncCart() sends them in the background.
@@ -82,6 +87,7 @@ export function useKiosk() {
     products: [],
     categories: [],
     arkEnabled: false,
+    bip321Enabled: false,
     cart: null,
     pending: {},
     order: null,
@@ -147,7 +153,7 @@ export function useKiosk() {
       const { regions } = await sdk.store.region.list()
       const region = regions[0] ?? null
       regionRef.current = region
-      const [{ products }, { product_categories }, arkEnabled] = await Promise.all([
+      const [{ products }, { product_categories }, providers] = await Promise.all([
         sdk.store.product.list({
           region_id: region?.id,
           fields: PRODUCT_FIELDS,
@@ -159,13 +165,15 @@ export function useKiosk() {
         // Hidden, not an error, if this lookup fails.
         sdk.store.payment
           .listPaymentProviders({ region_id: region?.id ?? "" })
-          .then(({ payment_providers }) => payment_providers.some((p) => p.id === BARK_ARK_PROVIDER_ID))
-          .catch(() => false),
+          .then(({ payment_providers }) => new Set(payment_providers.map((p) => p.id)))
+          .catch(() => new Set<string>()),
       ])
       const categories = product_categories
         .filter((c) => !c.parent_category_id)
         .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
-      setState((s) => ({ ...s, region, products, categories, arkEnabled, loading: false }))
+      const arkEnabled = providers.has(BARK_ARK_PROVIDER_ID)
+      const bip321Enabled = providers.has(BIP321_PROVIDER_ID)
+      setState((s) => ({ ...s, region, products, categories, arkEnabled, bip321Enabled, loading: false }))
     } catch {
       setState((s) => ({
         ...s,
@@ -367,11 +375,11 @@ export function useKiosk() {
           const { cart } = await sdk.store.cart.retrieve(cartId, {
             fields: PAYMENT_SESSION_FIELDS,
           })
-          const session = cart.payment_collection?.payment_sessions?.find(
-            (s) => s.provider_id === INVOICE_PROVIDER_ID.lightning || s.provider_id === INVOICE_PROVIDER_ID.ark
+          const session = cart.payment_collection?.payment_sessions?.find((s) =>
+            INVOICE_METHODS.some((m) => INVOICE_PROVIDER_ID[m] === s.provider_id)
           )
           if (session?.status === "authorized") {
-            const paidWith: InvoiceMethod = session.provider_id === INVOICE_PROVIDER_ID.ark ? "ark" : "lightning"
+            const paidWith = INVOICE_METHODS.find((m) => INVOICE_PROVIDER_ID[m] === session.provider_id) ?? "lightning"
             // A Lightning payment is final once confirmed, so say so at once
             // rather than after the order exists (about a second later).
             invoiceRef.current = null
@@ -459,10 +467,12 @@ export function useKiosk() {
           "/store/lightning-availability"
         )
         if (epoch !== epochRef.current) return
-        if (!(method === "ark" ? availability.ark : availability.available)) {
+        // BIP321 needs Bark Pay and a fresh rate, exactly what `ark` reports.
+        if (!(method === "lightning" ? availability.available : availability.ark)) {
           setState((s) => ({
             ...s,
-            error: method === "ark" ? t.errorArkUnavailable : t.errorLightningUnavailable,
+            error:
+              method === "ark" ? t.errorArkUnavailable : method === "bip321" ? t.errorBip321Unavailable : t.errorLightningUnavailable,
             screen: "payment-method",
           }))
           return
@@ -535,6 +545,7 @@ export function useKiosk() {
   }, [initiateLightningPayment])
 
   const startArkPayment = useCallback(() => startPayment("ark"), [startPayment])
+  const startBip321Payment = useCallback(() => startPayment("bip321"), [startPayment])
 
   // Bank QR and cash both open a confirm screen with no invoice. Baneco
   // access is still pending (see CLAUDE.md), so bank QR shows a static
@@ -729,6 +740,7 @@ export function useKiosk() {
     goTo,
     startPayment,
     startArkPayment,
+    startBip321Payment,
     startBankQrPayment,
     confirmBankQrPaid,
     startCashPayment,

@@ -84,6 +84,7 @@ export function PaymentScreen({
 }: Props) {
   const qrDataUrl = usePaymentQrCode(invoice?.qr)
   const ark = invoice?.method === "ark"
+  const bip321 = invoice?.method === "bip321"
   const bankQrUrl = useBankQrCode(paymentMethod === "bank_qr")
   // One confirmation at a time: a double tap must not complete twice.
   const [confirming, setConfirming] = useState(false)
@@ -229,7 +230,7 @@ export function PaymentScreen({
     <div className="screen screen--center payment-layout">
       <div className="payment-qrbox">
         {qrDataUrl ? (
-          <img className="payment-qr" src={qrDataUrl} alt={ark ? t.arkQrAlt : t.lightningQrAlt} />
+          <img className="payment-qr" src={qrDataUrl} alt={ark ? t.arkQrAlt : bip321 ? t.bip321QrAlt : t.lightningQrAlt} />
         ) : (
           <p className="payment-note">{t.generatingQr}</p>
         )}
@@ -242,11 +243,13 @@ export function PaymentScreen({
         </div>
         {ark ? (
           <p className="payment-ark-mark">Bitcoin Ark</p>
+        ) : bip321 ? (
+          <p className="payment-ark-mark payment-ark-mark--bip321">BIP321 Ark/Bolt12</p>
         ) : (
           <img className="payment-logo" src={`${KIOSK.assets}lightning-logo.webp`} alt="Bitcoin Lightning Network" draggable={false} />
         )}
         <p className="payment-countdown">{t.expiresIn(formatCountdown(msLeft))}</p>
-        <p className="payment-note">{ark ? t.scanArk : t.scanLightning}</p>
+        <p className="payment-note">{ark ? t.scanArk : bip321 ? t.scanBip321 : t.scanLightning}</p>
         <button className="back-button" onClick={onCancel}>
           Cancelar
         </button>

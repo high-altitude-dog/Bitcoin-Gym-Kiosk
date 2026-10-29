@@ -100,6 +100,21 @@ module.exports = defineConfig({
                     yadioApiUrl: process.env.YADIO_API_URL,
                   },
                 },
+                // "Pagar con BIP321 Ark/Bolt12": a Bark Pay Ark address and a
+                // Coinos BOLT12 offer in one QR (see src/modules/bip321-ark-bolt12).
+                {
+                  resolve: './src/modules/bip321-ark-bolt12',
+                  id: 'bip321',
+                  options: {
+                    coinosApiUrl: process.env.COINOS_API_URL,
+                    coinosApiToken: process.env.COINOS_API_TOKEN,
+                    coinosWebhookSecret: process.env.COINOS_WEBHOOK_SECRET,
+                    webhookBaseUrl: process.env.MEDUSA_BACKEND_URL,
+                    barkPayUrl: process.env.BARKPAY_URL,
+                    barkPayApiKey: process.env.BARKPAY_API_KEY,
+                    yadioApiUrl: process.env.YADIO_API_URL,
+                  },
+                },
               ]
             : []),
           // Cash at the front desk: authorized at the kiosk, captured by

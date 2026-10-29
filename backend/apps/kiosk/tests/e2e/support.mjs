@@ -15,6 +15,9 @@ export const LANDSCAPE = { width: 1920, height: 1200 }
 export const LIGHTNING_PROVIDER = "pp_coinos-lightning_coinos-lightning"
 export const ARK_PROVIDER = "pp_bark-ark_bark-ark"
 // What Bark Pay's session data carries: one BIP 321 URI with an Ark address and a Lightning invoice.
+export const BIP321_PROVIDER = "pp_bip321_bip321"
+// "BIP321 Ark/Bolt12": an Ark address and a Coinos BOLT12 offer.
+export const BIP321_URI = "bitcoin:?amount=0.00000588&ark=ark1p" + "q".repeat(125) + "&lno=lno1" + "q".repeat(180)
 export const ARK_URI = "bitcoin:?amount=0.00000588&ark=ark1p" + "q".repeat(125) + "&lightning=lnbc5880n1" + "q".repeat(280)
 export const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }
 
@@ -94,6 +97,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  * and read cashDesk (the bodies of the front-desk "cobrar" calls, in order),
  *   completeFailures   how many completion calls fail (500) before one succeeds
  *   arkEnabled         the region offers "Bitcoin Ark" (Bark Pay); off by default
+ *   bip321Enabled      the region offers "BIP321 Ark/Bolt12"; off by default
  * and read cart and calls (every request, as "METHOD /path").
  */
 export function createMock() {
@@ -115,6 +119,7 @@ export function createMock() {
     cashDesk: [],
     completeFailures: 0,
     arkEnabled: false,
+    bip321Enabled: false,
     /** Answers every request to API from this page or context. */
     install(target) {
       return target.route(`${API}/**`, async (route) => {
@@ -150,8 +155,8 @@ export function createMock() {
           recalc()
           return json({ parent: mock.cart })
         }
-        if (url.pathname === "/store/lightning-availability") { await wait(mock.availabilityDelay); return json({ available: true, ark: mock.arkEnabled }) }
-        if (url.pathname === "/store/payment-providers") return json({ payment_providers: [{ id: LIGHTNING_PROVIDER }, ...(mock.arkEnabled ? [{ id: ARK_PROVIDER }] : [])] })
+        if (url.pathname === "/store/lightning-availability") { await wait(mock.availabilityDelay); return json({ available: true, ark: mock.arkEnabled || mock.bip321Enabled }) }
+        if (url.pathname === "/store/payment-providers") return json({ payment_providers: [{ id: LIGHTNING_PROVIDER }, ...(mock.arkEnabled ? [{ id: ARK_PROVIDER }] : []), ...(mock.bip321Enabled ? [{ id: BIP321_PROVIDER }] : [])] })
         if (url.pathname === "/store/shipping-options") return json({ shipping_options: [{ id: "so_1" }] })
         if (url.pathname.endsWith("/shipping-methods")) {
           await wait(mock.shippingDelay)
@@ -163,7 +168,8 @@ export function createMock() {
           const isLightning = body().provider_id === LIGHTNING_PROVIDER
           mock.sessionProviders.push(body().provider_id)
           const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: 600 }
-            : body().provider_id === ARK_PROVIDER ? { payment_uri: ARK_URI, sats_amount: 588, bob_amount: 6, expiry_seconds: 600 } : {}
+            : body().provider_id === ARK_PROVIDER ? { payment_uri: ARK_URI, sats_amount: 588, bob_amount: 6, expiry_seconds: 600 }
+            : body().provider_id === BIP321_PROVIDER ? { payment_uri: BIP321_URI, sats_amount: 588, bob_amount: 6, expiry_seconds: 600 } : {}
           return json({ payment_collection: { id: "pc_1", payment_sessions: [{ id: "ps_1", provider_id: body().provider_id, status: "pending", data }] } })
         }
         if (/^\/store\/cash-orders\/[^/]+\/auto-capture$/.test(url.pathname)) return json({ captured: true })

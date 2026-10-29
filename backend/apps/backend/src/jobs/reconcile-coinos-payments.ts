@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { notifySlack } from "../lib/notify-slack"
 import { CoinosClient, CoinosPayment } from "../modules/coinos-lightning/lib/coinos-client"
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types"
+import { BIP321_PROVIDER_ID } from "../modules/bip321-ark-bolt12/types"
 
 // Compares Coinos's own payment history against Medusa orders for the
 // previous UTC day, per CLAUDE.md: "Reconcile against Coinos, not the
@@ -38,9 +39,10 @@ export default async function reconcileCoinosPayments(container: MedusaContainer
 
   const { data: medusaPayments } = await query.graph({
     entity: "payment",
-    fields: ["id", "data", "captured_at", "created_at"],
+    fields: ["id", "provider_id", "data", "captured_at", "created_at"],
     filters: {
-      provider_id: COINOS_LIGHTNING_PROVIDER_ID,
+      // BIP321 orders carry a Coinos BOLT12 offer too (and an Ark address).
+      provider_id: [COINOS_LIGHTNING_PROVIDER_ID, BIP321_PROVIDER_ID],
       created_at: { $gte: start.toISOString(), $lt: end.toISOString() },
     },
   })
@@ -79,6 +81,8 @@ export default async function reconcileCoinosPayments(container: MedusaContainer
   const capturedWithoutRecentCoinosRecord = medusaPayments.filter((payment) => {
     if (!payment.captured_at) return false
     const data = (payment.data ?? {}) as Record<string, unknown>
+    // A BIP321 order paid through its Ark address has nothing at Coinos.
+    if ((payment as any).provider_id === BIP321_PROVIDER_ID && data.paid_rail !== "bolt12") return false
     const ours = [data.session_id, data.payment_hash, data.coinos_invoice_id].filter(
       (v): v is string => typeof v === "string" && !!v
     )
