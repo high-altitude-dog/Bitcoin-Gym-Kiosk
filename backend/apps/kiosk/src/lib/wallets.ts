@@ -14,7 +14,7 @@ export const WALLETS = {
   arke: { name: "Arké", logo: "arke.webp" },
   noah: { name: "Noah", logo: "noah.webp" },
   // Pays Bolt11, Bolt12 and Ark (the developer, Oct 29, 2026), so it is on every screen.
-  coinos: { name: "Coinos", logo: "coinos.webp" },
+  coinos: { name: "coinos.io", logo: "coinos.webp" },
 } satisfies Record<string, Wallet>
 
 export type WalletId = keyof typeof WALLETS

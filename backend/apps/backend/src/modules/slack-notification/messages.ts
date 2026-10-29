@@ -143,9 +143,9 @@ export function paidWithoutOrderMessage(data: PaidWithoutOrderData): string {
 }
 
 export function reconciliationMismatchMessage(data: ReconciliationMismatchData): string {
-  const lines = [`*Conciliación Coinos del ${data.date}*: hay diferencias.`]
+  const lines = [`*Conciliación coinos.io del ${data.date}*: hay diferencias.`]
   if (data.unmatched_coinos.length) {
-    lines.push(`${data.unmatched_coinos.length} pago(s) recibido(s) en Coinos sin pedido en Medusa:`)
+    lines.push(`${data.unmatched_coinos.length} pago(s) recibido(s) en coinos.io sin pedido en Medusa:`)
     lines.push(
       ...listed(data.unmatched_coinos, (p) => {
         const ref = escapeSlack(p.memo || p.hash || "sin referencia")
@@ -154,7 +154,7 @@ export function reconciliationMismatchMessage(data: ReconciliationMismatchData):
     )
   }
   if (data.captured_without_coinos.length) {
-    lines.push(`${data.captured_without_coinos.length} pago(s) cobrado(s) en Medusa sin registro en Coinos:`)
+    lines.push(`${data.captured_without_coinos.length} pago(s) cobrado(s) en Medusa sin registro en coinos.io:`)
     lines.push(...listed(data.captured_without_coinos, (id) => `• \`${escapeSlack(id)}\``))
   }
   return lines.join("\n")

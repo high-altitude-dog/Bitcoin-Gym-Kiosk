@@ -73,7 +73,7 @@ describe("slack messages (Spanish)", () => {
       unmatched_coinos: unmatched,
       captured_without_coinos: ["pay_1"],
     })
-    expect(text).toContain("12 pago(s) recibido(s) en Coinos sin pedido")
+    expect(text).toContain("12 pago(s) recibido(s) en coinos.io sin pedido")
     expect(text).toContain("• y 2 más")
     expect(text).toContain("• `pay_1`")
   })

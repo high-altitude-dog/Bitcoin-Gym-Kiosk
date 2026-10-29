@@ -42,11 +42,11 @@ export function paidRail(providerId: string, data: Record<string, unknown> | nul
   }
   if (providerId === BIP321_PROVIDER_ID) {
     if (paid === "ark") return "Ark (Bark Pay, botón BIP321)"
-    if (paid === "bolt12") return "Lightning Bolt12 (Coinos, botón BIP321)"
+    if (paid === "bolt12") return "Lightning Bolt12 (coinos.io, botón BIP321)"
     return "Ark o Bolt12, no se sabe cuál (botón BIP321)"
   }
   const invoice = typeof data?.bolt11 === "string" ? data.bolt11.toLowerCase() : ""
-  return invoice.startsWith("lno") ? "Lightning Bolt12 (Coinos)" : "Lightning Bolt11 (Coinos)"
+  return invoice.startsWith("lno") ? "Lightning Bolt12 (coinos.io)" : "Lightning Bolt11 (coinos.io)"
 }
 
 // A confirmed Bitcoin session (Lightning, Ark or BIP321) whose cart has no order after the grace
