@@ -45,7 +45,7 @@ interface Props {
   pending: Record<string, number>
   onSetQuantity: (variantId: string, quantity: number) => void
   onPay: () => void
-  // The small, faint button at the top right: back to "Toca para empezar", cart cleared.
+  // "Inicio" at the top right: back to "Toca para empezar", cart cleared.
   onExit: () => void
 }
 
@@ -143,9 +143,13 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
     <>
       <header className="k-header">
         <h1 className="k-title">{greeting}</h1>
-        {/* Deliberately small and faint: for staff, not a member's next step. */}
         <LangFlags />
-        <button className="k-exit" onClick={onExit} aria-label={t.backToStart} />
+        <button className="k-exit" onClick={onExit} aria-label={t.backToStart}>
+          <svg viewBox="0 0 28 28" aria-hidden>
+            <path d="M4 13 14 4.5 24 13M7 11v12.5h5.5v-7h3v7H21V11" />
+          </svg>
+          {t.home}
+        </button>
       </header>
       <CategoryChips categories={kioskCategories} value={categoryId} onChange={setCategoryId} />
       <section

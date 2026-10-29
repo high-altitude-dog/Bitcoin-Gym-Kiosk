@@ -22,7 +22,7 @@ const layout = () => page.evaluate(() => {
   return { inside, apart, clearOfCards, sideBySide: Math.abs(a.top - b.top) < 2, stacked: a.bottom <= b.top }
 })
 
-for (const [name, viewport, arrow] of [["portrait", PORTRAIT, { x: 1164, y: 1873 }], ["landscape", LANDSCAPE, { x: 1340, y: 1071 }]]) {
+for (const [name, viewport, arrow] of [["portrait", PORTRAIT, { x: 1164, y: 1873 }], ["landscape", LANDSCAPE, { x: 1779, y: 1064 }]]) {
   await page.setViewportSize(viewport)
   await page.goto(server.url)
   await page.waitForSelector(".k-idle-connect")

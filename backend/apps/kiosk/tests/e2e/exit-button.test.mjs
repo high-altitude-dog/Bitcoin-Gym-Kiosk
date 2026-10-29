@@ -1,4 +1,4 @@
-// The small, faint button at the top right of the shop: back to "Toca para empezar", cart cleared.
+// "Inicio" at the top right of the shop: back to "Toca para empezar", cart cleared.
 import { createChecker, createMock, launch, LANDSCAPE, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
@@ -17,8 +17,8 @@ await page.click(".k-idle")
 await page.waitForSelector(".k-card")
 
 const p = await box(".k-exit"), title = await box(".k-title")
-check("portrait: small (40 px), at the top right, level with the greeting", p.w === 40 && p.x + p.w === 1200 - 64 && Math.abs(p.y + p.h / 2 - (title.y + title.h / 2)) <= 4, JSON.stringify({ p, title }))
-check("portrait: faint", (await page.evaluate(() => getComputedStyle(document.querySelector(".k-exit")).opacity)) === "0.45")
+check("portrait: at the top right, level with the greeting, inside the header row", p.x + p.w === 1200 - 64 && p.h === 60 && Math.abs(p.y + p.h / 2 - (title.y + title.h / 2)) <= 4, JSON.stringify({ p, title }))
+check("portrait: a visible 'Inicio' pill with a house icon", (await page.textContent(".k-exit")) === "Inicio" && !!(await page.$(".k-exit svg")) && (await page.evaluate(() => getComputedStyle(document.querySelector(".k-exit")).opacity)) === "1")
 await page.screenshot({ path: `${SHOTS}/exit-button-portrait.png`, clip: { x: 0, y: 0, width: 1200, height: 220 } })
 
 await page.setViewportSize(LANDSCAPE)

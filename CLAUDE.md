@@ -259,16 +259,16 @@ Small Bolivia (Spanish) and UK (English) flags, drawn as SVG (`LangFlags.tsx`), 
 
 ## Wi-Fi and gym-access QR screen (Oct 20, 2026)
 
-A faint Wi-Fi button on "Toca para empezar" (`.k-idle-connect` in `IdleScreen.tsx`: a wall-coloured disc with a thin white Wi-Fi line icon) covers one of the wall art's small arrows so it reads as a doodle: portrait at (1164, 1873), the bottom-right corner; landscape at (1340, 1071), left of Byte. It's a sibling of the full-screen start button, not inside it (a button can't contain one). It opens `ConnectScreen.tsx` ("Wi-Fi y acceso al gimnasio"): two cards, stacked in portrait (QR left, text right) and side by side in landscape, and "Atrás" back to the start screen; the 60 s idle reset also returns there.
+A Wi-Fi button on "Toca para empezar" (`.k-idle-connect` in `IdleScreen.tsx`: a wall-coloured disc with a white ring and a white Wi-Fi icon) sits over a small doodle in the bottom-right corner: an arrow at (1164, 1873) in portrait, a zigzag at (1779, 1064) in landscape (92 px there). The ring was added after the first, ringless version couldn't be found in landscape. It's a sibling of the full-screen start button, not inside it (a button can't contain one). It opens `ConnectScreen.tsx` ("Wi-Fi y acceso al gimnasio"): two cards, stacked in portrait (QR left, text right) and side by side in landscape, and "Atrás" back to the start screen; the 60 s idle reset also returns there.
 
-- **Wi-Fi:** a dashed "Próximamente" placeholder until `WIFI_QR_PAYLOAD` in `src/lib/connectQr.ts` is set on site (`WIFI:T:WPA;S:<ssid>;P:<password>;;`). That password would ship in the public web bundle.
+- **Wi-Fi:** a dashed "Próximamente" placeholder until `VITE_WIFI_QR_B64` is set at build time: the base64 of `WIFI:T:WPA;S:<ssid>;P:<password>;;`, in the git-ignored `.env.production` on the VM (or exported when building locally), so the password stays out of git; base64 so dotenv can't mangle a `$`. `src/lib/connectQr.ts` decodes it. The password still ships in the public web bundle.
 - **Acceso al gimnasio:** a QR for the open-gym PWA, `https://high-altitude-dog.github.io/open-gym/` (`OPEN_GYM_URL`); the rendered image decodes to exactly that URL.
 - **Touch to reveal** (Oct 20, 2026): each QR starts hidden (`visibility: hidden`, so it can't be scanned through the cover) under a "Toca para mostrar" panel with an animated helper, a fingertip dot pressing and two rings rippling out (still under reduced motion). One tap reveals that QR only; reopening the screen covers it again (`RevealQr` in `ConnectScreen.tsx`). The Wi-Fi placeholder gets the cover once its QR exists.
 - Both QR images are drawn once when the app loads. Test: `tests/e2e/connect.test.mjs` (button over the arrow in both orientations, opens the screen without starting a cart, layout fits, "Atrás").
 
 ## Back-to-start button on the shop screen (Oct 20, 2026)
 
-A deliberately small, faint button (a 40 px ring at 45% opacity, `.k-exit` in `ShopScreen.tsx`, aria-label "Volver al inicio") at the right end of the greeting row: the top right in portrait, left of the order panel in landscape (the landscape `.k-header` now stops 24 px short of the panel). Tapping it does what the 60 s idle reset does: the cart is cleared and the kiosk goes back to "Toca para empezar". Meant for staff; it blends into the wall art. Test: `tests/e2e/exit-button.test.mjs`.
+An "Inicio" (Home) pill with a house icon (`.k-exit` in `ShopScreen.tsx`, 60 px tall, aria-label "Volver al inicio"; a faint 40 px ring until it was made visible) at the right end of the greeting row: the top right in portrait, left of the order panel in landscape (the landscape `.k-header` now stops 24 px short of the panel). Tapping it does what the 60 s idle reset does: the cart is cleared and the kiosk goes back to "Toca para empezar". Test: `tests/e2e/exit-button.test.mjs`.
 
 ## Front desk told how much cash to collect (Oct 20, 2026)
 
