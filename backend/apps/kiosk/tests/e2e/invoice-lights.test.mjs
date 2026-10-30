@@ -37,9 +37,13 @@ async function start(viewport, setup, button) {
 
 // Bolt12/Ark: all three, answering one after the other; layout in both orientations.
 for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]]) {
-  const { ctx, page, errors } = await start(viewport, (m) => { m.sessionDelay = 4000; m.serviceTimes = { yadio: 100, coinos: 1500, bark: 3000 } }, ".k-method__option--bip321")
+  const { ctx, page, errors } = await start(viewport, (m) => { m.sessionDelay = 4000; m.serviceTimes = { yadio: 400, coinos: 1500, bark: 3000 } }, ".k-method__option--bip321")
   const first = await lights(page)
-  check(`${name}: all three amber from the tap`, first.yadio === "amber" && first.coinos === "amber" && first.bark === "amber", JSON.stringify(first))
+  check(`${name}: all three red as the screen appears`, first.yadio === "red" && first.coinos === "red" && first.bark === "red", JSON.stringify(first))
+  const t0 = Date.now()
+  const amber = await waitFor(page, { yadio: "amber", coinos: "amber", bark: "amber" }, 1000)
+  const amberAt = Date.now() - t0
+  check(`${name}: then all three amber after about 250 ms`, amber && amberAt < 450, `${amberAt} ms after the first sample`)
   const layout = await page.evaluate(() => {
     const stage = document.querySelector(".k-stage").getBoundingClientRect()
     const art = document.querySelector(".byte-loader__art").getBoundingClientRect()
@@ -74,9 +78,10 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
 
 // Bolt11: Bark isn't used, so its light is off.
 {
-  const { ctx, page } = await start(PORTRAIT, (m) => { m.sessionDelay = 1500; m.serviceTimes = { yadio: 100, coinos: 600, bark: 100 } }, ".k-method__option >> nth=0")
+  const { ctx, page } = await start(PORTRAIT, (m) => { m.sessionDelay = 1500; m.serviceTimes = { yadio: 400, coinos: 600, bark: 100 } }, ".k-method__option >> nth=0")
   const first = await lights(page)
-  check("Bolt11: only Yadio and coinos.io, both amber (no Bark light)", Object.keys(first).join(",") === "yadio,coinos" && first.yadio === "amber" && first.coinos === "amber", JSON.stringify(first))
+  check("Bolt11: only Yadio and coinos.io, both red at first (no Bark light)", Object.keys(first).join(",") === "yadio,coinos" && first.yadio === "red" && first.coinos === "red", JSON.stringify(first))
+  check("Bolt11: then both amber", await waitFor(page, { yadio: "amber", coinos: "amber" }, 1000))
   check("Bolt11: both turn green", await waitFor(page, { yadio: "green", coinos: "green" }, 2000))
   await page.screenshot({ path: `${SHOTS}/invoice-lights-bolt11.png` })
   await ctx.close()

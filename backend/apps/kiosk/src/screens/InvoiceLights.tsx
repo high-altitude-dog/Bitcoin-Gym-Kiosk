@@ -21,10 +21,15 @@ const LIGHTS: { service: Service; label: string }[] = [
 const POLL_MS = 250
 // A light still amber this close to the kiosk giving up turns red.
 const RED_BEFORE_TIMEOUT_MS = 1_000
+// Every light starts red this long before showing its real state (the
+// developer, Oct 30, 2026): a visual effect only, it says nothing about the
+// service, so the lights' accessible labels already give the real state.
+export const INTRO_RED_MS = 250
 
 /**
  * UK-style traffic lights (red over amber over green) beside Byte while an
- * invoice is created, one per outside service: amber from the tap while it's
+ * invoice is created, one per outside service: red for the first 250 ms (an
+ * effect only), then amber while it's being fetched while it's
  * being fetched, green once it has arrived, red if it failed or is still
  * missing 1 s before the kiosk would give up (15 s). A service this method
  * doesn't use has no light (Bark for Bolt11, Coinos for Ark/Bolt11). Progress comes from GET /store/invoice-progress/:token, which the
@@ -38,6 +43,11 @@ export function InvoiceLights(props: {
   const requestedAt = props.progress?.requestedAt ?? null
   const late = requestedAt !== null && Date.now() >= requestedAt + INVOICE_TIMEOUT_MS - RED_BEFORE_TIMEOUT_MS
   const used = USES[props.method]
+  const [intro, setIntro] = useState(true)
+  useEffect(() => {
+    const timer = setTimeout(() => setIntro(false), INTRO_RED_MS)
+    return () => clearTimeout(timer)
+  }, [])
 
   const lightFor = (service: Service): Light => {
     if (props.progress?.arrived) return "green"
@@ -51,10 +61,11 @@ export function InvoiceLights(props: {
   return (
     <ul className="invoice-lights">
       {LIGHTS.filter(({ service }) => used.includes(service)).map(({ service, label }) => {
-        const light = lightFor(service)
+        const real = lightFor(service)
+        const light = intro ? "red" : real
         return (
           <li key={service} className={`invoice-light invoice-light--${light}`} data-service={service} data-light={light}>
-            <span className="invoice-light__housing" role="img" aria-label={`${label}: ${word[light]}`}>
+            <span className="invoice-light__housing" role="img" aria-label={`${label}: ${word[real]}`}>
               <span className="invoice-light__lamp invoice-light__lamp--red" />
               <span className="invoice-light__lamp invoice-light__lamp--amber" />
               <span className="invoice-light__lamp invoice-light__lamp--green" />
