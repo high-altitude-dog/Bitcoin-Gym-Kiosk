@@ -68,6 +68,19 @@ const ART_W = 606
 const ART_H = 326
 const PAWS_Y = 305
 
+// Load every painting as soon as the app starts (this module loads with the
+// payment screen), so a portrait never opens black or changes colour late,
+// even right after a deploy when the offline cache is still filling.
+const PRELOADED: HTMLImageElement[] = []
+if (typeof window !== "undefined") {
+  for (const service of ["coinos", "yadio", "bark"] as const)
+    for (const c of ["red", "amber", "green"]) {
+      const img = new Image()
+      img.src = `${KIOSK.assets}status-dogs/${service}-${c}.webp`
+      PRELOADED.push(img)
+    }
+}
+
 const GAS_SHADES: [number, number][] = [[30, 160], [270, 160], [76, 180], [224, 180], [150, 186]]
 
 export function DrawingRoom({
