@@ -33,9 +33,9 @@ const PORTRAIT: Geometry = {
   rug: { x: -240, y: 1272, w: 940, h: 145 },
   fp: { x: 790, y: 990, w: 460, h: 250 },
   hang: {
-    coinos: { x: 802, y: 330, w: 210, rot: -3.2 },
-    yadio: { x: 1036, y: 360, w: 156, rot: 2.6 },
+    yadio: { x: 806, y: 380, w: 176, rot: -3.2 },
     bark: { x: 864, y: 700, w: 280, rot: -1.6 },
+    coinos: { x: 1006, y: 330, w: 180, rot: 2.6 },
   },
   captionY: 1520,
 }
@@ -46,14 +46,16 @@ const LANDSCAPE: Geometry = {
   rug: { x: -260, y: 905, w: 1180, h: 135 },
   fp: { x: 1060, y: 650, w: 520, h: 230 },
   hang: {
-    coinos: { x: 1000, y: 240, w: 190, rot: -3.2 },
-    yadio: { x: 1222, y: 316, w: 196, rot: 2.6 },
-    bark: { x: 1456, y: 300, w: 270, rot: -1.6 },
+    yadio: { x: 1000, y: 300, w: 196, rot: -3.2 },
+    bark: { x: 1226, y: 300, w: 262, rot: 2.6 },
+    coinos: { x: 1520, y: 240, w: 190, rot: -1.6 },
   },
   cactus: { x: 1736, w: 180, h: 315 },
   captionY: 1058,
 }
 
+// The portraits run left to right in the order their services usually answer
+// (the developer, Oct 30, 2026): Yadio (cached), then Bark, then coinos.io.
 // Height / width of each painting file (540 px wide copies in public/kiosk/status-dogs/).
 const RATIO: Record<Service, number> = { coinos: 1214 / 900, yadio: 1, bark: 639 / 900 }
 // Byte's hoops art is 606 x 326; his paws reach about y = 305 and the art's own

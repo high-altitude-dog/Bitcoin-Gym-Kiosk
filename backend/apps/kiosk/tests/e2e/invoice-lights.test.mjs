@@ -68,6 +68,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
     }
   })
   check(`${name}: three portraits with plaques to the right of the hoops, caption and Cancelar clear, all inside the stage`, layout.portraits === 3 && layout.plaques === 3 && layout.rightOfByte && layout.inside && layout.noOverlap && layout.captionClear && layout.video === "VIDEO", JSON.stringify(layout))
+  check(`${name}: portraits left to right as their services usually answer: Yadio, Bark, coinos.io`, await page.evaluate(() => [...document.querySelectorAll(".dr-painting")].sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left).map((p) => p.dataset.service).join(",")) === "yadio,bark,coinos")
   check(`${name}: each portrait shows the painting for its state`, await page.evaluate(() => [...document.querySelectorAll(".dr-painting")].every((p) => { const shown = [...p.querySelectorAll("img")].filter((i) => !i.hidden); return shown.length === 1 && shown[0].src.includes(`-${p.dataset.light}.webp`) && shown[0].complete && shown[0].naturalWidth > 0 })))
   check(`${name}: Yadio green first`, await waitFor(page, { yadio: "green", coinos: "amber", bark: "amber" }, 1500))
   await page.screenshot({ path: `${SHOTS}/invoice-lights-${name}.png` })
