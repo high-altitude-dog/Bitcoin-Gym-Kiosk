@@ -24,11 +24,11 @@ const RED_BEFORE_TIMEOUT_MS = 1_000
 // Every light starts red this long before showing its real state (the
 // developer, Oct 30, 2026): a visual effect only, it says nothing about the
 // service, so the lights' accessible labels already give the real state.
-export const INTRO_RED_MS = 250
+export const INTRO_RED_MS = 600
 
 /**
  * UK-style traffic lights (red over amber over green) beside Byte while an
- * invoice is created, one per outside service: red for the first 250 ms (an
+ * invoice is created, one per outside service: red for the first 600 ms (an
  * effect only), then amber while it's being fetched while it's
  * being fetched, green once it has arrived, red if it failed or is still
  * missing 1 s before the kiosk would give up (15 s). A service this method
