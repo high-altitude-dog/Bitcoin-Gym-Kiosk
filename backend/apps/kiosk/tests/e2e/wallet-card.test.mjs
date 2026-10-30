@@ -69,6 +69,7 @@ const tiles = (page) => page.locator(".invoice-wallet__tile")
     }, name))
   }
   check("every wallet: each fact on at most two lines, the button inside, the set stars (Binance and Blink 2)", perWallet.every((w) => w.rows.every((h) => h <= 70) && w.backInside && w.stars === STARS[w.name]), JSON.stringify(perWallet))
+  await page.click(".wallet-card__back")
   await page.locator(".invoice-wallet__tile").nth(0).click()
   await page.screenshot({ path: `${SHOTS}/wallet-card-portrait.png` })
   await page.setViewportSize(LANDSCAPE); await page.waitForTimeout(400)
