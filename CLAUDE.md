@@ -453,6 +453,7 @@ To the right of Byte's magic hoops, three UK-style traffic lights (red over ambe
 - **How the kiosk knows:** it sends a random `progress_token` in the payment session's `data` (Medusa passes it to the provider); each provider wraps its outside calls with `track()` (`backend/src/lib/invoice-progress.ts`, in memory, entries kept 5 minutes), and the kiosk polls `GET /store/invoice-progress/:token` every 250 ms from when its request goes out (empty steps for a token with nothing recorded yet, not a 404). Only step states and times are exposed.
 - **Step timings in the log:** every invoice now logs one line, e.g. `bip321: invoice for payses_… in 5120 ms (yadio 2 ms, coinos 4890 ms, bark 130 ms)` (or `… failed after …`), from all three providers, to find where the Bolt12/Ark invoice's 4-8 s goes.
 - Tests: `invoice-lights.test.mjs` (e2e, every state and the layout) and `invoice-progress.unit.spec.ts` (3).
+- **Deployed Oct 30, 2026** (`01df7ee`, with the 15 s invoice limit): backend down 02:50:13-02:57:24 UTC (one detached stop → build → start script, `~/deploy-backend.sh` on the VM); kiosk swapped 02:52:48. Live check, one unpaid Bolt12/Ark invoice through the Store API: progress came back step by step, and the log said `in 2850 ms (yadio 448 ms, coinos 835 ms, bark 2396 ms)`: Bark Pay was the slow step (directly, earlier that night, it answered in under 0.2 s); Yadio's 448 ms was its cache refilling after the restart.
 
 ## Kiosk: Byte while the invoice is created (Oct 7, 2026)
 
