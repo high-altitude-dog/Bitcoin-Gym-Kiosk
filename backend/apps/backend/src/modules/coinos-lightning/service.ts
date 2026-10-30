@@ -26,6 +26,7 @@ import {
 import { CoinosClient } from "./lib/coinos-client"
 import { YadioClient, sharedYadioClient } from "./lib/yadio-client"
 import { COINOS_INVOICE_TYPES, CoinosLightningOptions } from "./types"
+import { formatTimings, InvoiceService, progressToken, startProgress, track } from "../../lib/invoice-progress"
 
 // Constant-time comparison. Hashing first gives both sides the same length,
 // which timingSafeEqual requires, without revealing the secret's length.
@@ -103,21 +104,38 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
     const sessionId = String(input.data?.session_id ?? "")
     const amountBob = Number(input.amount)
 
-    const rate = await this.yadio_.getRate()
-    const satsAmount = this.yadio_.satsForBob(amountBob, rate)
-    const expirySeconds = this.options_.invoiceExpirySeconds ?? DEFAULT_INVOICE_EXPIRY_SECONDS
+    // Each outside service's step is recorded for the kiosk's traffic lights
+    // (lib/invoice-progress.ts) and timed for the log.
+    const token = progressToken(input.data)
+    const timings: Partial<Record<InvoiceService, number | string>> = {}
+    const started = Date.now()
+    startProgress(token, ["yadio", "coinos"])
 
+    let invoice: Awaited<ReturnType<CoinosClient["createInvoice"]>>
+    let rate: Awaited<ReturnType<YadioClient["getRate"]>>
+    let satsAmount: number
+    const expirySeconds = this.options_.invoiceExpirySeconds ?? DEFAULT_INVOICE_EXPIRY_SECONDS
     const type = this.options_.invoiceType ?? "lightning"
-    const invoice = await this.coinos_.createInvoice({
-      amountSats: satsAmount,
-      memo: sessionId,
-      expirySeconds,
-      webhookUrl: this.webhookUrl(),
-      webhookSecret: this.options_.webhookSecret,
-      type,
-      // A BOLT12 offer is reusable by design; one cart must be paid once.
-      singleUse: type === "bolt12",
-    })
+    try {
+      rate = await track(token, "yadio", timings, () => this.yadio_.getRate())
+      satsAmount = this.yadio_.satsForBob(amountBob, rate)
+      invoice = await track(token, "coinos", timings, () =>
+        this.coinos_.createInvoice({
+          amountSats: satsAmount,
+          memo: sessionId,
+          expirySeconds,
+          webhookUrl: this.webhookUrl(),
+          webhookSecret: this.options_.webhookSecret,
+          type,
+          // A BOLT12 offer is reusable by design; one cart must be paid once.
+          singleUse: type === "bolt12",
+        })
+      )
+    } catch (error) {
+      this.logger_.warn(`coinos-lightning: invoice for ${sessionId} failed after ${Date.now() - started} ms (${formatTimings(timings)})`)
+      throw error
+    }
+    this.logger_.info(`coinos-lightning: invoice for ${sessionId} in ${Date.now() - started} ms (${formatTimings(timings)})`)
 
     return {
       id: invoice.id,

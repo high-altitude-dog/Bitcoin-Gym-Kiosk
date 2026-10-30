@@ -97,6 +97,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  * and read cashDesk (the bodies of the front-desk "cobrar" calls, in order),
  *   completeFailures   how many completion calls fail (500) before one succeeds
  *   sessionDelay       ms creating a payment session (the invoice) takes
+ *   serviceTimes / serviceFails  how invoice progress unfolds per service (traffic lights)
  *   arkEnabled         the region offers "Bitcoin Ark" (Bark Pay); off by default
  *   bip321Enabled      the region offers "BIP321 Ark/Bolt12"; off by default
  * and read cart and calls (every request, as "METHOD /path").
@@ -120,6 +121,11 @@ export function createMock() {
     cashDesk: [],
     completeFailures: 0,
     sessionDelay: 0,
+    // Invoice progress for the traffic lights: ms after the invoice request until
+    // each service answers (Infinity: never), and which ones fail instead.
+    serviceTimes: { yadio: 50, coinos: 300, bark: 300 },
+    serviceFails: [],
+    progress: new Map(),
     arkEnabled: false,
     bip321Enabled: false,
     /** Answers every request to API from this page or context. */
@@ -166,7 +172,20 @@ export function createMock() {
           return json({ cart: mock.cart })
         }
         if (url.pathname === "/store/payment-collections") { mock.cart = { ...mock.cart, payment_collection: { id: "pc_1", payment_sessions: [] } }; return json({ payment_collection: mock.cart.payment_collection }) }
+        if (url.pathname.startsWith("/store/invoice-progress/")) {
+          const entry = mock.progress.get(url.pathname.split("/").pop())
+          if (!entry) return json({ steps: {} })
+          const elapsed = Date.now() - entry.at
+          const steps = {}
+          for (const service of entry.services) {
+            steps[service] = { state: mock.serviceFails.includes(service) && elapsed >= mock.serviceTimes[service] ? "failed" : elapsed >= mock.serviceTimes[service] ? "done" : "pending" }
+          }
+          return json({ steps })
+        }
         if (url.pathname.endsWith("/payment-sessions")) {
+          const token = body().data?.progress_token
+          const provider = body().provider_id
+          if (token) mock.progress.set(token, { at: Date.now(), services: provider === LIGHTNING_PROVIDER ? ["yadio", "coinos"] : provider === ARK_PROVIDER ? ["yadio", "bark"] : ["yadio", "coinos", "bark"] })
           await wait(mock.sessionDelay)
           const isLightning = body().provider_id === LIGHTNING_PROVIDER
           mock.sessionProviders.push(body().provider_id)

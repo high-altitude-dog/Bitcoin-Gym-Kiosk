@@ -26,6 +26,7 @@ import { YadioClient, sharedYadioClient } from "../coinos-lightning/lib/yadio-cl
 import { BarkCharge, BarkPayClient, PAID_STATUSES, paymentUri } from "./lib/bark-pay-client"
 import { verifyBarkSignature } from "./lib/webhook-signature"
 import { BarkArkOptions } from "./types"
+import { formatTimings, InvoiceService, progressToken, startProgress, track } from "../../lib/invoice-progress"
 
 type InjectedDependencies = {
   logger: Logger
@@ -75,19 +76,36 @@ class BarkArkProviderService extends AbstractPaymentProvider<BarkArkOptions> {
     const sessionId = String(input.data?.session_id ?? "")
     const amountBob = Number(input.amount)
 
-    const rate = await this.yadio_.getRate()
-    const satsAmount = Math.max(1, this.yadio_.satsForBob(amountBob, rate))
+    // Each outside service's step is recorded for the kiosk's traffic lights
+    // (lib/invoice-progress.ts) and timed for the log.
+    const token = progressToken(input.data)
+    const timings: Partial<Record<InvoiceService, number | string>> = {}
+    const started = Date.now()
+    startProgress(token, ["yadio", "bark"])
     const expirySeconds = this.options_.chargeExpirySeconds ?? DEFAULT_CHARGE_EXPIRY_SECONDS
 
-    const charge = await this.bark_.createCharge({
-      amountSat: satsAmount,
-      reference: sessionId,
-      description: `Armor Gym, Bs ${amountBob}`,
-      expiresIn: expirySeconds,
-      rails: ["ark", "lightning"],
-      // One charge per payment session, even if Medusa retries the call.
-      idempotencyKey: `kiosk-${sessionId}`,
-    })
+    let rate: Awaited<ReturnType<YadioClient["getRate"]>>
+    let satsAmount: number
+    let charge: BarkCharge
+    try {
+      rate = await track(token, "yadio", timings, () => this.yadio_.getRate())
+      satsAmount = Math.max(1, this.yadio_.satsForBob(amountBob, rate))
+      charge = await track(token, "bark", timings, () =>
+        this.bark_.createCharge({
+          amountSat: satsAmount,
+          reference: sessionId,
+          description: `Armor Gym, Bs ${amountBob}`,
+          expiresIn: expirySeconds,
+          rails: ["ark", "lightning"],
+          // One charge per payment session, even if Medusa retries the call.
+          idempotencyKey: `kiosk-${sessionId}`,
+        })
+      )
+    } catch (error) {
+      this.logger_.warn(`bark-ark: charge for ${sessionId} failed after ${Date.now() - started} ms (${formatTimings(timings)})`)
+      throw error
+    }
+    this.logger_.info(`bark-ark: charge for ${sessionId} in ${Date.now() - started} ms (${formatTimings(timings)})`)
 
     return {
       id: charge.id,

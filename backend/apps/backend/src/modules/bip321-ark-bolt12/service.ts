@@ -25,6 +25,7 @@ import { CoinosClient } from "../coinos-lightning/lib/coinos-client"
 import { YadioClient, sharedYadioClient } from "../coinos-lightning/lib/yadio-client"
 import { BarkPayClient, PAID_STATUSES, btcAmount } from "../bark-ark/lib/bark-pay-client"
 import { Bip321Options } from "./types"
+import { formatTimings, InvoiceService, progressToken, startProgress, track } from "../../lib/invoice-progress"
 
 type InjectedDependencies = {
   logger: Logger
@@ -91,29 +92,50 @@ class Bip321ProviderService extends AbstractPaymentProvider<Bip321Options> {
     const sessionId = String(input.data?.session_id ?? "")
     const amountBob = Number(input.amount)
 
-    const rate = await this.yadio_.getRate()
-    const satsAmount = Math.max(1, this.yadio_.satsForBob(amountBob, rate))
+    // Each outside service's step is recorded for the kiosk's traffic lights
+    // (lib/invoice-progress.ts) and timed for the log: this invoice often took
+    // 4-8 s (Oct 29-30, 2026) and the log should show which part.
+    const token = progressToken(input.data)
+    const timings: Partial<Record<InvoiceService, number | string>> = {}
+    const started = Date.now()
+    startProgress(token, ["yadio", "coinos", "bark"])
     const expirySeconds = this.options_.expirySeconds ?? DEFAULT_EXPIRY_SECONDS
 
-    const [offer, charge] = await Promise.all([
-      this.coinos_.createInvoice({
-        amountSats: satsAmount,
-        memo: sessionId,
-        expirySeconds,
-        webhookUrl: `${this.options_.webhookBaseUrl.replace(/\/+$/, "")}/hooks/coinos`,
-        webhookSecret: this.options_.coinosWebhookSecret,
-        type: "bolt12",
-        singleUse: true,
-      }),
-      this.bark_.createCharge({
-        amountSat: satsAmount,
-        reference: sessionId,
-        description: `Armor Gym, Bs ${amountBob} (BIP321)`,
-        expiresIn: expirySeconds,
-        rails: ["ark"],
-        idempotencyKey: `kiosk-bip321-${sessionId}`,
-      }),
-    ])
+    let rate: Awaited<ReturnType<YadioClient["getRate"]>>
+    let satsAmount: number
+    let offer: Awaited<ReturnType<CoinosClient["createInvoice"]>>
+    let charge: Awaited<ReturnType<BarkPayClient["createCharge"]>>
+    try {
+      rate = await track(token, "yadio", timings, () => this.yadio_.getRate())
+      satsAmount = Math.max(1, this.yadio_.satsForBob(amountBob, rate))
+      ;[offer, charge] = await Promise.all([
+        track(token, "coinos", timings, () =>
+          this.coinos_.createInvoice({
+            amountSats: satsAmount,
+            memo: sessionId,
+            expirySeconds,
+            webhookUrl: `${this.options_.webhookBaseUrl.replace(/\/+$/, "")}/hooks/coinos`,
+            webhookSecret: this.options_.coinosWebhookSecret,
+            type: "bolt12",
+            singleUse: true,
+          })
+        ),
+        track(token, "bark", timings, () =>
+          this.bark_.createCharge({
+            amountSat: satsAmount,
+            reference: sessionId,
+            description: `Armor Gym, Bs ${amountBob} (BIP321)`,
+            expiresIn: expirySeconds,
+            rails: ["ark"],
+            idempotencyKey: `kiosk-bip321-${sessionId}`,
+          })
+        ),
+      ])
+    } catch (error) {
+      this.logger_.warn(`bip321: invoice for ${sessionId} failed after ${Date.now() - started} ms (${formatTimings(timings)})`)
+      throw error
+    }
+    this.logger_.info(`bip321: invoice for ${sessionId} in ${Date.now() - started} ms (${formatTimings(timings)})`)
 
     const arkAddress = charge.rails.find((r) => r.rail === "ark")?.value
     if (!arkAddress || !offer.text) {

@@ -7,6 +7,7 @@ import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
 import { ByteLoader } from "./ByteLoader"
+import { InvoiceLights } from "./InvoiceLights"
 import { SUGGESTED_WALLETS, WALLETS, type Wallet } from "../lib/wallets"
 import { BANK_QR_OPTIONS, BANK_QR_PAYLOAD } from "../lib/bankQr"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
@@ -15,6 +16,8 @@ interface Props {
   cart: HttpTypes.StoreCart
   paymentMethod: PaymentMethod
   invoice: LightningInvoice | null
+  // The invoice being created, for the traffic lights beside Byte.
+  invoiceProgress: { token: string; requestedAt: number | null } | null
   paymentStatus: PaymentStatus
   error: string | null
   onBankQrPaid: () => Promise<void>
@@ -75,6 +78,7 @@ export function PaymentScreen({
   cart,
   paymentMethod,
   invoice,
+  invoiceProgress,
   paymentStatus,
   error,
   onBankQrPaid,
@@ -200,7 +204,14 @@ export function PaymentScreen({
   if (!invoice) {
     return (
       <div className="screen screen--center screen--black">
-        <ByteLoader label={t.creatingInvoice} />
+        <ByteLoader
+          label={t.creatingInvoice}
+          aside={
+            paymentMethod === "lightning" || paymentMethod === "ark" || paymentMethod === "bip321" ? (
+              <InvoiceLights method={paymentMethod} progress={invoiceProgress} />
+            ) : null
+          }
+        />
         <button className="back-button" onClick={onCancel}>
           {t.cancel}
         </button>

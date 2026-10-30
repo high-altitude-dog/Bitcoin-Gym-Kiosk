@@ -116,6 +116,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
         cart={kiosk.cart}
         paymentMethod={kiosk.paymentMethod}
         invoice={kiosk.invoice}
+        invoiceProgress={kiosk.invoiceProgress}
         paymentStatus={kiosk.paymentStatus}
         error={kiosk.error}
         onBankQrPaid={kiosk.confirmBankQrPaid}

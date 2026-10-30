@@ -69,6 +69,10 @@ interface KioskState {
   pending: Record<string, number>
   order: HttpTypes.StoreOrder | null
   invoice: LightningInvoice | null
+  // The invoice being created, for the traffic lights on Byte's screen: a random
+  // token sent with the request (the server records each outside service's
+  // progress under it) and when the request went out (null until then).
+  invoiceProgress: { token: string; requestedAt: number | null } | null
   paymentStatus: PaymentStatus
   paymentMethod: PaymentMethod
   // The payment button tapped while taps were still being saved: it shows
@@ -78,6 +82,12 @@ interface KioskState {
   cashDeadline: number | null
   loading: boolean
   error: string | null
+}
+
+// A random token for one invoice request's progress (lib/invoice-progress.ts on the backend).
+function newProgressToken(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID().replace(/-/g, "")
+  return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
 }
 
 export function useKiosk() {
@@ -92,6 +102,7 @@ export function useKiosk() {
     pending: {},
     order: null,
     invoice: null,
+    invoiceProgress: null,
     paymentStatus: null,
     paymentMethod: null,
     savingFor: null,
@@ -479,9 +490,11 @@ export function useKiosk() {
           return
         }
 
+        const progressToken = newProgressToken()
+        setState((s) => ({ ...s, invoiceProgress: { token: progressToken, requestedAt: Date.now() } }))
         const { payment_collection } = await sdk.store.payment.initiatePaymentSession(
           cart,
-          { provider_id: providerId },
+          { provider_id: providerId, data: { progress_token: progressToken } },
           { fields: "+payment_sessions.data,+payment_sessions.provider_id" }
         )
         if (epoch !== epochRef.current) return
@@ -496,11 +509,11 @@ export function useKiosk() {
 
         invoiceRef.current = invoice
         cartRef.current = cart
-        setState((s) => ({ ...s, cart, invoice, paymentStatus: "awaiting" }))
+        setState((s) => ({ ...s, cart, invoice, invoiceProgress: null, paymentStatus: "awaiting" }))
         pollForPayment(cart.id)
       } catch {
         if (epoch !== epochRef.current) return
-        setState((s) => ({ ...s, error: t.errorInvoiceFailed, screen: "payment-method" }))
+        setState((s) => ({ ...s, error: t.errorInvoiceFailed, invoiceProgress: null, screen: "payment-method" }))
       }
     },
     [pollForPayment, stopPolling]
@@ -693,6 +706,7 @@ export function useKiosk() {
       pending: {},
       order: null,
       invoice: null,
+      invoiceProgress: null,
       paymentStatus: null,
       paymentMethod: null,
       savingFor: null,

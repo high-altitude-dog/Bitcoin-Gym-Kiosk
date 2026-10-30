@@ -39,6 +39,11 @@ const es = {
   payWithBip321: "Pagar con Bitcoin - Bolt12/Ark",
   // The sash on that button (design only: no discount is applied yet).
   bip321Discount: "Ahorrá el 10%",
+  // The traffic lights beside Byte while an invoice is created (read by screen readers).
+  lightOff: "no se usa",
+  lightAmber: "esperando",
+  lightGreen: "listo",
+  lightRed: "falló",
   back: "Atrás",
   // Added for App.tsx's loading/retry screen and useKiosk.ts's error
   // messages, the last English text left in the kiosk.
@@ -149,6 +154,10 @@ const en: Strings = {
   payWithArk: "Pay with Bitcoin Ark/Bolt11",
   payWithBip321: "Pay with Bitcoin - Bolt12/Ark",
   bip321Discount: "Save 10%",
+  lightOff: "not used",
+  lightAmber: "waiting",
+  lightGreen: "ready",
+  lightRed: "failed",
   back: "Back",
   loading: "Loading...",
   reconnecting: "Reconnecting...",

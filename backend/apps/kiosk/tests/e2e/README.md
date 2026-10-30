@@ -18,6 +18,7 @@ npm run test:e2e -- rotation  # only suites whose file name contains "rotation"
 - `exit-button.test.mjs`: the "Inicio" back-to-start button at the top right of the shop (both orientations), which clears the cart.
 - `bark.test.mjs`: one dog bark as "¡Pago recibido!" appears for Lightning, Bitcoin Ark and BIP321 (not again when the order arrives), none for cash or bank QR; the mp3 is in the build and precached.
 - `bip321.test.mjs`: the yellow "BIP321 Ark/Bolt12" button after Bitcoin Ark (five options in both orientations), its QR (Ark address + BOLT12 offer), reuse after "Cancelar", and a paid session completing once.
+- `invoice-lights.test.mjs`: the traffic lights beside Byte while an invoice is created: amber from the tap, green as each service answers, red on failure or at 14 s, off when unused; layout in both orientations.
 - `invoice-timeout.test.mjs`: creating an invoice may take up to 15 s (a 12 s one still shows its QR; a 17 s one gives up at about 15 s with the error); other requests stay at 10 s.
 - `lang.test.mjs`: the Bolivia and UK flags (start screen, shop, Wi-Fi screen), English through a whole visit, and the reset to Spanish.
 - `lightning-confirmed.test.mjs`: a confirmed payment shows "¡Pago recibido!" at once and the order once it exists, including a failed first attempt.

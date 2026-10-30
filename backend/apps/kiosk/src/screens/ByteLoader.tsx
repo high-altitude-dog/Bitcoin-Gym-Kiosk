@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { KIOSK } from "../lib/stageConfig"
 
 /**
@@ -7,12 +8,13 @@ import { KIOSK } from "../lib/stageConfig"
  * mid-loop). The art is unaltered; its black ground is baked in, so it sits
  * on a pure black screen. Reduced motion gets the still frame.
  */
-export function ByteLoader({ label }: { label: string }) {
+export function ByteLoader({ label, aside }: { label: string; aside?: ReactNode }) {
   const base = `${KIOSK.assets}byte/`
   const reduceMotion =
     typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
   return (
-    <div className="byte-loader" role="status" aria-label={label}>
+    <div className={`byte-loader${aside ? " byte-loader--aside" : ""}`} role="status" aria-label={label}>
+      <div className="byte-loader__row">
       {reduceMotion ? (
         <img className="byte-loader__art" src={`${base}byte-magic-hoops-still.png`} width={606} height={326} alt="" />
       ) : (
@@ -30,6 +32,8 @@ export function ByteLoader({ label }: { label: string }) {
           aria-hidden
         />
       )}
+      {aside}
+      </div>
       <p className="byte-loader__label">{label}</p>
     </div>
   )

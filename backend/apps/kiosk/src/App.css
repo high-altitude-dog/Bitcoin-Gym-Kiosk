@@ -495,3 +495,33 @@
 }
 .invoice-wallet__name { font: 600 30px/1.2 var(--k-font); color: var(--k-text); white-space: nowrap; }
 .k-stage[data-orientation="landscape"] .invoice .payment-side { gap: 48px; }
+
+/* Traffic lights beside Byte while an invoice is created (InvoiceLights.tsx):
+   one UK-style signal per outside service, red over amber over green, only the
+   current lamp lit; a service the method doesn't use is dimmed with every lamp
+   dark. With them, Byte is capped at 720 px so all fits the portrait stage. */
+.byte-loader__row { display: flex; align-items: center; justify-content: center; gap: 40px; width: 100%; }
+.byte-loader--aside .byte-loader__art { flex: 0 1 720px; min-width: 0; max-width: 720px; }
+.invoice-lights { display: flex; gap: 16px; flex: none; margin: 0; padding: 0; list-style: none; }
+.invoice-light { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 96px; }
+.invoice-light__housing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+  border-radius: 20px;
+  background: #121212;
+  box-shadow: inset 0 0 0 3px #3a3a3a;
+}
+.invoice-light__lamp { display: block; width: 40px; height: 40px; border-radius: 50%; transition: background-color 150ms, box-shadow 150ms; }
+.invoice-light__lamp--red { background: #3a1210; }
+.invoice-light__lamp--amber { background: #3a2a08; }
+.invoice-light__lamp--green { background: #0b2e1a; }
+.invoice-light--red .invoice-light__lamp--red { background: #ff3b30; box-shadow: 0 0 18px 4px rgba(255, 59, 48, 0.6); }
+.invoice-light--amber .invoice-light__lamp--amber { background: #ffb000; box-shadow: 0 0 18px 4px rgba(255, 176, 0, 0.55); }
+.invoice-light--green .invoice-light__lamp--green { background: #1fd165; box-shadow: 0 0 18px 4px rgba(31, 209, 101, 0.55); }
+.invoice-light--off { opacity: 0.4; }
+.invoice-light__label { font: 600 24px/1.1 var(--k-font); color: var(--k-text); white-space: nowrap; }
+.invoice-light--off .invoice-light__label { color: var(--k-text-2); }
+@media (prefers-reduced-motion: reduce) { .invoice-light__lamp { transition: none; } }
