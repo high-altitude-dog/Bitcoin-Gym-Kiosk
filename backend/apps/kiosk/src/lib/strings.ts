@@ -115,7 +115,7 @@ const es = {
   walletWhat: "¿Qué es esto?",
   walletClose: "Cerrar",
   walletStars: (n: number) => `Soberanía: ${n} de 5 estrellas`,
-  sovereigntyTitle: "Puntaje de soberanía: una estrella por punto",
+  sovereigntyTitle: "Lo que mira el puntaje de soberanía",
   sovereigntyPoints: [
     "Tú controlas tus fondos (tus llaves, o auto-sweep a otra billetera)",
     "Sin documento ni teléfono para empezar",
@@ -238,7 +238,7 @@ const en: Strings = {
   walletWhat: "What's this?",
   walletClose: "Close",
   walletStars: (n: number) => `Sovereignty: ${n} of 5 stars`,
-  sovereigntyTitle: "Sovereignty score: one star per point",
+  sovereigntyTitle: "What the sovereignty score looks at",
   sovereigntyPoints: [
     "You control your funds (your keys, or auto-sweep to another wallet)",
     "No ID or phone number to start",

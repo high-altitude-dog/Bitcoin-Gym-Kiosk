@@ -26,7 +26,7 @@ export function WalletCard({
   const lang = useLang()
   const wallet = WALLETS[id]
   const info = WALLET_INFO[id]
-  const score = info.points.filter(Boolean).length
+  const score = info.stars
 
   return (
     <section className="wallet-card" aria-label={t.walletDetails} data-wallet={id}>
@@ -95,14 +95,14 @@ export function WalletCard({
             <dt>{t.walletFunds}</dt>
             <dd className="wallet-card__text">
               {info.selfCustody ? <KeyIcon /> : <BankIcon />}
-              {info.custody[lang]}
+              <span>{info.custody[lang]}</span>
             </dd>
           </div>
           <div>
             <dt>{t.walletBuySell}</dt>
             <dd className={`wallet-card__text${info.canBuy ? "" : " is-muted"}`}>
               {info.canBuy ? <CheckIcon /> : <CrossIcon />}
-              {info.buy[lang]}
+              <span>{info.buy[lang]}</span>
             </dd>
           </div>
           <div>

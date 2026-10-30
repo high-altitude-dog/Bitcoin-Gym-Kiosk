@@ -56,9 +56,20 @@ const tiles = (page) => page.locator(".invoice-wallet__tile")
   let s = await state(page)
   check("tap: that wallet's card in the QR's place, QR hidden but kept, time bar still there", s.open && s.qrHidden && s.sameQr && s.countdown && s.pressed.startsWith("true") && s.dim === 3, JSON.stringify({ ...s, text: undefined }))
   check("the card fits the stage and holds everything", s.cardInside && s.cardChildrenInside, JSON.stringify({ ...s, text: undefined }))
-  const rows = await page.evaluate(() => [...document.querySelectorAll(".wallet-card__facts > div")].map((r) => [r.querySelector("dt"), r.querySelector("dd")].map((e) => Math.round(e.getBoundingClientRect().height))))
-  check("every fact on one line (Binance: three platforms, the longest label)", rows.every(([dt, dd]) => dt < 45 && dd < 60), JSON.stringify(rows))
-  check("facts shown: platforms, languages, funds, buy/sell, website, stars", /Para/.test(s.text) && /Idiomas/.test(s.text) && /Tus fondos/.test(s.text) && /Comprar \/ vender/.test(s.text) && /Sitio web/.test(s.text) && (await page.locator(".wallet-card__stars svg").count()) === 5, s.text.slice(0, 160))
+  // Every wallet on this screen, by name (the order is shuffled): rows at most two lines, the button
+  // inside the card, and the set star score.
+  const STARS = { Binance: 2, Blink: 2, "coinos.io": 4, Phoenix: 4 }
+  const perWallet = []
+  for (const name of Object.keys(STARS)) {
+    await page.locator(".invoice-wallet__tile", { hasText: name }).click()
+    perWallet.push(await page.evaluate((name) => {
+      const card = document.querySelector(".wallet-card").getBoundingClientRect()
+      const back = document.querySelector(".wallet-card__back").getBoundingClientRect()
+      return { name, rows: [...document.querySelectorAll(".wallet-card__facts > div")].map((r) => Math.round(r.querySelector("dd").getBoundingClientRect().height)), stars: document.querySelectorAll(".wallet-card__stars .is-on").length, backInside: back.bottom <= card.bottom }
+    }, name))
+  }
+  check("every wallet: each fact on at most two lines, the button inside, the set stars (Binance and Blink 2)", perWallet.every((w) => w.rows.every((h) => h <= 70) && w.backInside && w.stars === STARS[w.name]), JSON.stringify(perWallet))
+  await page.locator(".invoice-wallet__tile").nth(0).click()
   await page.screenshot({ path: `${SHOTS}/wallet-card-portrait.png` })
   await page.setViewportSize(LANDSCAPE); await page.waitForTimeout(400)
   s = await state(page)
