@@ -10,7 +10,7 @@ import "./drawing-room.css"
  * 2026; mock-up https://claude.ai/artifact/CePGf4aFMdPSXVccdxoA5L): a
  * drawing room in white line on black, Byte's art style, with Byte jumping
  * through the magic hoops on a rug, a marble fireplace with a real-looking
- * fire, a gasolier, and (landscape) a cactus. The three outside services hang
+ * fire, and (landscape) a cactus. The three outside services hang
  * on the wall as portraits (from the "Status-Dogs" artifact): each painting
  * and the halo around it show that service's status in red, amber or green
  * (useInvoiceLights). A service the method doesn't use leaves a faint patch
@@ -19,11 +19,9 @@ import "./drawing-room.css"
  */
 type Geometry = {
   floorY: number
-  corniceH: number
   byte: { x: number; w: number; feet: number }
   rug: { x: number; y: number; w: number; h: number }
   fp: { x: number; y: number; w: number; h: number }
-  chand: { x: number; y: number }
   hang: Record<Service, { x: number; y: number; w: number; rot: number }>
   cactus?: { x: number; w: number; h: number }
   captionY: number
@@ -31,11 +29,9 @@ type Geometry = {
 
 const PORTRAIT: Geometry = {
   floorY: 1240,
-  corniceH: 90,
   byte: { x: -40, w: 760, feet: 1330 },
   rug: { x: -240, y: 1272, w: 940, h: 145 },
   fp: { x: 790, y: 990, w: 460, h: 250 },
-  chand: { x: 200, y: 90 },
   hang: {
     coinos: { x: 802, y: 330, w: 210, rot: -3.2 },
     yadio: { x: 1036, y: 360, w: 156, rot: 2.6 },
@@ -46,11 +42,9 @@ const PORTRAIT: Geometry = {
 
 const LANDSCAPE: Geometry = {
   floorY: 880,
-  corniceH: 64,
   byte: { x: -40, w: 900, feet: 950 },
   rug: { x: -260, y: 905, w: 1180, h: 135 },
   fp: { x: 1060, y: 650, w: 520, h: 230 },
-  chand: { x: 330, y: 64 },
   hang: {
     coinos: { x: 1000, y: 240, w: 190, rot: -3.2 },
     yadio: { x: 1222, y: 316, w: 196, rot: 2.6 },
@@ -81,7 +75,6 @@ if (typeof window !== "undefined") {
     }
 }
 
-const GAS_SHADES: [number, number][] = [[30, 160], [270, 160], [76, 180], [224, 180], [150, 186]]
 
 export function DrawingRoom({
   method,
@@ -108,11 +101,8 @@ export function DrawingRoom({
   const px = (n: number) => `${n}px`
   const fpCx = g.fp.x + g.fp.w / 2
 
+  // The skirting board; the cornice band and the gasolier came out on Oct 30, 2026 (the developer).
   const lines = [
-    { y: g.corniceH - 30, w: 1.6, dash: undefined, o: 0.8 },
-    { y: g.corniceH - 15, w: 8, dash: "10 8", o: 0.55 },
-    { y: g.corniceH, w: 2.6, dash: undefined, o: 1 },
-    { y: g.corniceH + 8, w: 1.4, dash: undefined, o: 0.7 },
     { y: g.floorY - 26, w: 2, dash: undefined, o: 0.85 },
     { y: g.floorY, w: 2.6, dash: undefined, o: 1 },
   ]
@@ -145,8 +135,6 @@ export function DrawingRoom({
 
       <Fireplace style={{ left: px(g.fp.x), top: px(g.fp.y), width: px(g.fp.w), height: px(g.fp.h) }} />
       <div className="dr-hearth" style={{ left: px(g.fp.x - 24), top: px(g.floorY), width: px(g.fp.w + 48) }} />
-
-      <Gasolier style={{ left: px(g.chand.x), top: px(g.chand.y) }} />
 
       {g.cactus && <Cactus style={{ left: px(g.cactus.x), top: px(g.floorY + 18 - g.cactus.h), width: px(g.cactus.w), height: px(g.cactus.h) }} />}
 
@@ -320,40 +308,6 @@ function Fireplace({ style }: { style: CSSProperties }) {
         <path d="M100 252.5h260" strokeWidth="1.4" strokeDasharray="5 6" opacity="0.8" />
         <circle cx="86" cy="252" r="6" strokeWidth="2" />
         <circle cx="374" cy="252" r="6" strokeWidth="2" />
-      </g>
-    </svg>
-  )
-}
-
-function Gasolier({ style }: { style: CSSProperties }) {
-  return (
-    <svg className="dr-abs" style={style} width="300" height="340" viewBox="0 0 300 340" aria-hidden>
-      <g fill="none" stroke="#f5f5f5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M118 1h64q-4 14-32 14T118 1z" strokeWidth="2.2" />
-        <path d="M146 15v95M154 15v95" strokeWidth="1.8" />
-        <ellipse cx="150" cy="46" rx="9" ry="6" strokeWidth="2" />
-        <ellipse cx="150" cy="84" rx="12" ry="8" strokeWidth="2" />
-        <path d="M140 84h20" strokeWidth="1.2" opacity="0.7" />
-        <path d="M146 104c-30 10-70 22-96 50M154 104c30 10 70 22 96 50M148 110c-16 18-34 40-42 66M152 110c16 18 34 40 42 66" strokeWidth="2" />
-        <path d="M30 160a120 26 0 0 1 240 0" strokeWidth="1.6" opacity="0.7" />
-        <path d="M30 160a120 26 0 0 0 240 0" strokeWidth="3" />
-        <path d="M34 166a116 22 0 0 0 232 0" strokeWidth="1.2" strokeDasharray="2 6" opacity="0.8" />
-        <ellipse cx="150" cy="150" rx="30" ry="7" strokeWidth="2.2" />
-        <path d="M120 150q30 50 60 0" strokeWidth="2.2" />
-        <path d="M134 162q16 6 32 0M138 170q12 5 24 0" strokeWidth="1.2" opacity="0.7" />
-        <path d="M150 176v18" strokeWidth="2" />
-        <path d="M142 194h16l-2 10q-6 18-6 18t-6-18z" strokeWidth="2" />
-        <path d="M150 222v10" strokeWidth="1.6" />
-        <circle cx="150" cy="236" r="4" strokeWidth="1.6" />
-        {GAS_SHADES.map(([x, b]) => (
-          <g key={x}>
-            <path d={`M${x} ${b}q-6-10 0-24`} strokeWidth="2.2" />
-            <ellipse cx={x} cy={b - 26} rx="9" ry="3" strokeWidth="1.8" />
-            <path d={`M${x - 8} ${b - 28}q-14-8-17-42q8 6 17 6q8 0 17-6q-3 34-17 42z`} strokeWidth="2.2" fill="rgba(245,245,245,0.09)" />
-            <path d={`M${x - 10} ${b - 50}q10 6 20 0M${x - 6} ${b - 40}q6 4 12 0`} strokeWidth="1" opacity="0.65" />
-            <ellipse cx={x} cy={b - 70} rx="17" ry="4" strokeWidth="1.6" />
-          </g>
-        ))}
       </g>
     </svg>
   )

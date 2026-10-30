@@ -90,11 +90,12 @@
   width: max-content;
   margin: 0;
   text-align: center;
-  font: italic 600 72px/1.1 "Cormorant Garamond", Georgia, serif;
-  color: #f5f5f5;
-  letter-spacing: 0.01em;
+  font: 700 72px/1.1 "Playfair Display", Georgia, serif;
+  color: #ffffff;
+  letter-spacing: 0.005em;
+  text-shadow: 0 0 24px rgba(255, 176, 80, 0.35), 0 2px 0 rgba(0, 0, 0, 0.6);
 }
-.k-stage[data-orientation="landscape"] .drawing-room .dr-caption { font-size: 64px; }
+.k-stage[data-orientation="landscape"] .drawing-room .dr-caption { font-size: 72px; }
 
 /* "Cancelar": centred under the caption in portrait, bottom right in landscape. */
 .drawing-room .dr-cancel { position: absolute; left: 50%; top: 1680px; transform: translateX(-50%); }
