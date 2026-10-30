@@ -85,7 +85,6 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   await page.waitForSelector(".payment-qr", { timeout: 10000 })
   const shown = await page.evaluate(() => ({
     src: document.querySelector(".payment-qr").getAttribute("src"),
-    mark: document.querySelector(".payment-ark-mark")?.textContent,
     note: [...document.querySelectorAll(".payment-note")].map((n) => n.textContent).join(" | "),
   }))
   // Module by module, as in ark.test.mjs (PNG bytes differ between Node and the browser).
@@ -105,9 +104,9 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   const expected = Array.from(modules.data, (b) => (b ? 1 : 0)).join("")
   check(`${name}: a BIP321 session was created`, mock.sessionProviders.at(-1) === BIP321_PROVIDER, JSON.stringify(mock.sessionProviders))
   check(`${name}: the QR holds the BIP 321 URI (Ark + BOLT12)`, onScreen === expected, `${modules.size}x${modules.size}`)
-  check(`${name}: BIP321 mark and the Ark-or-Bolt12 note`, shown.mark === "Bitcoin - Bolt12/Ark" && /Ark o Bolt12/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
+  check(`${name}: the Ark-or-Bolt12 note`, /Ark o Bolt12/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
   const inv = await invoiceLayout(page)
-  check(`${name}: chip "Bitcoin - Bolt12/Ark", wallets Arké, Noah, Phoenix and coinos.io, logos loaded, nothing overlapping`, inv.chip === "Bitcoin - Bolt12/Ark" && inv.wallets === "Arké,Noah,Phoenix,coinos.io" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
+  check(`${name}: Bolt12/Ark screen, wallets Arké, Noah, Phoenix and coinos.io, logos loaded, nothing overlapping`, inv.method === "bip321" && inv.aligned && inv.logoSize === 144 && inv.wallets === "Arké,Noah,Phoenix,coinos.io" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
   await page.screenshot({ path: `${SHOTS}/bip321-qr-${name}.png` })
 
   if (name === "portrait") {
@@ -120,12 +119,12 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
     await page.click(".back-button")
     await page.waitForSelector(".k-method")
     await page.click(".k-method__option--ark")
-    await page.waitForSelector(".payment-ark-mark")
+    await page.waitForSelector(".invoice--ark")
     check("Bitcoin Ark after BIP321 creates an Ark session", mock.sessionProviders.at(-1) === ARK_PROVIDER, JSON.stringify(mock.sessionProviders))
     await page.click(".back-button")
     await page.waitForSelector(".k-method")
     await page.click(".k-method__option--bip321")
-    await page.waitForFunction(() => document.querySelector(".payment-ark-mark")?.textContent === "Bitcoin - Bolt12/Ark")
+    await page.waitForSelector(".invoice--bip321")
 
     mock.orderItems = [{ id: "i1", quantity: 1, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
     mock.paid = true

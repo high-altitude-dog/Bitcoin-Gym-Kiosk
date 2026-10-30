@@ -65,7 +65,6 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   await page.waitForSelector(".payment-qr", { timeout: 10000 })
   const shown = await page.evaluate(() => ({
     src: document.querySelector(".payment-qr").getAttribute("src"),
-    mark: document.querySelector(".payment-ark-mark")?.textContent,
     note: [...document.querySelectorAll(".payment-note")].map((n) => n.textContent).join(" | "),
     sats: document.querySelector(".payment-sats")?.textContent,
   }))
@@ -87,9 +86,9 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   const expected = Array.from(modules.data, (b) => (b ? 1 : 0)).join("")
   check(`${name}: an Ark session was created`, mock.sessionProviders.at(-1) === ARK_PROVIDER, JSON.stringify(mock.sessionProviders))
   check(`${name}: the QR holds the BIP 321 URI (Ark + Lightning)`, onScreen === expected, `${modules.size}x${modules.size}`)
-  check(`${name}: Bitcoin Ark mark, sats and the Ark-or-Lightning note`, shown.mark === "Bitcoin Ark/Bolt11" && /588/.test(shown.sats) && /Ark o Lightning/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
+  check(`${name}: sats and the Ark-or-Lightning note`, /588/.test(shown.sats) && /Ark o Lightning/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
   const inv = await invoiceLayout(page)
-  check(`${name}: chip "Bitcoin Ark/Bolt11", wallets Arké, Noah and coinos.io, logos loaded, nothing overlapping`, inv.chip === "Bitcoin Ark/Bolt11" && inv.wallets === "Arké,Noah,coinos.io" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
+  check(`${name}: Ark/Bolt11 screen, wallets Arké, Noah and coinos.io, logos loaded, nothing overlapping`, inv.method === "ark" && inv.aligned && inv.logoSize === 144 && inv.wallets === "Arké,Noah,coinos.io" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
   await page.screenshot({ path: `${SHOTS}/ark-qr-${name}.png` })
 
   if (name === "portrait") {

@@ -222,12 +222,22 @@ export function createMock() {
 export async function invoiceLayout(page) {
   return page.evaluate(() => {
     const stage = document.querySelector(".k-stage").getBoundingClientRect()
-    const parts = [".invoice-method", ".payment-sats", ".payment-qr", ".invoice-timer", ".invoice-wallets", ".back-button"].map((s) => document.querySelector(s)?.getBoundingClientRect())
+    const parts = [".payment-sats", ".payment-qr", ".invoice-timer", ".invoice-wallets", ".back-button"].map((s) => document.querySelector(s)?.getBoundingClientRect())
     const present = parts.every(Boolean)
     const inside = present && parts.every((r) => r.left >= stage.left - 1 && r.right <= stage.right + 1 && r.top >= stage.top - 1 && r.bottom <= stage.bottom + 1)
     const apart = present && parts.every((a, i) => parts.every((b, j) => i === j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top))
     return {
-      chip: document.querySelector(".invoice-method")?.textContent,
+      method: ["lightning", "ark", "bip321"].find((m) => document.querySelector(`.invoice--${m}`)),
+      // Portrait: the wallet card as wide as the QR and centred under it. Landscape: the amount,
+      // the wallet card and "Cancelar" on one centre line.
+      aligned: (() => {
+        const r = (s) => document.querySelector(s).getBoundingClientRect(), mid = (b) => b.left + b.width / 2
+        const qr = r(".payment-qr"), card = r(".invoice-wallets"), sats = r(".payment-amounts"), cancel = r(".back-button")
+        return document.querySelector(".k-stage").dataset.orientation === "landscape"
+          ? Math.abs(mid(card) - mid(sats)) < 2 && Math.abs(mid(cancel) - mid(sats)) < 2
+          : Math.abs(card.width - qr.width) < 2 && Math.abs(mid(card) - mid(qr)) < 2
+      })(),
+      logoSize: Math.round(document.querySelector(".invoice-wallet__logo").getBoundingClientRect().width / (document.querySelector(".k-stage").getBoundingClientRect().width / (document.querySelector(".k-stage").dataset.orientation === "landscape" ? 1920 : 1200))),
       wallets: [...document.querySelectorAll(".invoice-wallet__name")].map((n) => n.textContent).join(","),
       logosLoaded: [...document.querySelectorAll("img.invoice-wallet__logo")].every((i) => i.complete && i.naturalWidth === 256) && document.querySelectorAll("img.invoice-wallet__logo").length === document.querySelectorAll(".invoice-wallet").length,
       present,

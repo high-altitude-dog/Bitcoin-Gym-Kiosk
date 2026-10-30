@@ -262,7 +262,6 @@ export function PaymentScreen({
       </div>
       <div className="payment-side">
         <div className="invoice-head">
-          <p className="payment-ark-mark invoice-method">{ark ? t.arkMark : bip321 ? t.bip321Mark : t.lightningMark}</p>
           {/* The amount being charged (sats) leads; the Bs price follows, smaller. */}
           <div className="payment-amounts">
             <p className="payment-sats">{invoice.satsAmount.toLocaleString("es-BO")} sats</p>

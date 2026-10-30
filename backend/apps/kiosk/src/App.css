@@ -91,16 +91,6 @@
   width: 240px;
   height: auto;
 }
-/* Where the Lightning logo sits, for a Bitcoin Ark invoice (no logo file yet). */
-.payment-ark-mark {
-  margin: 0;
-  padding: 10px 28px;
-  border-radius: 999px;
-  background: #7b3fe4;
-  color: #fff;
-  font-weight: 700;
-  font-size: 36px;
-}
 
 /* Under the bank QR: BCP's mark in a white box on a navy band, like the card on the front desk. */
 .bank-logo {
@@ -463,14 +453,12 @@
 }
 
 
-/* Bitcoin QR screens (Oct 29, 2026 design pass). Top to bottom in portrait:
-   the method chip (the tapped button's colour), the amount, the QR with a time
-   bar, the suggested wallets, "Cancelar". In landscape the QR card is on the
-   left (see the .payment-* rules above). */
+/* Bitcoin QR screens (Oct 29, 2026 design pass; the method chip above the
+   amount removed Oct 30 for bigger wallet logos). Top to bottom in portrait:
+   the amount, the QR with a time bar, the suggested wallets, "Cancelar". In
+   landscape the QR card is on the left (see the .payment-* rules above). */
 .screen--center.invoice { gap: 56px; }
 .invoice-head { display: flex; flex-direction: column; align-items: center; gap: 28px; }
-.invoice-method { padding: 14px 36px; font-size: 40px; }
-.invoice--lightning .invoice-method { background: var(--k-action); color: var(--k-action-text); }
 .invoice-qrcard { display: flex; flex-direction: column; align-items: center; gap: 24px; }
 .invoice-qr-pending { width: 720px; height: 720px; display: flex; align-items: center; justify-content: center; }
 .invoice-timer { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 720px; }
@@ -478,28 +466,27 @@
 .invoice-timer__fill { height: 100%; border-radius: 999px; background: var(--k-text); transition: width 1s linear; }
 @media (prefers-reduced-motion: reduce) { .invoice-timer__fill { transition: none; } }
 /* One card, as wide as the QR: the QR, then how to pay it. */
-.invoice-wallets { display: flex; flex-direction: column; align-items: center; gap: 24px; box-sizing: border-box; width: 720px; padding: 32px 40px; border-radius: var(--k-radius-card); background: var(--k-card); box-shadow: inset 0 0 0 2px var(--k-border); }
+.invoice-wallets { display: flex; flex-direction: column; align-items: center; gap: 24px; box-sizing: border-box; width: 720px; padding: 28px 24px; border-radius: var(--k-radius-card); background: var(--k-card); box-shadow: inset 0 0 0 2px var(--k-border); }
 .invoice-wallets__title { font: 600 36px/1.2 var(--k-font); color: var(--k-text); }
-/* Up to four tiles across the 640 px inside the card. */
-.invoice-wallets__list { display: flex; justify-content: center; gap: 24px; margin: 0; padding: 0; list-style: none; }
-.invoice-wallet { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 136px; }
+/* Up to four tiles across the 672 px inside the card: 4 x 150 + 3 x 16 = 648. */
+.invoice-wallets__list { display: flex; justify-content: center; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.invoice-wallet { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 150px; }
 /* A faint outline keeps the black tiles (Binance, Noah) from melting into the card. */
-.invoice-wallet__logo { display: block; width: 128px; height: 128px; border-radius: 32px; object-fit: cover; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14); }
+.invoice-wallet__logo { display: block; width: 144px; height: 144px; border-radius: 36px; object-fit: cover; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14); }
 .invoice-wallet__logo--initial {
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--k-control);
   color: var(--k-text);
-  font: 700 60px/1 var(--k-font);
+  font: 700 66px/1 var(--k-font);
 }
 .invoice-wallet__name { font: 600 30px/1.2 var(--k-font); color: var(--k-text); white-space: nowrap; }
 .k-stage[data-orientation="landscape"] .invoice .payment-side { gap: 48px; }
 
 /* Traffic lights beside Byte while an invoice is created (InvoiceLights.tsx):
-   one UK-style signal per outside service, red over amber over green, only the
-   current lamp lit; a service the method doesn't use is dimmed with every lamp
-   dark. With them, Byte is capped at 720 px so all fits the portrait stage. */
+   one UK-style signal per outside service the method uses, red over amber
+   over green, only the current lamp lit. With them, Byte is capped at 720 px so all fits the portrait stage. */
 .byte-loader__row { display: flex; align-items: center; justify-content: center; gap: 40px; width: 100%; }
 .byte-loader--aside .byte-loader__art { flex: 0 1 720px; min-width: 0; max-width: 720px; }
 .invoice-lights { display: flex; gap: 16px; flex: none; margin: 0; padding: 0; list-style: none; }
@@ -521,7 +508,5 @@
 .invoice-light--red .invoice-light__lamp--red { background: #ff3b30; box-shadow: 0 0 18px 4px rgba(255, 59, 48, 0.6); }
 .invoice-light--amber .invoice-light__lamp--amber { background: #ffb000; box-shadow: 0 0 18px 4px rgba(255, 176, 0, 0.55); }
 .invoice-light--green .invoice-light__lamp--green { background: #1fd165; box-shadow: 0 0 18px 4px rgba(31, 209, 101, 0.55); }
-.invoice-light--off { opacity: 0.4; }
 .invoice-light__label { font: 600 24px/1.1 var(--k-font); color: var(--k-text); white-space: nowrap; }
-.invoice-light--off .invoice-light__label { color: var(--k-text-2); }
 @media (prefers-reduced-motion: reduce) { .invoice-light__lamp { transition: none; } }

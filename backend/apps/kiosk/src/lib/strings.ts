@@ -40,7 +40,6 @@ const es = {
   // The sash on that button (design only: no discount is applied yet).
   bip321Discount: "Ahorrá el 10%",
   // The traffic lights beside Byte while an invoice is created (read by screen readers).
-  lightOff: "no se usa",
   lightAmber: "esperando",
   lightGreen: "listo",
   lightRed: "falló",
@@ -109,10 +108,6 @@ const es = {
   arkQrAlt: "Código QR de pago con Bitcoin Ark",
   scanBip321: "u otra billetera Ark o Bolt12",
   bip321QrAlt: "Código QR de pago BIP321 con Ark y Bolt12",
-  // The method chip at the top of each QR screen, matching the button tapped.
-  lightningMark: "Bitcoin - Bolt11",
-  arkMark: "Bitcoin Ark/Bolt11",
-  bip321Mark: "Bitcoin - Bolt12/Ark",
   bankQrAlt: "Código QR bancario del gimnasio",
   thanks: "¡Gracias!",
   yourOrder: "Tu pedido",
@@ -154,7 +149,6 @@ const en: Strings = {
   payWithArk: "Pay with Bitcoin Ark/Bolt11",
   payWithBip321: "Pay with Bitcoin - Bolt12/Ark",
   bip321Discount: "Save 10%",
-  lightOff: "not used",
   lightAmber: "waiting",
   lightGreen: "ready",
   lightRed: "failed",
@@ -215,9 +209,6 @@ const en: Strings = {
   arkQrAlt: "Bitcoin Ark payment QR code",
   scanBip321: "or any other Ark or Bolt12 wallet",
   bip321QrAlt: "BIP321 payment QR code with Ark and Bolt12",
-  lightningMark: "Bitcoin - Bolt11",
-  arkMark: "Bitcoin Ark/Bolt11",
-  bip321Mark: "Bitcoin - Bolt12/Ark",
   bankQrAlt: "The gym's bank QR code",
   thanks: "Thank you!",
   yourOrder: "Your order",

@@ -5,7 +5,7 @@ import { t } from "../lib/strings"
 
 type Service = "yadio" | "coinos" | "bark"
 type StepState = "pending" | "done" | "failed"
-type Light = "off" | "amber" | "green" | "red"
+type Light = "amber" | "green" | "red"
 
 // Which outside services each Bitcoin method's invoice needs.
 const USES: Record<InvoiceMethod, Service[]> = {
@@ -26,8 +26,8 @@ const RED_BEFORE_TIMEOUT_MS = 1_000
  * UK-style traffic lights (red over amber over green) beside Byte while an
  * invoice is created, one per outside service: amber from the tap while it's
  * being fetched, green once it has arrived, red if it failed or is still
- * missing 1 s before the kiosk would give up (15 s), off if this method doesn't
- * use it. Progress comes from GET /store/invoice-progress/:token, which the
+ * missing 1 s before the kiosk would give up (15 s). A service this method
+ * doesn't use has no light (Bark for Bolt11, Coinos for Ark/Bolt11). Progress comes from GET /store/invoice-progress/:token, which the
  * payment provider fills in (backend lib/invoice-progress.ts).
  */
 export function InvoiceLights(props: {
@@ -40,18 +40,17 @@ export function InvoiceLights(props: {
   const used = USES[props.method]
 
   const lightFor = (service: Service): Light => {
-    if (!used.includes(service)) return "off"
     if (props.progress?.arrived) return "green"
     const state = steps?.[service]?.state
     if (state === "done") return "green"
     if (state === "failed" || late) return "red"
     return "amber"
   }
-  const word: Record<Light, string> = { off: t.lightOff, amber: t.lightAmber, green: t.lightGreen, red: t.lightRed }
+  const word: Record<Light, string> = { amber: t.lightAmber, green: t.lightGreen, red: t.lightRed }
 
   return (
     <ul className="invoice-lights">
-      {LIGHTS.map(({ service, label }) => {
+      {LIGHTS.filter(({ service }) => used.includes(service)).map(({ service, label }) => {
         const light = lightFor(service)
         return (
           <li key={service} className={`invoice-light invoice-light--${light}`} data-service={service} data-light={light}>

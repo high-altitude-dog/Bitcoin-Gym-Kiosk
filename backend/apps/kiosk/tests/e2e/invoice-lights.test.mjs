@@ -1,6 +1,6 @@
 // Traffic lights beside Byte while an invoice is created: one per service (Yadio, coinos.io, Bark),
 // amber from the tap, green as each answers, red when one fails or is still missing 1 s before the
-// 15 s limit, off when the method doesn't use it.
+// 15 s limit; a service the method doesn't use has no light.
 import { createChecker, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
@@ -76,8 +76,9 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
 {
   const { ctx, page } = await start(PORTRAIT, (m) => { m.sessionDelay = 1500; m.serviceTimes = { yadio: 100, coinos: 600, bark: 100 } }, ".k-method__option >> nth=0")
   const first = await lights(page)
-  check("Bolt11: Bark off, Yadio and coinos.io amber", first.bark === "off" && first.yadio === "amber" && first.coinos === "amber", JSON.stringify(first))
-  check("Bolt11: both turn green, Bark stays off", await waitFor(page, { yadio: "green", coinos: "green", bark: "off" }, 2000))
+  check("Bolt11: only Yadio and coinos.io, both amber (no Bark light)", Object.keys(first).join(",") === "yadio,coinos" && first.yadio === "amber" && first.coinos === "amber", JSON.stringify(first))
+  check("Bolt11: both turn green", await waitFor(page, { yadio: "green", coinos: "green" }, 2000))
+  await page.screenshot({ path: `${SHOTS}/invoice-lights-bolt11.png` })
   await ctx.close()
 }
 
