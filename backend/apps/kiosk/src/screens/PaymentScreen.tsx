@@ -7,7 +7,7 @@ import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
 import { ByteLoader } from "./ByteLoader"
-import { InvoiceLights } from "./InvoiceLights"
+import { DrawingRoom } from "./DrawingRoom"
 import { WALLETS, walletOrder, type Wallet } from "../lib/wallets"
 import { BANK_QR_OPTIONS, BANK_QR_PAYLOAD } from "../lib/bankQr"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
@@ -202,16 +202,21 @@ export function PaymentScreen({
   }
 
   if (!invoice) {
+    // Bitcoin: the drawing room, with the services' portraits on the wall.
+    if (paymentMethod === "lightning" || paymentMethod === "ark" || paymentMethod === "bip321") {
+      return (
+        <div className="screen screen--room">
+          <DrawingRoom method={paymentMethod} progress={invoiceProgress} caption={t.roomCaption}>
+            <button className="back-button dr-cancel" onClick={onCancel}>
+              {t.cancel}
+            </button>
+          </DrawingRoom>
+        </div>
+      )
+    }
     return (
       <div className="screen screen--center screen--black">
-        <ByteLoader
-          label={t.creatingInvoice}
-          aside={
-            paymentMethod === "lightning" || paymentMethod === "ark" || paymentMethod === "bip321" ? (
-              <InvoiceLights method={paymentMethod} progress={invoiceProgress} />
-            ) : null
-          }
-        />
+        <ByteLoader label={t.creatingInvoice} />
         <button className="back-button" onClick={onCancel}>
           {t.cancel}
         </button>

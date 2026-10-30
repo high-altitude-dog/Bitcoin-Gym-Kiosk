@@ -17,6 +17,9 @@ const outside = () => page.evaluate(() => {
   const bad = []
   for (const el of document.querySelectorAll(".k-stage .screen *")) {
     if (el.closest(".done-items__list") && !el.matches(".done-items__list")) continue
+    // The drawing room's scenery (rug, fireplace, firelight, Byte's box) runs off the edges on purpose;
+    // its portraits, plaques, caption and "Cancelar" must still be inside.
+    if (el.closest(".drawing-room") && !el.closest(".dr-painting, .dr-plaque, .dr-caption, .dr-cancel")) continue
     const cs = getComputedStyle(el)
     if (cs.display === "contents") continue
     const r = el.getBoundingClientRect()

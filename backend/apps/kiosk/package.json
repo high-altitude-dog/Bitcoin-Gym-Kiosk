@@ -11,6 +11,7 @@
     "test:e2e": "node tests/e2e/run.mjs"
   },
   "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
     "@fontsource/inter": "^5.2.8",
     "@medusajs/js-sdk": "2.21.2",
     "qrcode": "^1.5.4",

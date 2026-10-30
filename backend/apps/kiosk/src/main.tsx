@@ -6,6 +6,9 @@ import { registerSW } from 'virtual:pwa-register'
 import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
+// The drawing room's caption (italic) and brass plaques (small capitals).
+import '@fontsource/cormorant-garamond/600-italic.css'
+import '@fontsource/cormorant-garamond/700.css'
 import './index.css'
 import App from './App.tsx'
 

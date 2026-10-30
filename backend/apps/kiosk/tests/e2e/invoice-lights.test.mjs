@@ -1,6 +1,7 @@
-// Traffic lights beside Byte while an invoice is created: one per service (Yadio, coinos.io, Bark),
-// amber from the tap, green as each answers, red when one fails or is still missing 1 s before the
-// 15 s limit; a service the method doesn't use has no light.
+// The drawing room while an invoice is created: one portrait per service (Yadio, coinos.io, Bark),
+// red for 600 ms, amber while waiting, green as each answers, red when one fails or is still missing
+// 1 s before the 15 s limit; a service the method doesn't use leaves an empty patch, not a portrait.
+// (Until Oct 30, 2026 these were traffic lights; the elements keep the .invoice-light class.)
 import { createChecker, createMock, LANDSCAPE, launch, PORTRAIT, SHOTS, startServer, watchErrors } from "./support.mjs"
 
 const server = await startServer()
@@ -46,14 +47,28 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   check(`${name}: then all three amber after about 600 ms`, amber && amberAt > 400 && amberAt < 800, `${amberAt} ms after the first sample`)
   const layout = await page.evaluate(() => {
     const stage = document.querySelector(".k-stage").getBoundingClientRect()
-    const art = document.querySelector(".byte-loader__art").getBoundingClientRect()
-    const box = document.querySelector(".invoice-lights").getBoundingClientRect()
-    const label = document.querySelector(".byte-loader__label").getBoundingClientRect()
-    const cancel = document.querySelector(".back-button").getBoundingClientRect()
-    const inside = [art, box, label, cancel].every((r) => r.left >= stage.left - 1 && r.right <= stage.right + 1 && r.top >= stage.top - 1 && r.bottom <= stage.bottom + 1)
-    return { rightOfByte: box.left >= art.right, inside, aboveLabel: box.bottom <= label.top + 1, centredOnByte: Math.abs((box.top + box.bottom) / 2 - (art.top + art.bottom) / 2) < 4 }
+    const byte = document.querySelector(".dr-byte").getBoundingClientRect()
+    const art = document.querySelector(".byte-loader__art")
+    const pics = [...document.querySelectorAll(".dr-painting")].map((p) => p.getBoundingClientRect())
+    const plaques = [...document.querySelectorAll(".dr-plaque")].map((p) => p.getBoundingClientRect())
+    const range = document.createRange(); range.selectNodeContents(document.querySelector(".dr-caption"))
+    const caption = range.getBoundingClientRect()
+    const cancel = document.querySelector(".dr-cancel").getBoundingClientRect()
+    const within = (r) => r.left >= stage.left - 1 && r.right <= stage.right + 1 && r.top >= stage.top - 1 && r.bottom <= stage.bottom + 1
+    // A few px of slack: the crooked paintings' bounding boxes are a little bigger than the paintings.
+    const apart = (a, b) => a.right <= b.left + 8 || b.right <= a.left + 8 || a.bottom <= b.top + 8 || b.bottom <= a.top + 8
+    const all = [...pics, ...plaques, caption, cancel]
+    return {
+      portraits: pics.length, plaques: plaques.length,
+      rightOfByte: pics.every((p) => p.left >= byte.right - 120 * (stage.width / (stage.width > stage.height ? 1920 : 1200))),
+      inside: all.every(within),
+      noOverlap: all.every((a, i) => all.every((b, j) => i === j || apart(a, b))) || pics.length === 0,
+      captionClear: apart(caption, cancel),
+      video: art?.tagName, playing: art instanceof HTMLVideoElement ? !art.paused : null,
+    }
   })
-  check(`${name}: lights to the right of the hoops, beside them, everything inside the stage`, layout.rightOfByte && layout.inside && layout.aboveLabel && layout.centredOnByte, JSON.stringify(layout))
+  check(`${name}: three portraits with plaques to the right of the hoops, caption and Cancelar clear, all inside the stage`, layout.portraits === 3 && layout.plaques === 3 && layout.rightOfByte && layout.inside && layout.noOverlap && layout.captionClear && layout.video === "VIDEO", JSON.stringify(layout))
+  check(`${name}: each portrait shows the painting for its state`, await page.evaluate(() => [...document.querySelectorAll(".dr-painting")].every((p) => { const shown = [...p.querySelectorAll("img")].filter((i) => !i.hidden); return shown.length === 1 && shown[0].src.includes(`-${p.dataset.light}.webp`) && shown[0].complete && shown[0].naturalWidth > 0 })))
   check(`${name}: Yadio green first`, await waitFor(page, { yadio: "green", coinos: "amber", bark: "amber" }, 1500))
   await page.screenshot({ path: `${SHOTS}/invoice-lights-${name}.png` })
   check(`${name}: then coinos.io green`, await waitFor(page, { yadio: "green", coinos: "green", bark: "amber" }, 2000))
@@ -80,7 +95,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
 {
   const { ctx, page } = await start(PORTRAIT, (m) => { m.sessionDelay = 2000; m.serviceTimes = { yadio: 900, coinos: 1200, bark: 100 } }, ".k-method__option >> nth=0")
   const first = await lights(page)
-  check("Bolt11: only Yadio and coinos.io, both red at first (no Bark light)", Object.keys(first).join(",") === "yadio,coinos" && first.yadio === "red" && first.coinos === "red", JSON.stringify(first))
+  check("Bolt11: only Yadio and coinos.io, both red at first (no Bark portrait: an empty patch)", Object.keys(first).join(",") === "yadio,coinos" && first.yadio === "red" && first.coinos === "red" && (await page.locator(".dr-patch").count()) === 1, JSON.stringify(first))
   check("Bolt11: then both amber", await waitFor(page, { yadio: "amber", coinos: "amber" }, 1000))
   check("Bolt11: both turn green", await waitFor(page, { yadio: "green", coinos: "green" }, 2000))
   await page.screenshot({ path: `${SHOTS}/invoice-lights-bolt11.png` })

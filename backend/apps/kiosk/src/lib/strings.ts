@@ -97,6 +97,7 @@ const es = {
   invoiceExpiredNote: "La factura de Bitcoin⚡ no se pagó a tiempo.",
   tryAgain: "Intentar de nuevo",
   creatingInvoice: "Creando la factura de Bitcoin⚡...",
+  roomCaption: "Creando la factura de Bitcoin…",
   generatingQr: "Generando código QR...",
   expiresIn: (time: string) => `Vence en ${time}`,
   // The QR screens: a heading over the suggested wallets, and a line under
@@ -200,6 +201,7 @@ const en: Strings = {
   invoiceExpiredNote: "The Bitcoin⚡ invoice wasn't paid in time.",
   tryAgain: "Try again",
   creatingInvoice: "Creating the Bitcoin⚡ invoice...",
+  roomCaption: "Creating the Bitcoin invoice…",
   generatingQr: "Generating QR code...",
   expiresIn: (time: string) => `Expires in ${time}`,
   scanWith: "Scan with one of these wallets",

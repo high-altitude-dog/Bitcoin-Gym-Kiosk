@@ -3,9 +3,9 @@ import { INVOICE_TIMEOUT_MS, sdk } from "../lib/medusa"
 import type { InvoiceMethod } from "../lib/payment"
 import { t } from "../lib/strings"
 
-type Service = "yadio" | "coinos" | "bark"
+export type Service = "yadio" | "coinos" | "bark"
 type StepState = "pending" | "done" | "failed"
-type Light = "amber" | "green" | "red"
+export type Light = "amber" | "green" | "red"
 
 // Which outside services each Bitcoin method's invoice needs.
 const USES: Record<InvoiceMethod, Service[]> = {
@@ -26,23 +26,28 @@ const RED_BEFORE_TIMEOUT_MS = 1_000
 // service, so the lights' accessible labels already give the real state.
 export const INTRO_RED_MS = 600
 
+export type InvoiceLight = { service: Service; label: string; used: boolean; light: Light; real: Light; word: string }
+
 /**
- * UK-style traffic lights (red over amber over green) beside Byte while an
- * invoice is created, one per outside service: red for the first 600 ms (an
- * effect only), then amber while it's being fetched while it's
- * being fetched, green once it has arrived, red if it failed or is still
- * missing 1 s before the kiosk would give up (15 s). A service this method
- * doesn't use has no light (Bark for Bolt11, Coinos for Ark/Bolt11). Progress comes from GET /store/invoice-progress/:token, which the
- * payment provider fills in (backend lib/invoice-progress.ts).
+ * The status of each outside service while an invoice is created, as the
+ * drawing room's portraits show it (DrawingRoom.tsx; until Oct 30, 2026 they
+ * were UK-style traffic lights): red for the first 600 ms (an effect only),
+ * then amber while it's being fetched, green once it has arrived, red if it
+ * failed or is still missing 1 s before the kiosk would give up (15 s).
+ * `used` is false for a service this method doesn't call (Bark for Bolt11,
+ * Coinos for Ark/Bolt11). `real` and `word` give the true state, for the
+ * accessible label, during the red opening. Progress comes from GET
+ * /store/invoice-progress/:token, which the payment provider fills in
+ * (backend lib/invoice-progress.ts).
  */
-export function InvoiceLights(props: {
-  method: InvoiceMethod
+export function useInvoiceLights(
+  method: InvoiceMethod,
   progress: { token: string; requestedAt: number | null; arrived?: boolean } | null
-}) {
-  const steps = useInvoiceSteps(props.progress)
-  const requestedAt = props.progress?.requestedAt ?? null
+): InvoiceLight[] {
+  const steps = useInvoiceSteps(progress)
+  const requestedAt = progress?.requestedAt ?? null
   const late = requestedAt !== null && Date.now() >= requestedAt + INVOICE_TIMEOUT_MS - RED_BEFORE_TIMEOUT_MS
-  const used = USES[props.method]
+  const used = USES[method]
   const [intro, setIntro] = useState(true)
   useEffect(() => {
     const timer = setTimeout(() => setIntro(false), INTRO_RED_MS)
@@ -50,7 +55,7 @@ export function InvoiceLights(props: {
   }, [])
 
   const lightFor = (service: Service): Light => {
-    if (props.progress?.arrived) return "green"
+    if (progress?.arrived) return "green"
     const state = steps?.[service]?.state
     if (state === "done") return "green"
     if (state === "failed" || late) return "red"
@@ -58,24 +63,10 @@ export function InvoiceLights(props: {
   }
   const word: Record<Light, string> = { amber: t.lightAmber, green: t.lightGreen, red: t.lightRed }
 
-  return (
-    <ul className="invoice-lights">
-      {LIGHTS.filter(({ service }) => used.includes(service)).map(({ service, label }) => {
-        const real = lightFor(service)
-        const light = intro ? "red" : real
-        return (
-          <li key={service} className={`invoice-light invoice-light--${light}`} data-service={service} data-light={light}>
-            <span className="invoice-light__housing" role="img" aria-label={`${label}: ${word[real]}`}>
-              <span className="invoice-light__lamp invoice-light__lamp--red" />
-              <span className="invoice-light__lamp invoice-light__lamp--amber" />
-              <span className="invoice-light__lamp invoice-light__lamp--green" />
-            </span>
-            <span className="invoice-light__label">{label}</span>
-          </li>
-        )
-      })}
-    </ul>
-  )
+  return LIGHTS.map(({ service, label }) => {
+    const real = lightFor(service)
+    return { service, label, used: used.includes(service), light: intro ? "red" : real, real, word: word[real] }
+  })
 }
 
 /** Polls the server for this request's steps every 250 ms, from when the request goes out. */
