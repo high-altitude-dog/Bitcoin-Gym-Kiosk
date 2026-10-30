@@ -53,7 +53,8 @@ export function walletOrder(method: InvoiceMethod, qr: string, random: () => num
 // things it looks at (sovereigntyPoints in strings.ts), shown as ticks under
 // "¿Qué es esto?". The score is a judgement, not a count of the ticks.
 // Binance's minimum Lightning withdrawal (reported at 1,000-2,000 sats) is
-// unconfirmed, so it isn't shown yet.
+// unconfirmed, so it isn't shown yet. coinos.io is listed as web only: its
+// Android build is an APK on Zapstore, not on Google Play (checked Oct 30, 2026).
 export type WalletInfo = {
   android: boolean
   ios: boolean
@@ -81,7 +82,7 @@ export const WALLET_INFO: Record<WalletId, WalletInfo> = {
     site: "phoenix.acinq.co", beta: false, stars: 4, points: [true, true, true, true, false],
   },
   coinos: {
-    android: true, ios: false, web: true, spanish: true, english: true,
+    android: false, ios: false, web: true, spanish: true, english: true,
     selfCustody: false,
     custody: { es: "coinos, con auto-sweep a otra billetera", en: "coinos, with auto-sweep to another wallet" },
     canBuy: false, buy: NO, site: "coinos.io", beta: false, stars: 4, points: [true, true, true, true, false],
