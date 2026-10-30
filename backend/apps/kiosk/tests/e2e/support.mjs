@@ -100,6 +100,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   serviceTimes / serviceFails  how invoice progress unfolds per service (traffic lights)
  *   arkEnabled         the region offers "Bitcoin Ark" (Bark Pay); off by default
  *   bip321Enabled      the region offers "BIP321 Ark/Bolt12"; off by default
+ *   expirySeconds      the invoice's lifetime (600 by default)
  * and read cart and calls (every request, as "METHOD /path").
  */
 export function createMock() {
@@ -128,6 +129,7 @@ export function createMock() {
     progress: new Map(),
     arkEnabled: false,
     bip321Enabled: false,
+    expirySeconds: 600,
     /** Answers every request to API from this page or context. */
     install(target) {
       return target.route(`${API}/**`, async (route) => {
@@ -189,9 +191,9 @@ export function createMock() {
           await wait(mock.sessionDelay)
           const isLightning = body().provider_id === LIGHTNING_PROVIDER
           mock.sessionProviders.push(body().provider_id)
-          const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: 600 }
-            : body().provider_id === ARK_PROVIDER ? { payment_uri: ARK_URI, sats_amount: 588, bob_amount: 6, expiry_seconds: 600 }
-            : body().provider_id === BIP321_PROVIDER ? { payment_uri: BIP321_URI, sats_amount: 588, bob_amount: 6, expiry_seconds: 600 } : {}
+          const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: mock.expirySeconds }
+            : body().provider_id === ARK_PROVIDER ? { payment_uri: ARK_URI, sats_amount: 588, bob_amount: 6, expiry_seconds: mock.expirySeconds }
+            : body().provider_id === BIP321_PROVIDER ? { payment_uri: BIP321_URI, sats_amount: 588, bob_amount: 6, expiry_seconds: mock.expirySeconds } : {}
           return json({ payment_collection: { id: "pc_1", payment_sessions: [{ id: "ps_1", provider_id: body().provider_id, status: "pending", data }] } })
         }
         if (/^\/store\/cash-orders\/[^/]+\/auto-capture$/.test(url.pathname)) return json({ captured: true })

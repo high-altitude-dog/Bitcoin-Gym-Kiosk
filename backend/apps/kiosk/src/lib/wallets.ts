@@ -46,3 +46,63 @@ export function walletOrder(method: InvoiceMethod, qr: string, random: () => num
   orders.set(qr, ids)
   return ids
 }
+
+// What a member sees on tapping a wallet's logo (the wallet details card,
+// WalletCard.tsx). Facts agreed with the developer on Oct 30, 2026; the
+// sovereignty points follow SOVEREIGNTY_POINTS in strings.ts, one star each.
+// Binance's minimum Lightning withdrawal (reported at 1,000-2,000 sats) is
+// unconfirmed, so it isn't shown yet.
+export type WalletInfo = {
+  android: boolean
+  ios: boolean
+  web: boolean
+  platformNote?: string
+  spanish: boolean
+  english: boolean
+  selfCustody: boolean
+  custody: { es: string; en: string }
+  canBuy: boolean
+  buy: { es: string; en: string }
+  site: string
+  beta: boolean
+  points: [boolean, boolean, boolean, boolean, boolean]
+}
+
+const NO = { es: "No", en: "No" }
+const YOURS = { es: "Tú (tus llaves)", en: "You (your keys)" }
+
+export const WALLET_INFO: Record<WalletId, WalletInfo> = {
+  phoenix: {
+    android: true, ios: true, web: false, spanish: true, english: true,
+    selfCustody: true, custody: YOURS, canBuy: false, buy: NO,
+    site: "phoenix.acinq.co", beta: false, points: [true, true, true, true, false],
+  },
+  coinos: {
+    android: true, ios: false, web: true, spanish: true, english: true,
+    selfCustody: false,
+    custody: { es: "coinos, con auto-sweep a otra billetera", en: "coinos, with auto-sweep to another wallet" },
+    canBuy: false, buy: NO, site: "coinos.io", beta: false, points: [true, true, true, true, false],
+  },
+  blink: {
+    android: true, ios: true, web: false, spanish: true, english: true,
+    selfCustody: false, custody: { es: "Blink, vía Spark", en: "Blink, via Spark" },
+    canBuy: false, buy: NO, site: "blink.sv", beta: false, points: [false, false, true, false, false],
+  },
+  binance: {
+    android: true, ios: true, web: true, spanish: true, english: true,
+    selfCustody: false, custody: { es: "Binance (pide documento)", en: "Binance (asks for ID)" },
+    canBuy: true, buy: { es: "Sí, con bolivianos (P2P)", en: "Yes, with bolivianos (P2P)" },
+    site: "binance.com", beta: false, points: [false, false, false, false, false],
+  },
+  arke: {
+    android: false, ios: true, web: false, platformNote: "TestFlight · iOS 26+", spanish: false, english: true,
+    selfCustody: true, custody: YOURS, canBuy: false, buy: NO,
+    site: "arke.cash", beta: true, points: [true, true, true, true, false],
+  },
+  noah: {
+    android: true, ios: true, web: false, spanish: true, english: true,
+    selfCustody: true,
+    custody: { es: "Tú (su servidor te ayuda a renovar)", en: "You (its server helps renew your coins)" },
+    canBuy: false, buy: NO, site: "beta.noahwallet.io", beta: true, points: [true, true, true, true, false],
+  },
+}

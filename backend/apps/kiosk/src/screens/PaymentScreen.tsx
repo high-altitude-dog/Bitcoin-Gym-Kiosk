@@ -8,7 +8,8 @@ import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
 import { ByteLoader } from "./ByteLoader"
 import { DrawingRoom } from "./DrawingRoom"
-import { WALLETS, walletOrder, type Wallet } from "../lib/wallets"
+import { WALLETS, walletOrder, type Wallet, type WalletId } from "../lib/wallets"
+import { WalletCard } from "./WalletCard"
 import { BANK_QR_OPTIONS, BANK_QR_PAYLOAD } from "../lib/bankQr"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
@@ -88,8 +89,6 @@ export function PaymentScreen({
   onCancel,
 }: Props) {
   const qrDataUrl = usePaymentQrCode(invoice?.qr)
-  const ark = invoice?.method === "ark"
-  const bip321 = invoice?.method === "bip321"
   const bankQrUrl = useBankQrCode(paymentMethod === "bank_qr")
   // One confirmation at a time: a double tap must not complete twice.
   const [confirming, setConfirming] = useState(false)
@@ -239,22 +238,78 @@ export function PaymentScreen({
     )
   }
 
-  // Portrait is one column: the method chip, the amount, the QR card with its
-  // time bar, the suggested wallets and "Cancelar". Landscape puts the QR card
-  // on the left and the rest on the right. The two groups are layout-only (see
-  // App.css), so turning the tablet keeps the same elements: the QR image is
-  // never rebuilt.
+  return <InvoiceQr invoice={invoice} qrDataUrl={qrDataUrl} msLeft={msLeft} onCancel={onCancel} />
+}
+
+// A wallet card closes by itself after this long without a touch, and when
+// less than CARD_MIN_LEFT_MS is left on the invoice (or can't open then), so
+// the member is never left without the QR (the developer, Oct 30, 2026).
+const CARD_IDLE_MS = 20_000
+const CARD_MIN_LEFT_MS = 60_000
+
+/**
+ * The Bitcoin QR screen. Portrait is one column: the amount, the QR card with
+ * its time bar, the suggested wallets and "Cancelar". Landscape puts the QR
+ * card on the left and the rest on the right. The two groups are layout-only
+ * (see App.css), so turning the tablet keeps the same elements: the QR image
+ * is never rebuilt. Tapping a wallet's logo shows its details card in the
+ * QR's place (WalletCard.tsx); the QR stays mounted, hidden, and the time bar
+ * keeps counting.
+ */
+function InvoiceQr({
+  invoice,
+  qrDataUrl,
+  msLeft,
+  onCancel,
+}: {
+  invoice: LightningInvoice
+  qrDataUrl: string | null
+  msLeft: number
+  onCancel: () => void
+}) {
   const method = invoice.method
+  const ark = method === "ark"
+  const bip321 = method === "bip321"
+  const [open, setOpen] = useState<WalletId | null>(null)
+  const [rubric, setRubric] = useState(false)
+  const [touchedAt, setTouchedAt] = useState(0)
+  const close = () => {
+    setOpen(null)
+    setRubric(false)
+  }
+
+  // A new invoice starts on its QR.
+  useEffect(close, [invoice.qr])
+  // Back to the QR after 20 s without a touch on the card.
+  useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(close, CARD_IDLE_MS)
+    return () => clearTimeout(timer)
+  }, [open, rubric, touchedAt])
+  // ... and when the invoice is about to run out.
+  useEffect(() => {
+    if (open && msLeft < CARD_MIN_LEFT_MS) close()
+  }, [open, msLeft])
+
+  const pick = (id: WalletId) => {
+    if (open === id) return close()
+    if (msLeft < CARD_MIN_LEFT_MS) return
+    setOpen(id)
+    setRubric(false)
+    setTouchedAt(Date.now())
+  }
+
   const left = invoice.durationMs > 0 ? Math.min(1, msLeft / invoice.durationMs) : null
   return (
     <div className={`screen screen--center payment-layout invoice invoice--${method}`}>
       <div className="payment-qrbox">
-        <div className="invoice-qrcard">
+        <div className="invoice-qrcard" onPointerDown={() => open && setTouchedAt(Date.now())}>
           {qrDataUrl ? (
-            <img className="payment-qr" src={qrDataUrl} alt={ark ? t.arkQrAlt : bip321 ? t.bip321QrAlt : t.lightningQrAlt} />
+            <img className="payment-qr" src={qrDataUrl} alt={ark ? t.arkQrAlt : bip321 ? t.bip321QrAlt : t.lightningQrAlt} hidden={open !== null} />
           ) : (
-            <p className="payment-note invoice-qr-pending">{t.generatingQr}</p>
+            <p className="payment-note invoice-qr-pending" hidden={open !== null}>{t.generatingQr}</p>
           )}
+          {open && <WalletCard id={open} rubric={rubric} onToggleRubric={() => { setRubric((r) => !r); setTouchedAt(Date.now()) }} onBack={close} />}
           <div className="invoice-timer">
             {left !== null && (
               <div className="invoice-timer__track" aria-hidden="true">
@@ -275,19 +330,33 @@ export function PaymentScreen({
         </div>
         <section className="invoice-wallets" aria-label={t.scanWith}>
           <p className="invoice-wallets__title">{t.scanWith}</p>
-          <ul className="invoice-wallets__list">
+          <p className="invoice-wallets__hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M9 11.5V5a1.5 1.5 0 0 1 3 0v5.5m0-1a1.5 1.5 0 0 1 3 0v1m0-.5a1.5 1.5 0 0 1 3 0v4c0 3.6-2.4 6-6 6h-1c-2.2 0-3.6-1-4.8-2.8L4.6 15a1.5 1.5 0 0 1 2.4-1.8L9 15" />
+              <path d="M6.5 6.5A4.5 4.5 0 0 1 14 3.6" />
+            </svg>
+            {t.walletTapHint}
+          </p>
+          {/* Keyed by the QR, so the pulse runs once per invoice and not on a turn. */}
+          <ul key={invoice.qr} className="invoice-wallets__list invoice-wallets__list--pulse">
             {walletOrder(method, invoice.qr).map((id) => {
               const wallet: Wallet = WALLETS[id]
+              const state = open === null ? "" : open === id ? " is-open" : " is-dim"
               return (
                 <li key={id} className="invoice-wallet">
-                  {wallet.logo ? (
-                    <img className="invoice-wallet__logo" src={`${KIOSK.assets}wallets/${wallet.logo}`} alt="" draggable={false} />
-                  ) : (
-                    <span className="invoice-wallet__logo invoice-wallet__logo--initial" aria-hidden="true">
-                      {wallet.name.charAt(0)}
+                  <button type="button" className={`invoice-wallet__tile${state}`} onClick={() => pick(id)} aria-label={t.walletMore(wallet.name)} aria-pressed={open === id}>
+                    <span className="invoice-wallet__art">
+                      {wallet.logo ? (
+                        <img className="invoice-wallet__logo" src={`${KIOSK.assets}wallets/${wallet.logo}`} alt="" draggable={false} />
+                      ) : (
+                        <span className="invoice-wallet__logo invoice-wallet__logo--initial" aria-hidden="true">
+                          {wallet.name.charAt(0)}
+                        </span>
+                      )}
+                      <span className="invoice-wallet__badge" aria-hidden="true">i</span>
                     </span>
-                  )}
-                  <span className="invoice-wallet__name">{wallet.name}</span>
+                    <span className="invoice-wallet__name">{wallet.name}</span>
+                  </button>
                 </li>
               )
             })}

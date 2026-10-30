@@ -30,7 +30,7 @@ export function LangFlags({ className = "" }: { className?: string }) {
   )
 }
 
-function BoliviaFlag() {
+export function BoliviaFlag() {
   return (
     <svg viewBox="0 0 3 2" preserveAspectRatio="none" aria-hidden>
       <rect width="3" height="0.667" fill="#d52b1e" />
@@ -41,7 +41,7 @@ function BoliviaFlag() {
 }
 
 // The Union Jack, cropped to 3:2 like the Bolivian flag beside it.
-function UkFlag() {
+export function UkFlag() {
   const id = useId().replace(/:/g, "")
   return (
     <svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden>
