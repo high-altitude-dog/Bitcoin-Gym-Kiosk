@@ -59,6 +59,19 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   await ctx.close()
 }
 
+// When the invoice arrives, every light goes green at once (even if the last progress check lagged)
+// and stays up about 600 ms before the QR.
+{
+  const { ctx, page } = await start(PORTRAIT, (m) => { m.sessionDelay = 2500; m.serviceTimes = { yadio: 100, coinos: 500, bark: 60_000 } }, ".k-method__option--bip321")
+  await waitFor(page, { yadio: "green", coinos: "green", bark: "amber" }, 2000)
+  const allGreen = await waitFor(page, { yadio: "green", coinos: "green", bark: "green" }, 4000)
+  const greenAt = Date.now()
+  const qr = await page.waitForSelector(".payment-qr", { timeout: 3000 }).then(() => true, () => false)
+  const held = Date.now() - greenAt
+  check("invoice arrived: all green at once, then about 600 ms before the QR", allGreen && qr && held >= 500 && held <= 900, `${held} ms`)
+  await ctx.close()
+}
+
 // Bolt11: Bark isn't used, so its light is off.
 {
   const { ctx, page } = await start(PORTRAIT, (m) => { m.sessionDelay = 1500; m.serviceTimes = { yadio: 100, coinos: 600, bark: 100 } }, ".k-method__option >> nth=0")

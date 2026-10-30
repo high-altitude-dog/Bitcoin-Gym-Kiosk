@@ -17,7 +17,7 @@ interface Props {
   paymentMethod: PaymentMethod
   invoice: LightningInvoice | null
   // The invoice being created, for the traffic lights beside Byte.
-  invoiceProgress: { token: string; requestedAt: number | null } | null
+  invoiceProgress: { token: string; requestedAt: number | null; arrived?: boolean } | null
   paymentStatus: PaymentStatus
   error: string | null
   onBankQrPaid: () => Promise<void>

@@ -32,7 +32,7 @@ const RED_BEFORE_TIMEOUT_MS = 1_000
  */
 export function InvoiceLights(props: {
   method: InvoiceMethod
-  progress: { token: string; requestedAt: number | null } | null
+  progress: { token: string; requestedAt: number | null; arrived?: boolean } | null
 }) {
   const steps = useInvoiceSteps(props.progress)
   const requestedAt = props.progress?.requestedAt ?? null
@@ -41,6 +41,7 @@ export function InvoiceLights(props: {
 
   const lightFor = (service: Service): Light => {
     if (!used.includes(service)) return "off"
+    if (props.progress?.arrived) return "green"
     const state = steps?.[service]?.state
     if (state === "done") return "green"
     if (state === "failed" || late) return "red"

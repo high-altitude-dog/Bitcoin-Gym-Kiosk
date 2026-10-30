@@ -40,6 +40,9 @@ const POLL_INTERVAL_MS = 500
 // Byte's magic hoops stay on screen at least this long before the QR, so a
 // fast invoice doesn't make him flash on and off.
 const MIN_BYTE_MS = 1500
+// Once the invoice has arrived, every traffic light beside Byte turns green and
+// stays up this long before the QR replaces them, so the member sees it.
+const LIGHTS_GREEN_HOLD_MS = 600
 // Keep checking this long past the invoice's deadline before calling it
 // expired: a payment sent in the last seconds can settle, and the Coinos
 // webhook arrive, a little after the deadline.
@@ -72,7 +75,8 @@ interface KioskState {
   // The invoice being created, for the traffic lights on Byte's screen: a random
   // token sent with the request (the server records each outside service's
   // progress under it) and when the request went out (null until then).
-  invoiceProgress: { token: string; requestedAt: number | null } | null
+  // `arrived`: the invoice is here, so every light the method uses shows green.
+  invoiceProgress: { token: string; requestedAt: number | null; arrived?: boolean } | null
   paymentStatus: PaymentStatus
   paymentMethod: PaymentMethod
   // The payment button tapped while taps were still being saved: it shows
@@ -503,8 +507,11 @@ export function useKiosk() {
         if (!invoice) {
           throw new Error(`${providerId} did not return invoice data`)
         }
-        const wait = MIN_BYTE_MS - (Date.now() - byteSince)
-        if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+        // All green at once (the last poll may be up to 250 ms behind), then hold
+        // that for LIGHTS_GREEN_HOLD_MS, or longer if Byte's minimum isn't up yet.
+        setState((s) => (s.invoiceProgress ? { ...s, invoiceProgress: { ...s.invoiceProgress, arrived: true } } : s))
+        const wait = Math.max(LIGHTS_GREEN_HOLD_MS, MIN_BYTE_MS - (Date.now() - byteSince))
+        await new Promise((r) => setTimeout(r, wait))
         if (epoch !== epochRef.current) return
 
         invoiceRef.current = invoice
