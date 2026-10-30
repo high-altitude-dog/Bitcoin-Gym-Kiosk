@@ -27,3 +27,22 @@ export const SUGGESTED_WALLETS: Record<InvoiceMethod, WalletId[]> = {
   // "Pagar con Bitcoin - Bolt12/Ark"
   bip321: ["arke", "noah", "phoenix", "coinos"],
 }
+
+// The order is shuffled for every new invoice, so no wallet always comes
+// first (the developer, Oct 30, 2026). It is kept per QR: re-renders, a turn
+// of the tablet, and the same invoice shown again after "Cancelar" keep it.
+const orders = new Map<string, WalletId[]>()
+
+export function walletOrder(method: InvoiceMethod, qr: string, random: () => number = Math.random): WalletId[] {
+  const kept = orders.get(qr)
+  if (kept) return kept
+  const ids = [...SUGGESTED_WALLETS[method]]
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[ids[i], ids[j]] = [ids[j], ids[i]]
+  }
+  // A handful is plenty: a kiosk only ever has one or two invoices alive.
+  if (orders.size >= 8) orders.delete(orders.keys().next().value!)
+  orders.set(qr, ids)
+  return ids
+}

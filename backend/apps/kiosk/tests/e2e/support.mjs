@@ -239,6 +239,8 @@ export async function invoiceLayout(page) {
       })(),
       logoSize: Math.round(document.querySelector(".invoice-wallet__logo").getBoundingClientRect().width / (document.querySelector(".k-stage").getBoundingClientRect().width / (document.querySelector(".k-stage").dataset.orientation === "landscape" ? 1920 : 1200))),
       wallets: [...document.querySelectorAll(".invoice-wallet__name")].map((n) => n.textContent).join(","),
+      // The order is shuffled per invoice; compare the set.
+      walletSet: [...document.querySelectorAll(".invoice-wallet__name")].map((n) => n.textContent).sort().join(","),
       logosLoaded: [...document.querySelectorAll("img.invoice-wallet__logo")].every((i) => i.complete && i.naturalWidth === 256) && document.querySelectorAll("img.invoice-wallet__logo").length === document.querySelectorAll(".invoice-wallet").length,
       present,
       inside,

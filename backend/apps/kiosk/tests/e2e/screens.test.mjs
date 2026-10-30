@@ -94,6 +94,7 @@ await both("2-creating-invoice")
 await page.waitForSelector(".payment-qr", { timeout: 15000 })
 await page.waitForTimeout(500)
 await page.evaluate(() => { document.querySelector(".payment-qr").__tag = "same" })
+const walletsBefore = (await invoiceLayout(page)).wallets
 await both("3-lightning-qr", async () => {
   const qr = await rect(".payment-qr"), sats = await rect(".payment-sats"), cancel = await rect(".back-button")
   check("lightning landscape: QR 720x720 on the left, amounts and button on the right", qr.w === 720 && qr.h === 720 && qr.x < sats.x && qr.x < cancel.x, `qr ${JSON.stringify(qr)} sats ${JSON.stringify(sats)}`)
@@ -101,8 +102,9 @@ await both("3-lightning-qr", async () => {
 })
 {
   const inv = await invoiceLayout(page)
-  check("lightning: Bolt11 screen, wallets Phoenix, coinos.io, Blink and Binance, logos loaded, nothing overlapping", inv.method === "lightning" && inv.aligned && inv.logoSize === 144 && inv.wallets === "Phoenix,coinos.io,Blink,Binance" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
+  check("lightning: Bolt11 screen, wallets Phoenix, coinos.io, Blink and Binance, logos loaded, nothing overlapping", inv.method === "lightning" && inv.aligned && inv.logoSize === 144 && inv.walletSet === "Binance,Blink,Phoenix,coinos.io" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
 }
+check("wallet order unchanged by both turns", (await invoiceLayout(page)).wallets === walletsBefore, walletsBefore)
 check("QR image survived both turns", await page.evaluate(() => document.querySelector(".payment-qr").__tag === "same"))
 check("turning on the QR screen: only payment polling requests", mock.calls.slice(callsBefore).every((c) => /GET \/store\/carts\/cart_1|payment|shipping|lightning|invoice-progress/.test(c)), mock.calls.slice(callsBefore).filter((c) => !/GET \/store\/carts\/cart_1/.test(c)).join(","))
 

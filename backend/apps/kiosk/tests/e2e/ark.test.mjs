@@ -88,7 +88,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   check(`${name}: the QR holds the BIP 321 URI (Ark + Lightning)`, onScreen === expected, `${modules.size}x${modules.size}`)
   check(`${name}: sats and the Ark-or-Lightning note`, /588/.test(shown.sats) && /Ark o Lightning/.test(shown.note), JSON.stringify({ ...shown, src: undefined }))
   const inv = await invoiceLayout(page)
-  check(`${name}: Ark/Bolt11 screen, wallets Arké, Noah and coinos.io, logos loaded, nothing overlapping`, inv.method === "ark" && inv.aligned && inv.logoSize === 144 && inv.wallets === "Arké,Noah,coinos.io" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
+  check(`${name}: Ark/Bolt11 screen, wallets Arké, Noah and coinos.io, logos loaded, nothing overlapping`, inv.method === "ark" && inv.aligned && inv.logoSize === 144 && inv.walletSet === "Arké,Noah,coinos.io" && inv.logosLoaded && inv.inside && inv.apart, JSON.stringify(inv))
   await page.screenshot({ path: `${SHOTS}/ark-qr-${name}.png` })
 
   if (name === "portrait") {
@@ -98,6 +98,8 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
     await page.click(".k-method__option--ark")
     await page.waitForSelector(".payment-qr")
     check("Cancelar then Ark again reuses the live charge", mock.sessionProviders.filter((p) => p === ARK_PROVIDER).length === 1, JSON.stringify(mock.sessionProviders))
+    const again = await invoiceLayout(page)
+    check("the reused charge keeps its wallet order", again.wallets === inv.wallets, `${inv.wallets} / ${again.wallets}`)
 
     mock.orderItems = [{ id: "i1", quantity: 1, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
     mock.paid = true

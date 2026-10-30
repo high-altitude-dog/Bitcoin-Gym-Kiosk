@@ -8,7 +8,7 @@ import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
 import { ByteLoader } from "./ByteLoader"
 import { InvoiceLights } from "./InvoiceLights"
-import { SUGGESTED_WALLETS, WALLETS, type Wallet } from "../lib/wallets"
+import { WALLETS, walletOrder, type Wallet } from "../lib/wallets"
 import { BANK_QR_OPTIONS, BANK_QR_PAYLOAD } from "../lib/bankQr"
 import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
@@ -271,7 +271,7 @@ export function PaymentScreen({
         <section className="invoice-wallets" aria-label={t.scanWith}>
           <p className="invoice-wallets__title">{t.scanWith}</p>
           <ul className="invoice-wallets__list">
-            {SUGGESTED_WALLETS[method].map((id) => {
+            {walletOrder(method, invoice.qr).map((id) => {
               const wallet: Wallet = WALLETS[id]
               return (
                 <li key={id} className="invoice-wallet">
