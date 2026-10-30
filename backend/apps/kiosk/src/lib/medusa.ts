@@ -5,6 +5,11 @@ import Medusa from "@medusajs/js-sdk"
 // forever, and with it every cart change queued behind it and the payment
 // poll (which skips ticks while one is in flight).
 export const REQUEST_TIMEOUT_MS = 10_000
+// Creating a payment session (an invoice) gets longer: the Bolt12/Ark one asks
+// Coinos and Bark Pay for an offer and an Ark address, and often took 4-8 s,
+// three times over 10 s (Oct 30, 2026), which the kiosk showed as a failure.
+export const INVOICE_TIMEOUT_MS = 15_000
+const isInvoiceRequest = (input: unknown) => String(input).includes("/payment-sessions")
 
 export const sdk = new Medusa({
   baseUrl: import.meta.env.VITE_MEDUSA_BACKEND_URL,
@@ -17,7 +22,7 @@ const clientFetch = sdk.client.fetch.bind(sdk.client)
 sdk.client.fetch = ((input, init) =>
   clientFetch(input, {
     ...init,
-    signal: init?.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: init?.signal ?? AbortSignal.timeout(isInvoiceRequest(input) ? INVOICE_TIMEOUT_MS : REQUEST_TIMEOUT_MS),
   })) as typeof sdk.client.fetch
 
 // Medusa answered with an error status (out of stock, invalid cart, ...), as

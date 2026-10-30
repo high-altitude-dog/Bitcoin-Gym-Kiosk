@@ -96,6 +96,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   shippingDelay      ms attaching the pickup shipping method takes
  * and read cashDesk (the bodies of the front-desk "cobrar" calls, in order),
  *   completeFailures   how many completion calls fail (500) before one succeeds
+ *   sessionDelay       ms creating a payment session (the invoice) takes
  *   arkEnabled         the region offers "Bitcoin Ark" (Bark Pay); off by default
  *   bip321Enabled      the region offers "BIP321 Ark/Bolt12"; off by default
  * and read cart and calls (every request, as "METHOD /path").
@@ -118,6 +119,7 @@ export function createMock() {
     shippingDelay: 0,
     cashDesk: [],
     completeFailures: 0,
+    sessionDelay: 0,
     arkEnabled: false,
     bip321Enabled: false,
     /** Answers every request to API from this page or context. */
@@ -165,6 +167,7 @@ export function createMock() {
         }
         if (url.pathname === "/store/payment-collections") { mock.cart = { ...mock.cart, payment_collection: { id: "pc_1", payment_sessions: [] } }; return json({ payment_collection: mock.cart.payment_collection }) }
         if (url.pathname.endsWith("/payment-sessions")) {
+          await wait(mock.sessionDelay)
           const isLightning = body().provider_id === LIGHTNING_PROVIDER
           mock.sessionProviders.push(body().provider_id)
           const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: 600 }
