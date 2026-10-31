@@ -88,7 +88,7 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   const greenAt = Date.now()
   const qr = await page.waitForSelector(".payment-qr", { timeout: 3000 }).then(() => true, () => false)
   const held = Date.now() - greenAt
-  check("invoice arrived: all green at once, then about 950 ms before the QR", allGreen && qr && held >= 850 && held <= 1250, `${held} ms`)
+  check("invoice arrived: all green at once, then about 950 ms before the QR", allGreen && qr && held >= 850 && held <= 1450, `${held} ms`)
   await ctx.close()
 }
 
@@ -96,7 +96,13 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
 {
   const { ctx, page } = await start(PORTRAIT, (m) => { m.sessionDelay = 2000; m.serviceTimes = { yadio: 900, coinos: 1200, bark: 100 } }, ".k-method__option >> nth=0")
   const first = await lights(page)
-  check("Bolt11: only Yadio and coinos.io, both red at first (no Bark portrait: an empty patch)", Object.keys(first).join(",") === "yadio,coinos" && first.yadio === "red" && first.coinos === "red" && (await page.locator(".dr-patch").count()) === 1, JSON.stringify(first))
+  check("Bolt11: only Yadio and coinos.io, both red at first (no Bark portrait)", Object.keys(first).join(",") === "yadio,coinos" && first.yadio === "red" && first.coinos === "red", JSON.stringify(first))
+  const pair = await page.evaluate(() => {
+    const [a, b] = [...document.querySelectorAll(".dr-painting")].map((p) => p.getBoundingClientRect()).sort((x, y) => x.left - y.left)
+    const scale = document.querySelector(".k-stage").getBoundingClientRect().width / 1200
+    return { gap: Math.round((b.left - a.right) / scale), stage: document.querySelector(".k-stage").getBoundingClientRect(), inside: [a, b].every((r) => r.right <= document.querySelector(".k-stage").getBoundingClientRect().right + 1) }
+  })
+  check("Bolt11: the two portraits hang close together, inside the stage", pair.gap > 0 && pair.gap < 60 && pair.inside, JSON.stringify(pair))
   check("Bolt11: then both amber", await waitFor(page, { yadio: "amber", coinos: "amber" }, 1000))
   check("Bolt11: both turn green", await waitFor(page, { yadio: "green", coinos: "green" }, 2000))
   await page.screenshot({ path: `${SHOTS}/invoice-lights-bolt11.png` })

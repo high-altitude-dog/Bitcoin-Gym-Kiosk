@@ -13,16 +13,20 @@ import "./drawing-room.css"
  * fire, and (landscape) a cactus. The three outside services hang
  * on the wall as portraits (from the "Status-Dogs" artifact): each painting
  * and the halo around it show that service's status in red, amber or green
- * (useInvoiceLights). A service the method doesn't use leaves a faint patch
- * where its picture would hang. Everything is laid out in stage pixels, one
+ * (useInvoiceLights). With only two services (Bolt11, Ark/Bolt11) the two
+ * portraits hang closer together. Everything is laid out in stage pixels, one
  * geometry per orientation; turning keeps the same elements.
  */
+type Hang = { x: number; y: number; w: number; rot: number }
+
 type Geometry = {
   floorY: number
   byte: { x: number; w: number; feet: number }
   rug: { x: number; y: number; w: number; h: number }
   fp: { x: number; y: number; w: number; h: number }
-  hang: Record<Service, { x: number; y: number; w: number; rot: number }>
+  // Where the portraits hang: all three (Bolt12/Ark), or two closer together
+  // when the method skips a service (Bolt11: no Bark; Ark/Bolt11: no Coinos).
+  hang: Record<"all" | "noBark" | "noCoinos", Partial<Record<Service, Hang>>>
   cactus?: { x: number; w: number; h: number }
   captionY: number
 }
@@ -33,9 +37,19 @@ const PORTRAIT: Geometry = {
   rug: { x: -240, y: 1272, w: 940, h: 145 },
   fp: { x: 790, y: 990, w: 460, h: 250 },
   hang: {
-    yadio: { x: 806, y: 380, w: 176, rot: -3.2 },
-    bark: { x: 864, y: 700, w: 280, rot: -1.6 },
-    coinos: { x: 1006, y: 330, w: 180, rot: 2.6 },
+    all: {
+      yadio: { x: 600, y: 330, w: 250, rot: -3.2 },
+      bark: { x: 700, y: 670, w: 360, rot: -1.6 },
+      coinos: { x: 950, y: 290, w: 230, rot: 2.6 },
+    },
+    noBark: {
+      yadio: { x: 630, y: 430, w: 270, rot: -3.2 },
+      coinos: { x: 936, y: 390, w: 244, rot: 2.6 },
+    },
+    noCoinos: {
+      yadio: { x: 620, y: 440, w: 260, rot: -3.2 },
+      bark: { x: 900, y: 480, w: 290, rot: 2.2 },
+    },
   },
   captionY: 1520,
 }
@@ -46,9 +60,19 @@ const LANDSCAPE: Geometry = {
   rug: { x: -260, y: 905, w: 1180, h: 135 },
   fp: { x: 1060, y: 650, w: 520, h: 230 },
   hang: {
-    yadio: { x: 1000, y: 300, w: 196, rot: -3.2 },
-    bark: { x: 1226, y: 300, w: 262, rot: 2.6 },
-    coinos: { x: 1520, y: 240, w: 190, rot: -1.6 },
+    all: {
+      yadio: { x: 900, y: 240, w: 240, rot: -3.2 },
+      bark: { x: 1160, y: 250, w: 330, rot: 2.6 },
+      coinos: { x: 1510, y: 200, w: 220, rot: -1.6 },
+    },
+    noBark: {
+      yadio: { x: 1040, y: 220, w: 280, rot: -3.2 },
+      coinos: { x: 1350, y: 180, w: 250, rot: 2.6 },
+    },
+    noCoinos: {
+      yadio: { x: 1020, y: 230, w: 270, rot: -3.2 },
+      bark: { x: 1320, y: 260, w: 340, rot: 2.2 },
+    },
   },
   cactus: { x: 1736, w: 180, h: 315 },
   captionY: 1058,
@@ -94,6 +118,8 @@ export function DrawingRoom({
   const W = landscape ? 1920 : 1200
   const H = landscape ? 1200 : 1920
   const lights = useInvoiceLights(method, progress)
+  const usedSet = new Set(lights.filter((l) => l.used).map((l) => l.service))
+  const hang = g.hang[!usedSet.has("bark") ? "noBark" : !usedSet.has("coinos") ? "noCoinos" : "all"]
   const reduceMotion =
     typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
   const base = KIOSK.assets
@@ -165,10 +191,10 @@ export function DrawingRoom({
 
       {/* The portraits, salon-hung above the mantel and a little crooked */}
       {lights.map((l) => {
-        const h = g.hang[l.service]
+        const h = hang[l.service]
+        if (!l.used || !h) return null
         const height = Math.round(h.w * RATIO[l.service])
         const box: CSSProperties = { left: px(h.x), top: px(h.y), width: px(h.w), height: px(height) }
-        if (!l.used) return <div key={l.service} className="dr-patch" style={{ ...box, transform: `rotate(${h.rot / 3}deg)` }} />
         return [
           <div
             key={l.service}
