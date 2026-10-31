@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { useOrientation } from "../hooks/useStage"
 import { KIOSK } from "../lib/stageConfig"
 import type { InvoiceMethod } from "../lib/payment"
@@ -161,7 +161,7 @@ export function DrawingRoom({
       {/* Firelight on the floor in front of the hearth */}
       <div className="dr-floor-glow" style={{ left: px(fpCx - 360), top: px(g.floorY - 40) }} />
 
-      <Fireplace style={{ left: px(g.fp.x), top: px(g.fp.y), width: px(g.fp.w), height: px(g.fp.h) }} />
+      <Fireplace box={g.fp} still={!!reduceMotion} />
       <div className="dr-hearth" style={{ left: px(g.fp.x - 24), top: px(g.floorY), width: px(g.fp.w + 48) }} />
 
       {g.cactus && <Cactus style={{ left: px(g.cactus.x), top: px(g.floorY + 18 - g.cactus.h), width: px(g.cactus.w), height: px(g.cactus.h) }} />}
@@ -222,9 +222,24 @@ export function DrawingRoom({
   )
 }
 
-function Fireplace({ style }: { style: CSSProperties }) {
+// The firebox opening inside the fireplace's 460 x 260 drawing, where the live fire burns.
+const FIRE_BOX = { x: 128, y: 92, w: 204, h: 166 }
+
+/**
+ * The fireplace in three layers: the surround, firebox, coals and back logs;
+ * the fire itself (FireCanvas, a WebGL flame shader; the drawn flames are the
+ * fallback where WebGL isn't available); and in front, the big front log, the
+ * arch, grate and fender, so the flames rise from behind the front log.
+ */
+function Fireplace({ box, still }: { box: { x: number; y: number; w: number; h: number }; still: boolean }) {
+  const [noWebGl, setNoWebGl] = useState(false)
+  const px = (n: number) => `${n}px`
+  const sx = box.w / 460
+  const sy = box.h / 260
+  const svgStyle: CSSProperties = { left: px(box.x), top: px(box.y), width: px(box.w), height: px(box.h) }
   return (
-    <svg className="dr-abs dr-fireplace" style={style} viewBox="0 0 460 260" preserveAspectRatio="none" aria-hidden>
+    <>
+      <svg className="dr-abs dr-fireplace" style={svgStyle} viewBox="0 0 460 260" preserveAspectRatio="none" aria-hidden>
       <defs>
         <radialGradient id="dr-embers" cx="0.5" cy="0.5" r="0.5">
           <stop offset="0" stopColor="#ffd27a" /><stop offset="0.5" stopColor="#ff6a1a" /><stop offset="1" stopColor="#7a1406" stopOpacity="0" />
@@ -290,33 +305,56 @@ function Fireplace({ style }: { style: CSSProperties }) {
         <ellipse cx="333" cy="215" rx="9" ry="13" fill="url(#dr-endgrain)" />
         <path d="M333 207a5 8 0 1 0 .1 0M333 211a2.5 4 0 1 0 .1 0" fill="none" stroke="#7a4c24" strokeWidth="1" />
       </g>
-      {/* flames rise between the logs */}
-      <g filter="url(#dr-flicker)">
-        <g transform="translate(230 226)">
-          <g className="dr-flame dr-flame--main">
-            <path d="M-80 6c-12-38 6-64 20-90 4 24 14 34 22 40 0-34 12-62 34-88 2 38 20 58 28 84 6-16 10-30 4-48 24 24 34 56 26 102z" fill="#b8280a" opacity="0.85" filter="url(#dr-soft)" />
-            <path d="M-66 6c-10-34 6-56 18-76 4 22 12 30 20 36 0-30 10-54 30-78 2 34 18 52 24 74 6-14 8-26 4-42 20 22 28 50 20 86z" fill="#ff5e14" />
-            <path d="M-46 6c-6-24 4-40 14-56 4 16 10 22 16 28 0-22 6-38 20-56 2 24 14 38 18 56 4-10 6-18 4-30 14 16 18 36 14 58z" fill="#ffa526" />
-            <path d="M-26 6c-4-16 2-26 8-36 2 10 6 16 12 18 0-14 4-24 12-34 2 16 8 24 10 36 2-6 4-10 2-16 8 10 10 20 6 32z" fill="#ffdc7a" />
-            <path d="M-12 6c-2-10 2-16 6-20 2 6 4 8 6 9 2-6 4-11 7-15 2 9 4 16 3 26z" fill="#fff6d8" />
+      {noWebGl && (
+        <>
+          {/* flames rise between the logs */}
+          <g filter="url(#dr-flicker)">
+            <g transform="translate(230 226)">
+              <g className="dr-flame dr-flame--main">
+                <path d="M-80 6c-12-38 6-64 20-90 4 24 14 34 22 40 0-34 12-62 34-88 2 38 20 58 28 84 6-16 10-30 4-48 24 24 34 56 26 102z" fill="#b8280a" opacity="0.85" filter="url(#dr-soft)" />
+                <path d="M-66 6c-10-34 6-56 18-76 4 22 12 30 20 36 0-30 10-54 30-78 2 34 18 52 24 74 6-14 8-26 4-42 20 22 28 50 20 86z" fill="#ff5e14" />
+                <path d="M-46 6c-6-24 4-40 14-56 4 16 10 22 16 28 0-22 6-38 20-56 2 24 14 38 18 56 4-10 6-18 4-30 14 16 18 36 14 58z" fill="#ffa526" />
+                <path d="M-26 6c-4-16 2-26 8-36 2 10 6 16 12 18 0-14 4-24 12-34 2 16 8 24 10 36 2-6 4-10 2-16 8 10 10 20 6 32z" fill="#ffdc7a" />
+                <path d="M-12 6c-2-10 2-16 6-20 2 6 4 8 6 9 2-6 4-11 7-15 2 9 4 16 3 26z" fill="#fff6d8" />
+              </g>
+            </g>
+            <g transform="translate(178 232)">
+              <g className="dr-flame dr-flame--left">
+                <path d="M-22 0c-6-24 8-40 10-62 10 16 22 34 18 62z" fill="#ff5e14" />
+                <path d="M-13 0c-2-16 4-26 6-40 7 12 13 22 10 40z" fill="#ffc64a" />
+              </g>
+            </g>
+            <g transform="translate(284 232)">
+              <g className="dr-flame dr-flame--right">
+                <path d="M-17 0c-6-26 6-44 8-66 11 18 21 38 17 66z" fill="#ff5e14" />
+                <path d="M-10 0c-2-18 4-28 6-44 7 14 13 26 9 44z" fill="#ffd36a" />
+              </g>
+            </g>
           </g>
-        </g>
-        <g transform="translate(178 232)">
-          <g className="dr-flame dr-flame--left">
-            <path d="M-22 0c-6-24 8-40 10-62 10 16 22 34 18 62z" fill="#ff5e14" />
-            <path d="M-13 0c-2-16 4-26 6-40 7 12 13 22 10 40z" fill="#ffc64a" />
-          </g>
-        </g>
-        <g transform="translate(284 232)">
-          <g className="dr-flame dr-flame--right">
-            <path d="M-17 0c-6-26 6-44 8-66 11 18 21 38 17 66z" fill="#ff5e14" />
-            <path d="M-10 0c-2-18 4-28 6-44 7 14 13 26 9 44z" fill="#ffd36a" />
-          </g>
-        </g>
-      </g>
+        </>
+      )}
+      </svg>
+      {!noWebGl && (
+        <FireCanvas
+          still={still}
+          onFail={() => setNoWebGl(true)}
+          style={{
+            left: px(Math.round(box.x + FIRE_BOX.x * sx)),
+            top: px(Math.round(box.y + FIRE_BOX.y * sy)),
+            width: px(Math.round(FIRE_BOX.w * sx)),
+            height: px(Math.round(FIRE_BOX.h * sy)),
+          }}
+        />
+      )}
+      <svg className="dr-abs dr-fireplace" style={svgStyle} viewBox="0 0 460 260" preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id="dr-bark2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#1a0f08" /><stop offset="0.25" stopColor="#5a3620" /><stop offset="0.55" stopColor="#6e4428" /><stop offset="1" stopColor="#20130a" />
+          </linearGradient>
+        </defs>
       {/* front log, big, over the base of the flames */}
       <g transform="rotate(-3 230 238)">
-        <rect x="132" y="224" width="196" height="32" rx="16" fill="url(#dr-bark)" />
+        <rect x="132" y="224" width="196" height="32" rx="16" fill="url(#dr-bark2)" />
         <rect x="132" y="224" width="196" height="32" rx="16" fill="#000" filter="url(#dr-barktex)" />
         <path d="M150 228c40-4 100-4 160 0" stroke="#1a0d06" strokeWidth="5" fill="none" opacity="0.8" />
         <path className="dr-fire-glow" d="M154 229c20-2 40-2 60 0M232 228c24-1 50-1 74 1M170 252c30 2 60 2 90 0" stroke="#ff8a2a" strokeWidth="2.2" fill="none" filter="url(#dr-crack)" />
@@ -337,8 +375,101 @@ function Fireplace({ style }: { style: CSSProperties }) {
         <circle cx="86" cy="252" r="6" strokeWidth="2" />
         <circle cx="374" cy="252" r="6" strokeWidth="2" />
       </g>
-    </svg>
+      </svg>
+    </>
   )
+}
+
+// A wood fire in a fragment shader: domain-warped noise rising through the
+// firebox, split into tongues with dark gaps, hottest (near white) just above
+// the logs, orange, then translucent red at the tips. Drawn on black and
+// screen-blended, so black is see-through. About 30 frames a second, paused
+// with the page; one still frame under reduced motion.
+const FIRE_SHADER = `
+precision mediump float;
+uniform float t;
+uniform vec2 r;
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3. - 2. * f);
+  return mix(mix(hash(i), hash(i + vec2(1., 0.)), u.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), u.x), u.y);
+}
+float fbm(vec2 p) {
+  float v = 0., a = .5;
+  for (int k = 0; k < 5; k++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= .5; }
+  return v;
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / r;
+  float x = (uv.x - .5) * 2.;
+  float y = uv.y;
+  vec2 p = vec2(x * 2.4, y * 2.2 - t * 1.9);
+  float warp = fbm(p * 1.3 + vec2(t * .2, -t * .7));
+  float n = fbm(p + vec2(warp * 1.6 - .8, warp * .9));
+  float cols = fbm(vec2(x * 5.5 + warp * 1.8 + sin(t * 1.3 + y * 3.) * .25, y * 1.1 - t * 2.6));
+  float tongues = smoothstep(.36, .62, cols + .22 * (1. - y));
+  float spread = 1. - smoothstep(.4, .92, abs(x) + y * .45);
+  float body = spread * (.82 - y * 1.05);
+  float f = body * (.35 + .9 * tongues) + (n - .5) * (.5 + y * .9);
+  f = clamp((f - .1) * 1.6, 0., 1.);
+  // fade out before the arch, so no wisp is cut off by it
+  f *= 1. - smoothstep(.62, .92, y + abs(x) * .25);
+  vec3 col = vec3(1.45 * f, 1.05 * pow(f, 2.1), .85 * pow(f, 5.5));
+  col *= smoothstep(0., .18, f);
+  gl_FragColor = vec4(min(col, vec3(1.)), 1.);
+}`
+
+function FireCanvas({ style, still, onFail }: { style: CSSProperties; still: boolean; onFail: () => void }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = ref.current
+    const gl = canvas?.getContext("webgl", { alpha: false, antialias: false, depth: false })
+    if (!canvas || !gl) return onFail()
+    const compile = (type: number, src: string) => {
+      const sh = gl.createShader(type)!
+      gl.shaderSource(sh, src)
+      gl.compileShader(sh)
+      return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null
+    }
+    const vs = compile(gl.VERTEX_SHADER, "attribute vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }")
+    const fs = compile(gl.FRAGMENT_SHADER, FIRE_SHADER)
+    const prog = gl.createProgram()
+    if (!vs || !fs || !prog) return onFail()
+    gl.attachShader(prog, vs)
+    gl.attachShader(prog, fs)
+    gl.linkProgram(prog)
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return onFail()
+    gl.useProgram(prog)
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+    const loc = gl.getAttribLocation(prog, "a")
+    gl.enableVertexAttribArray(loc)
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+    gl.uniform2f(gl.getUniformLocation(prog, "r"), canvas.width, canvas.height)
+    const uT = gl.getUniformLocation(prog, "t")
+    const draw = (secs: number) => {
+      gl.uniform1f(uT, secs)
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    }
+    if (still) {
+      draw(0.4)
+      return
+    }
+    const t0 = performance.now()
+    let last = 0
+    let raf = requestAnimationFrame(function frame(now) {
+      raf = requestAnimationFrame(frame)
+      if (now - last < 33) return
+      last = now
+      draw((now - t0) / 1000)
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [still])
+  const w = parseInt(String(style.width), 10)
+  const h = parseInt(String(style.height), 10)
+  return <canvas ref={ref} className="dr-fire" width={w} height={h} style={style} aria-hidden />
 }
 
 function Rug({ style }: { style: CSSProperties }) {

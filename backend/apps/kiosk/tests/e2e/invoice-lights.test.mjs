@@ -31,6 +31,16 @@ async function start(viewport, setup, button) {
   await page.waitForTimeout(800)
   await page.click(".k-pay:visible")
   await page.waitForSelector(".k-method")
+  // Record, inside the page, when the first portrait changes colour (sampling from outside can start
+  // late while the WebGL fire keeps the test browser busy).
+  await page.evaluate(() => {
+    window.__lights = []
+    new MutationObserver(() => {
+      const l = document.querySelector(".invoice-light")
+      const last = window.__lights[window.__lights.length - 1]
+      if (l && (!last || last.v !== l.dataset.light)) window.__lights.push({ v: l.dataset.light, t: performance.now() })
+    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-light"] })
+  })
   await page.click(button)
   await page.waitForSelector(".invoice-light")
   return { ctx, page, mock, errors }
@@ -41,10 +51,10 @@ for (const [name, viewport] of [["portrait", PORTRAIT], ["landscape", LANDSCAPE]
   const { ctx, page, errors } = await start(viewport, (m) => { m.sessionDelay = 4000; m.serviceTimes = { yadio: 900, coinos: 1800, bark: 3000 } }, ".k-method__option--bip321")
   const first = await lights(page)
   check(`${name}: all three red as the screen appears`, first.yadio === "red" && first.coinos === "red" && first.bark === "red", JSON.stringify(first))
-  const t0 = Date.now()
-  const amber = await waitFor(page, { yadio: "amber", coinos: "amber", bark: "amber" }, 1000)
-  const amberAt = Date.now() - t0
-  check(`${name}: then all three amber after about 600 ms`, amber && amberAt > 400 && amberAt < 800, `${amberAt} ms after the first sample`)
+  const amber = await waitFor(page, { yadio: "amber", coinos: "amber", bark: "amber" }, 1500)
+  const seq = await page.evaluate(() => window.__lights)
+  const redMs = seq[0]?.v === "red" && seq[1]?.v === "amber" ? Math.round(seq[1].t - seq[0].t) : null
+  check(`${name}: then all three amber after about 600 ms`, amber && redMs !== null && redMs >= 550 && redMs <= 800, `red for ${redMs} ms`)
   const layout = await page.evaluate(() => {
     const stage = document.querySelector(".k-stage").getBoundingClientRect()
     const byte = document.querySelector(".dr-byte").getBoundingClientRect()

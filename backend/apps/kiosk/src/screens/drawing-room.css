@@ -94,7 +94,11 @@
 .drawing-room .dr-cancel { position: absolute; left: 50%; top: 1680px; transform: translateX(-50%); }
 .k-stage[data-orientation="landscape"] .drawing-room .dr-cancel { left: auto; right: 48px; top: 1068px; transform: none; }
 
-/* The fire */
+/* The fire: the WebGL canvas, screen-blended so its black is see-through, and
+   rounded at the top like the firebox's arch. */
+.dr-fire { position: absolute; mix-blend-mode: screen; clip-path: inset(0 round 46% 46% 0 0 / 34% 34% 0 0); }
+
+/* The drawn flames' flicker (the fallback without WebGL) */
 .dr-flame { transform-box: fill-box; transform-origin: 50% 100%; }
 .dr-flame--main { animation: dr-flame-main 0.9s ease-in-out infinite alternate; }
 .dr-flame--left { animation: dr-flame-side 0.7s ease-in-out infinite alternate; }
