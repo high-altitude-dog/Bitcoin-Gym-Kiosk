@@ -330,6 +330,7 @@ function InvoiceQr({
         </div>
         <section className="invoice-wallets" aria-label={t.scanWith}>
           <p className="invoice-wallets__title">{t.scanWith}</p>
+          <p className="payment-note invoice-wallets__other">{ark ? t.scanArk : bip321 ? t.scanBip321 : t.scanLightning}</p>
           <p className="invoice-wallets__hint">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M9 11.5V5a1.5 1.5 0 0 1 3 0v5.5m0-1a1.5 1.5 0 0 1 3 0v1m0-.5a1.5 1.5 0 0 1 3 0v4c0 3.6-2.4 6-6 6h-1c-2.2 0-3.6-1-4.8-2.8L4.6 15a1.5 1.5 0 0 1 2.4-1.8L9 15" />
@@ -361,7 +362,6 @@ function InvoiceQr({
               )
             })}
           </ul>
-          <p className="payment-note">{ark ? t.scanArk : bip321 ? t.scanBip321 : t.scanLightning}</p>
         </section>
         <button className="back-button" onClick={onCancel}>
           {t.cancel}

@@ -75,6 +75,9 @@
 }
 .wallet-card__back svg { width: 30px; height: 30px; }
 
+/* "or any other ... wallet" right under the title (the developer, Oct 31, 2026). */
+.invoice-wallets__other { margin-top: -16px; }
+
 /* The tiles under the QR: buttons now, each logo with an "i" badge. */
 .invoice-wallets__hint {
   display: flex; align-items: center; gap: 10px; margin: -12px 0 0;
