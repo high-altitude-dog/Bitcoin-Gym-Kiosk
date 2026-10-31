@@ -40,9 +40,10 @@ const POLL_INTERVAL_MS = 500
 // Byte's magic hoops stay on screen at least this long before the QR, so a
 // fast invoice doesn't make him flash on and off.
 const MIN_BYTE_MS = 1500
-// Once the invoice has arrived, every traffic light beside Byte turns green and
-// stays up this long before the QR replaces them, so the member sees it.
-const LIGHTS_GREEN_HOLD_MS = 600
+// Once the invoice has arrived, every portrait in the drawing room turns green
+// and stays up this long before the QR replaces them, so the member sees it
+// (950 ms since Oct 30, 2026, the developer's choice; 600 before).
+const LIGHTS_GREEN_HOLD_MS = 950
 // Keep checking this long past the invoice's deadline before calling it
 // expired: a payment sent in the last seconds can settle, and the Coinos
 // webhook arrive, a little after the deadline.
