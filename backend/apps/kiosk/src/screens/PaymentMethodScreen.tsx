@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import type { PaymentMethod } from "../state/useKiosk"
 import { formatBs } from "../lib/money"
 import { t } from "../lib/strings"
+import { KIOSK_LOCATION } from "../lib/location"
 
 interface Props {
   // The order bar's total: the cart plus any taps still being saved.
@@ -64,6 +65,7 @@ function BitcoinOption(props: {
 }
 
 export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBankQr, onCash, onArk, onBip321, onBack }: Props) {
+  const atGym = KIOSK_LOCATION !== null
   const saving = savingFor !== null
   return (
     <div className="k-method">
@@ -88,11 +90,15 @@ export function PaymentMethodScreen({ total, savingFor, error, onLightning, onBa
           {onArk && <BitcoinOption method="ark" label={t.payWithArk} className="k-method__option--ark" savingFor={savingFor} onClick={onArk} />}
         </div>
         <div className="k-method__group k-method__group--bs">
-          <button className="k-method__option k-method__option--bank-qr" onClick={onBankQr} disabled={saving} aria-busy={savingFor === "bank_qr"}>
+          {/* Bank QR and cash only on a kiosk opened with ?location= (lib/location.ts);
+              the backend refuses them otherwise. */}
+          <button className="k-method__option k-method__option--bank-qr" onClick={onBankQr} disabled={saving || !atGym} aria-busy={savingFor === "bank_qr"}>
             {savingFor === "bank_qr" ? t.savingOrder : t.payWithBankQr}
+            {!atGym && <span className="k-method__only-gym">{t.onlyAtGym}</span>}
           </button>
-          <button className="k-method__option k-method__option--cash" onClick={onCash} disabled={saving} aria-busy={savingFor === "cash"}>
+          <button className="k-method__option k-method__option--cash" onClick={onCash} disabled={saving || !atGym} aria-busy={savingFor === "cash"}>
             {savingFor === "cash" ? t.savingOrder : t.payWithCash}
+            {!atGym && <span className="k-method__only-gym">{t.onlyAtGym}</span>}
           </button>
         </div>
       </div>

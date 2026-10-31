@@ -38,7 +38,10 @@ export async function startServer() {
     fs.createReadStream(file).pipe(res)
   })
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve))
-  return { url: `http://127.0.0.1:${server.address().port}/`, close: () => new Promise((resolve) => server.close(resolve)) }
+  // url opens the kiosk as the gym's tablet would (?location=, so bank QR and cash are on);
+  // bareUrl without it, as a stranger's browser would.
+  const base = `http://127.0.0.1:${server.address().port}/`
+  return { url: `${base}?location=e2e`, bareUrl: base, close: () => new Promise((resolve) => server.close(resolve)) }
 }
 
 /** Playwright's own Chromium if it is installed, else any in the usual cache (CHROMIUM_PATH overrides). */

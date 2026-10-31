@@ -103,6 +103,7 @@ const es = {
   // The QR screens: a heading over the suggested wallets, and a line under
   // them for anyone using a different wallet.
   scanWith: "Escanea con una de estas billeteras",
+  onlyAtGym: "Solo en el gimnasio",
   walletTapHint: "Toca un logo para saber más",
   walletMore: (name: string) => `Más sobre ${name}`,
   walletDetails: "Detalles de la billetera",
@@ -226,6 +227,7 @@ const en: Strings = {
   generatingQr: "Generating QR code...",
   expiresIn: (time: string) => `Expires in ${time}`,
   scanWith: "Scan with one of these wallets",
+  onlyAtGym: "Only at the gym",
   walletTapHint: "Tap a logo to learn more",
   walletMore: (name: string) => `More about ${name}`,
   walletDetails: "Wallet details",

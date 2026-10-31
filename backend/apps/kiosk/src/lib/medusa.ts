@@ -1,4 +1,5 @@
 import Medusa from "@medusajs/js-sdk"
+import { KIOSK_LOCATION } from "./location"
 
 // Every request gives up after this long. The SDK's fetch has no timeout of
 // its own, so a reply lost on the gym wifi would otherwise leave it waiting
@@ -19,9 +20,12 @@ export const sdk = new Medusa({
 // Every sdk.store.* call goes through client.fetch, which passes its options
 // on to fetch() as they are, so a default abort signal here covers them all.
 const clientFetch = sdk.client.fetch.bind(sdk.client)
+// It also carries this kiosk's location (lib/location.ts), which the backend
+// needs before it accepts bank QR and cash.
 sdk.client.fetch = ((input, init) =>
   clientFetch(input, {
     ...init,
+    headers: KIOSK_LOCATION ? { ...(init?.headers as Record<string, string> | undefined), "x-kiosk-location": KIOSK_LOCATION } : init?.headers,
     signal: init?.signal ?? AbortSignal.timeout(isInvoiceRequest(input) ? INVOICE_TIMEOUT_MS : REQUEST_TIMEOUT_MS),
   })) as typeof sdk.client.fetch
 

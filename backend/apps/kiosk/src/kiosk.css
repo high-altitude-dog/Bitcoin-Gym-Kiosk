@@ -542,6 +542,7 @@
    cash green (the bank QR "Pagado" button's green), all with white text. */
 .k-method__option--bank-qr { background: #1f6fd1; color: #fff; }
 .k-method__option--cash { background: #1f9d4d; color: #fff; }
+.k-method__only-gym { display: block; margin-top: 10px; font: 600 28px/1 var(--k-font); }
 .k-method__option--ark { background: #7b3fe4; color: #fff; }
 .k-method__option--bip321 { background: #7b3fe4; color: #fff; }
 /* "Ahorrá el 10%": a yellow sash across the bottom-right corner of the Bolt12/Ark
