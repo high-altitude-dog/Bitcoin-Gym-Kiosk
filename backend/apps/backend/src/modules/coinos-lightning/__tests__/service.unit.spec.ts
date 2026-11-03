@@ -63,7 +63,7 @@ describe("CoinosLightningProviderService", () => {
       const sentBody = JSON.parse(invoiceCall[1].body)
       expect(sentBody.invoice).toMatchObject({
         amount: 1000,
-        memo: "payses_123",
+        memo: "Armor Gym Calacoto / CoinOS.io 123",
         webhook: "https://backend.test/hooks/coinos",
         secret: "shared-secret",
         type: "lightning",
@@ -181,6 +181,17 @@ describe("CoinosLightningProviderService", () => {
 
       expect(result.action).toBe(PaymentActions.NOT_SUPPORTED)
       expect(logger.warn).toHaveBeenCalled()
+    })
+
+    it("finds the session from the new memo format", async () => {
+      const service = makeService()
+      const result = await service.getWebhookActionAndData({
+        data: { memo: "Armor Gym Calacoto / CoinOS.io 01M6HCMSWMJJE8H56BXFKN59P3", confirmed: true, amount: 1000, secret: "shared-secret" },
+        rawData: "",
+        headers: {},
+      } as any)
+      expect(result.action).toBe(PaymentActions.SUCCESSFUL)
+      expect((result.data as any).session_id).toBe("payses_01M6HCMSWMJJE8H56BXFKN59P3")
     })
 
     it("ignores a callback with a missing or non-string secret", async () => {

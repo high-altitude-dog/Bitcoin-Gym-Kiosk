@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { notifySlack } from "../lib/notify-slack"
+import { sessionIdFromMemo } from "../lib/payment-memo"
 import { CoinosClient, CoinosPayment } from "../modules/coinos-lightning/lib/coinos-client"
 import { COINOS_LIGHTNING_PROVIDER_ID } from "../modules/coinos-lightning/types"
 import { BIP321_PROVIDER_ID } from "../modules/bip321-ark-bolt12/types"
@@ -58,7 +59,7 @@ export default async function reconcileCoinosPayments(container: MedusaContainer
   // Every identifier a Coinos payment record carries that we also store on
   // the Medusa payment: memo (= our session id), the Lightning payment hash,
   // and iid (= the Coinos invoice id we stored as coinos_invoice_id).
-  const identifiersOf = (p: CoinosPayment): unknown[] => [p.memo, p.hash, p.payment_hash, p.iid]
+  const identifiersOf = (p: CoinosPayment): unknown[] => [p.memo, sessionIdFromMemo(p.memo), p.hash, p.payment_hash, p.iid]
 
   const matches = (payment: CoinosPayment): boolean =>
     identifiersOf(payment).some((value) => typeof value === "string" && knownIdentifiers.has(value))

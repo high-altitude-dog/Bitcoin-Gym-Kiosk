@@ -26,6 +26,7 @@ import { YadioClient, sharedYadioClient } from "../coinos-lightning/lib/yadio-cl
 import { BarkPayClient, PAID_STATUSES, btcAmount } from "../bark-ark/lib/bark-pay-client"
 import { Bip321Options } from "./types"
 import { formatTimings, InvoiceService, progressToken, startProgress, track } from "../../lib/invoice-progress"
+import { paymentMemo } from "../../lib/payment-memo"
 
 type InjectedDependencies = {
   logger: Logger
@@ -112,7 +113,7 @@ class Bip321ProviderService extends AbstractPaymentProvider<Bip321Options> {
         track(token, "coinos", timings, () =>
           this.coinos_.createInvoice({
             amountSats: satsAmount,
-            memo: sessionId,
+            memo: paymentMemo("CoinOS.io", sessionId),
             expirySeconds,
             webhookUrl: `${this.options_.webhookBaseUrl.replace(/\/+$/, "")}/hooks/coinos`,
             webhookSecret: this.options_.coinosWebhookSecret,
@@ -124,7 +125,7 @@ class Bip321ProviderService extends AbstractPaymentProvider<Bip321Options> {
           this.bark_.createCharge({
             amountSat: satsAmount,
             reference: sessionId,
-            description: `Armor Gym, Bs ${amountBob} (BIP321)`,
+            description: paymentMemo("Second.tech", sessionId),
             expiresIn: expirySeconds,
             rails: ["ark"],
             idempotencyKey: `kiosk-bip321-${sessionId}`,

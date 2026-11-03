@@ -27,6 +27,7 @@ import { CoinosClient } from "./lib/coinos-client"
 import { YadioClient, sharedYadioClient } from "./lib/yadio-client"
 import { COINOS_INVOICE_TYPES, CoinosLightningOptions } from "./types"
 import { formatTimings, InvoiceService, progressToken, startProgress, track } from "../../lib/invoice-progress"
+import { paymentMemo, sessionIdFromMemo } from "../../lib/payment-memo"
 
 // Constant-time comparison. Hashing first gives both sides the same length,
 // which timingSafeEqual requires, without revealing the secret's length.
@@ -122,7 +123,7 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
       invoice = await track(token, "coinos", timings, () =>
         this.coinos_.createInvoice({
           amountSats: satsAmount,
-          memo: sessionId,
+          memo: paymentMemo("CoinOS.io", sessionId),
           expirySeconds,
           webhookUrl: this.webhookUrl(),
           webhookSecret: this.options_.webhookSecret,
@@ -251,8 +252,9 @@ class CoinosLightningProviderService extends AbstractPaymentProvider<CoinosLight
     }
 
     // We put the Medusa payment session id in the invoice's memo when we
-    // created it; Coinos echoes memo back on the webhook call.
-    const sessionId = typeof body.memo === "string" ? body.memo : ""
+    // created it ("Armor Gym Calacoto / CoinOS.io <code>", or the bare id on
+    // older invoices); Coinos echoes memo back on the webhook call.
+    const sessionId = sessionIdFromMemo(body.memo)
     if (!sessionId || body.confirmed !== true) {
       return { action: PaymentActions.NOT_SUPPORTED }
     }

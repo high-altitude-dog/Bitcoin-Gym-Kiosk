@@ -27,6 +27,7 @@ import { BarkCharge, BarkPayClient, PAID_STATUSES, paymentUri } from "./lib/bark
 import { verifyBarkSignature } from "./lib/webhook-signature"
 import { BarkArkOptions } from "./types"
 import { formatTimings, InvoiceService, progressToken, startProgress, track } from "../../lib/invoice-progress"
+import { paymentMemo } from "../../lib/payment-memo"
 
 type InjectedDependencies = {
   logger: Logger
@@ -94,7 +95,7 @@ class BarkArkProviderService extends AbstractPaymentProvider<BarkArkOptions> {
         this.bark_.createCharge({
           amountSat: satsAmount,
           reference: sessionId,
-          description: `Armor Gym, Bs ${amountBob}`,
+          description: paymentMemo("Second.tech", sessionId),
           expiresIn: expirySeconds,
           rails: ["ark", "lightning"],
           // One charge per payment session, even if Medusa retries the call.

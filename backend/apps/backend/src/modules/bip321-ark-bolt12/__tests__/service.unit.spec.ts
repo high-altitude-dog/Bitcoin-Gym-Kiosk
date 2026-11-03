@@ -84,7 +84,7 @@ describe("Bip321ProviderService", () => {
     const call = (part: string) => fetchMock.mock.calls.find(([url]) => url.includes(part))!
     expect(JSON.parse(call("coinos.test")[1].body).invoice).toMatchObject({
       amount: 1000,
-      memo: "payses_123",
+      memo: "Armor Gym Calacoto / CoinOS.io 123",
       type: "bolt12",
       single_use: true,
       expiry: 600,
