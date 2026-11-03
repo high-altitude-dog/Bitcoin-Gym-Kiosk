@@ -100,6 +100,7 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  * and read cashDesk (the bodies of the front-desk "cobrar" calls, in order),
  *   completeFailures   how many completion calls fail (500) before one succeeds
  *   sessionDelay       ms creating a payment session (the invoice) takes
+ *   sessionFailures    how many invoice requests fail fast (500, coinos reported failed) before one succeeds
  *   serviceTimes / serviceFails  how invoice progress unfolds per service (traffic lights)
  *   arkEnabled         the region offers "Bitcoin Ark" (Bark Pay); off by default
  *   bip321Enabled      the region offers "BIP321 Ark/Bolt12"; off by default
@@ -125,6 +126,7 @@ export function createMock() {
     cashDesk: [],
     completeFailures: 0,
     sessionDelay: 0,
+    sessionFailures: 0,
     // Invoice progress for the traffic lights: ms after the invoice request until
     // each service answers (Infinity: never), and which ones fail instead.
     serviceTimes: { yadio: 50, coinos: 300, bark: 300 },
@@ -182,6 +184,7 @@ export function createMock() {
           if (!entry) return json({ steps: {} })
           const elapsed = Date.now() - entry.at
           const steps = {}
+          if (entry.fail) return json({ steps: { yadio: { state: "done" }, coinos: { state: elapsed >= 100 ? "failed" : "pending" } } })
           for (const service of entry.services) {
             steps[service] = { state: mock.serviceFails.includes(service) && elapsed >= mock.serviceTimes[service] ? "failed" : elapsed >= mock.serviceTimes[service] ? "done" : "pending" }
           }
@@ -191,6 +194,13 @@ export function createMock() {
           const token = body().data?.progress_token
           const provider = body().provider_id
           if (token) mock.progress.set(token, { at: Date.now(), services: provider === LIGHTNING_PROVIDER ? ["yadio", "coinos"] : provider === ARK_PROVIDER ? ["yadio", "bark"] : ["yadio", "coinos", "bark"] })
+          if (mock.sessionFailures > 0) {
+            mock.sessionFailures--
+            mock.sessionAttempts = (mock.sessionAttempts ?? 0) + 1
+            if (token) mock.progress.set(token, { at: Date.now(), services: [], fail: true })
+            await wait(150)
+            return route.fulfill({ status: 500, headers: cors, body: "{}" })
+          }
           await wait(mock.sessionDelay)
           const isLightning = body().provider_id === LIGHTNING_PROVIDER
           mock.sessionProviders.push(body().provider_id)

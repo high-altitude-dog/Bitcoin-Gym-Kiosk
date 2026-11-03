@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
-import QRCode from "qrcode"
+import { qrImageUrl } from "../lib/qrImage"
 import { OPEN_GYM_URL, WIFI_QR_PAYLOAD } from "../lib/connectQr"
 import { t } from "../lib/strings"
 import { LangFlags } from "./LangFlags"
 
 // Drawn once when the app loads, so the screen opens with both codes ready.
 const draw = (text: string | null) =>
-  text ? QRCode.toDataURL(text, { width: 520, margin: 1 }).catch(() => null) : Promise.resolve(null)
+  text ? qrImageUrl(text, { width: 520, margin: 1 }).catch(() => null) : Promise.resolve(null)
 const wifiQr = draw(WIFI_QR_PAYLOAD)
 const accessQr = draw(OPEN_GYM_URL)
 

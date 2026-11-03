@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import QRCode from "qrcode"
+import { qrImageUrl } from "../lib/qrImage"
 import type { HttpTypes } from "@medusajs/types"
 import { formatBs } from "../lib/money"
 import { t } from "../lib/strings"
@@ -38,7 +38,7 @@ function usePaymentQrCode(text: string | undefined) {
       return
     }
     let cancelled = false
-    QRCode.toDataURL(text, { width: 720, margin: 1 })
+    qrImageUrl(text, { width: 720, margin: 1 })
       .then((url) => {
         if (!cancelled) setQrDataUrl(url)
       })
@@ -55,7 +55,7 @@ function usePaymentQrCode(text: string | undefined) {
 
 // The static bank QR, drawn once when the app loads (not when its screen
 // opens), the same size and quiet zone as the Lightning QR.
-const bankQrImage: Promise<string | null> = QRCode.toDataURL(
+const bankQrImage: Promise<string | null> = qrImageUrl(
   [{ data: new TextEncoder().encode(BANK_QR_PAYLOAD), mode: "byte" as const }],
   { ...BANK_QR_OPTIONS, width: 720, margin: 1 }
 ).catch(() => null)

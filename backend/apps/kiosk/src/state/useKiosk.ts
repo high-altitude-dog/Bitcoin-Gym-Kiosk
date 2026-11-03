@@ -1,3 +1,4 @@
+import { INTRO_RED_MS, MIN_AMBER_MS, RED_HOLD_MS } from "../screens/InvoiceLights"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import { isHttpError, sdk } from "../lib/medusa"
@@ -44,6 +45,10 @@ const MIN_BYTE_MS = 1500
 // and stays up this long before the QR replaces them, so the member sees it
 // (950 ms since Oct 30, 2026, the developer's choice; 600 before).
 const LIGHTS_GREEN_HOLD_MS = 950
+// A try lasts at least MIN_AMBER_MS + RED_HOLD_MS (amber, then red, as the
+// portraits show it; the first also waits out the opening red); no new try starts after INVOICE_RETRY_UNTIL_MS from the
+// first (the kiosk gives up at INVOICE_TIMEOUT_MS).
+const INVOICE_RETRY_UNTIL_MS = 11_000
 // Keep checking this long past the invoice's deadline before calling it
 // expired: a payment sent in the last seconds can settle, and the Coinos
 // webhook arrive, a little after the deadline.
@@ -495,13 +500,35 @@ export function useKiosk() {
           return
         }
 
-        const progressToken = newProgressToken()
-        setState((s) => ({ ...s, invoiceProgress: { token: progressToken, requestedAt: Date.now() } }))
-        const { payment_collection } = await sdk.store.payment.initiatePaymentSession(
-          cart,
-          { provider_id: providerId, data: { progress_token: progressToken } },
-          { fields: "+payment_sessions.data,+payment_sessions.provider_id" }
-        )
+        // Try again while the invoice deadline allows (Nov 3, 2026: Coinos was
+        // down and answered 530 in 200 ms, so the first failure went straight
+        // to the error screen). Each try has its own progress token, so the
+        // portraits go amber, red on failure, then amber again for the next try.
+        // A try that timed out is never repeated: its invoice may exist.
+        const startedAt = Date.now()
+        let payment_collection: Awaited<ReturnType<typeof sdk.store.payment.initiatePaymentSession>>["payment_collection"]
+        for (let attempt = 1; ; attempt++) {
+          const progressToken = newProgressToken()
+          const tryStartedAt = Date.now()
+          setState((s) => ({ ...s, invoiceProgress: { token: progressToken, requestedAt: startedAt } }))
+          try {
+            ;({ payment_collection } = await sdk.store.payment.initiatePaymentSession(
+              cart,
+              { provider_id: providerId, data: { progress_token: progressToken } },
+              { fields: "+payment_sessions.data,+payment_sessions.provider_id" }
+            ))
+            break
+          } catch (error) {
+            if (epoch !== epochRef.current) return
+            console.warn("[kiosk] invoice try", attempt, "failed", error instanceof Error ? `${error.name}: ${error.message}` : error)
+            const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")
+            const redFrom = Math.max(tryStartedAt, byteSince + INTRO_RED_MS) + MIN_AMBER_MS
+            const nextAt = Math.max(Date.now(), redFrom + RED_HOLD_MS)
+            if (timedOut || nextAt > startedAt + INVOICE_RETRY_UNTIL_MS) throw error
+            await new Promise((r) => setTimeout(r, nextAt - Date.now()))
+            if (epoch !== epochRef.current) return
+          }
+        }
         if (epoch !== epochRef.current) return
         const session = payment_collection.payment_sessions?.find((s) => s.provider_id === providerId)
         const invoice = readLightningInvoice(session?.data, Date.now(), method)
@@ -519,8 +546,11 @@ export function useKiosk() {
         cartRef.current = cart
         setState((s) => ({ ...s, cart, invoice, invoiceProgress: null, paymentStatus: "awaiting" }))
         pollForPayment(cart.id)
-      } catch {
+      } catch (error) {
         if (epoch !== epochRef.current) return
+        // The reason, for the browser console (Nov 3, 2026: a failure was seen
+        // with the server's 200 reply in the log and nothing to say why).
+        console.error("[kiosk] invoice failed", method, error instanceof Error ? `${error.name}: ${error.message}` : error)
         setState((s) => ({ ...s, error: t.errorInvoiceFailed, invoiceProgress: null, screen: "payment-method" }))
       }
     },

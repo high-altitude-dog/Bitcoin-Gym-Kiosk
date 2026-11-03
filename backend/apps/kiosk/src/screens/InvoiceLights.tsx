@@ -25,6 +25,12 @@ const RED_BEFORE_TIMEOUT_MS = 1_000
 // developer, Oct 30, 2026): a visual effect only, it says nothing about the
 // service, so the lights' accessible labels already give the real state.
 export const INTRO_RED_MS = 600
+// Each try shows amber for at least this long before a failure turns red, and a
+// failure stays red this long before the next try (Nov 3, 2026), so the
+// amber, red, amber sequence of a retried invoice can be followed by eye even
+// when the service fails in 200 ms.
+export const MIN_AMBER_MS = 900
+export const RED_HOLD_MS = 1500
 
 export type InvoiceLight = { service: Service; label: string; used: boolean; light: Light; real: Light; word: string }
 
@@ -45,6 +51,7 @@ export function useInvoiceLights(
   progress: { token: string; requestedAt: number | null; arrived?: boolean } | null
 ): InvoiceLight[] {
   const steps = useInvoiceSteps(progress)
+  const [mountedAt] = useState(() => Date.now())
   const requestedAt = progress?.requestedAt ?? null
   const late = requestedAt !== null && Date.now() >= requestedAt + INVOICE_TIMEOUT_MS - RED_BEFORE_TIMEOUT_MS
   const used = USES[method]
@@ -58,7 +65,10 @@ export function useInvoiceLights(
     if (progress?.arrived) return "green"
     const state = steps?.[service]?.state
     if (state === "done") return "green"
-    if (state === "failed" || late) return "red"
+    if (late) return "red"
+    // A fast failure stays amber until MIN_AMBER_MS after the try started (or
+    // after the opening red), so the amber can be seen.
+    if (state === "failed") return Date.now() >= Math.max(steps?.startedAt ?? 0, mountedAt + INTRO_RED_MS) + MIN_AMBER_MS ? "red" : "amber"
     return "amber"
   }
   const word: Record<Light, string> = { amber: t.lightAmber, green: t.lightGreen, red: t.lightRed }
@@ -71,13 +81,14 @@ export function useInvoiceLights(
 
 /** Polls the server for this request's steps every 250 ms, from when the request goes out. */
 function useInvoiceSteps(progress: { token: string; requestedAt: number | null } | null) {
-  const [steps, setSteps] = useState<Partial<Record<Service, { state: StepState }>> | null>(null)
+  const [steps, setSteps] = useState<(Partial<Record<Service, { state: StepState }>> & { startedAt?: number }) | null>(null)
   const [, tick] = useState(0)
   const token = progress?.requestedAt ? progress.token : null
 
   useEffect(() => {
     setSteps(null)
     if (!token) return
+    const startedAt = Date.now()
     let stopped = false
     let busy = false
     const poll = async () => {
@@ -88,7 +99,7 @@ function useInvoiceSteps(progress: { token: string; requestedAt: number | null }
         const res = await sdk.client.fetch<{ steps: Partial<Record<Service, { state: StepState }>> }>(
           `/store/invoice-progress/${token}`
         )
-        if (!stopped) setSteps(res.steps)
+        if (!stopped) setSteps({ ...res.steps, startedAt })
       } catch {
         // A network blip: keep the lights as they are.
       } finally {
