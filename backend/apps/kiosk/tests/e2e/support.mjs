@@ -101,6 +101,8 @@ const NAMES = ["Whey Protein Concentrate - Chocolate", "Creatine Monohydrate", "
  *   completeFailures   how many completion calls fail (500) before one succeeds
  *   sessionDelay       ms creating a payment session (the invoice) takes
  *   sessionFailures    how many invoice requests fail fast (500, coinos reported failed) before one succeeds
+ *   sessionScript      per invoice request, in order: { delay, status } (status other than 200 fails it);
+ *                      requests past the end of the list use sessionDelay
  *   serviceTimes / serviceFails  how invoice progress unfolds per service (traffic lights)
  *   arkEnabled         the region offers "Bitcoin Ark" (Bark Pay); off by default
  *   bip321Enabled      the region offers "BIP321 Ark/Bolt12"; off by default
@@ -127,6 +129,7 @@ export function createMock() {
     completeFailures: 0,
     sessionDelay: 0,
     sessionFailures: 0,
+    sessionScript: [],
     // Invoice progress for the traffic lights: ms after the invoice request until
     // each service answers (Infinity: never), and which ones fail instead.
     serviceTimes: { yadio: 50, coinos: 300, bark: 300 },
@@ -155,7 +158,7 @@ export function createMock() {
         if (url.pathname === "/store/carts" && req.method() === "POST") { mock.cart = { id: "cart_1", total: 0, items: [] }; return json({ cart: mock.cart }) }
         if (url.pathname.endsWith("/line-items") && req.method() === "POST") {
           const product = mock.products.find((p) => p.variants[0].id === body().variant_id)
-          mock.cart = { ...mock.cart, items: [...mock.cart.items, { id: `li_${body().variant_id}`, variant_id: body().variant_id, quantity: body().quantity, title: product.title, product_title: product.title, thumbnail: null }] }
+          mock.cart = { ...mock.cart, items: [...mock.cart.items, { id: `li_${body().variant_id}`, variant_id: body().variant_id, product_id: product.id, quantity: body().quantity, title: product.title, product_title: product.title, thumbnail: null }] }
           recalc()
           return json({ cart: mock.cart })
         }
@@ -201,7 +204,9 @@ export function createMock() {
             await wait(150)
             return route.fulfill({ status: 500, headers: cors, body: "{}" })
           }
-          await wait(mock.sessionDelay)
+          const step = mock.sessionScript.shift()
+          await wait(step?.delay ?? mock.sessionDelay)
+          if (step?.status && step.status !== 200) return route.fulfill({ status: step.status, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify({ type: "not_found", message: "PaymentSession not found" }) })
           const isLightning = body().provider_id === LIGHTNING_PROVIDER
           mock.sessionProviders.push(body().provider_id)
           const data = isLightning ? { bolt11: "lnbc5880n1" + "q".repeat(280), sats_amount: 588, bob_amount: 6, expiry_seconds: mock.expirySeconds }

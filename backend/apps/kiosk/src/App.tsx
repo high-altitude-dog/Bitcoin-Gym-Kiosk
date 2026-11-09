@@ -114,6 +114,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
     return plain(
       <PaymentScreen
         cart={kiosk.cart}
+        products={kiosk.products}
         paymentMethod={kiosk.paymentMethod}
         invoice={kiosk.invoice}
         invoiceProgress={kiosk.invoiceProgress}
@@ -131,7 +132,7 @@ function renderScreen(kiosk: ReturnType<typeof useKiosk>, retrying: boolean) {
   // A confirmed Lightning payment shows the done screen before its order exists.
   if (kiosk.screen === "done" && (kiosk.order || kiosk.paymentStatus === "confirmed")) {
     return plain(
-      <DoneScreen order={kiosk.order} payAtDesk={kiosk.paymentMethod === "cash"} onNewOrder={kiosk.reset} />
+      <DoneScreen order={kiosk.order} payAtDesk={kiosk.paymentMethod === "cash"} products={kiosk.products} onNewOrder={kiosk.reset} />
     )
   }
 
@@ -168,6 +169,6 @@ function plain(screen: ReactNode) {
 
 // The order bar's total: the cart plus taps not yet saved.
 function shownTotal(kiosk: ReturnType<typeof useKiosk>): number {
-  const products = kiosk.products.map(toKioskProduct).filter((p) => p !== null)
+  const products = kiosk.products.map((p) => toKioskProduct(p)).filter((p) => p !== null)
   return toKioskCart(kiosk.cart, kiosk.pending, products).total
 }

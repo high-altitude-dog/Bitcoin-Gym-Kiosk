@@ -35,8 +35,10 @@ export type PaymentMethod = "lightning" | "ark" | "bip321" | "bank_qr" | "cash" 
 
 // "*categories", not "+categories.id,+categories.name": that "+" form returns
 // categories as null in Medusa 2.21.2, so no product ever matched a category chip.
+// +metadata: metadata.name_en is the English product name (see productName);
+// the Store API leaves metadata out unless asked.
 const PRODUCT_FIELDS =
-  "*variants.calculated_price,+variants.inventory_quantity,*images,*categories"
+  "*variants.calculated_price,+variants.inventory_quantity,*images,*categories,+metadata"
 const POLL_INTERVAL_MS = 500
 // Byte's magic hoops stay on screen at least this long before the QR, so a
 // fast invoice doesn't make him flash on and off.
@@ -150,6 +152,12 @@ export function useKiosk() {
   // Bumped by reset(): work started for the previous member checks it and
   // drops its result instead of writing into the next member's session.
   const epochRef = useRef(0)
+  // Bumped by every invoice request a payment button starts and by "Cancelar":
+  // a request still waiting when the member cancelled or tapped again drops its
+  // result (Nov 8, 2026: a request abandoned after "Cancelar" came back 12 s
+  // later with a 404, because the next tap's request had replaced its session,
+  // and its error replaced the new request's QR).
+  const invoiceRunRef = useRef(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollBusyRef = useRef(false)
   const confirmingRef = useRef(false)
@@ -469,8 +477,15 @@ export function useKiosk() {
   }, [])
 
   const initiateLightningPayment = useCallback(
-    async (cart: HttpTypes.StoreCart, byteSince = Date.now(), method: InvoiceMethod = "lightning") => {
+    async (
+      cart: HttpTypes.StoreCart,
+      byteSince = Date.now(),
+      method: InvoiceMethod = "lightning",
+      run = ++invoiceRunRef.current
+    ) => {
       const epoch = epochRef.current
+      const stale = () => epoch !== epochRef.current || run !== invoiceRunRef.current
+      if (stale()) return
       const providerId = INVOICE_PROVIDER_ID[method]
       invoiceMethodRef.current = method
       stopPolling()
@@ -488,7 +503,7 @@ export function useKiosk() {
         const availability = await sdk.client.fetch<{ available: boolean; ark?: boolean }>(
           "/store/lightning-availability"
         )
-        if (epoch !== epochRef.current) return
+        if (stale()) return
         // BIP321 needs Bark Pay and a fresh rate, exactly what `ark` reports.
         if (!(method === "lightning" ? availability.available : availability.ark)) {
           setState((s) => ({
@@ -519,17 +534,17 @@ export function useKiosk() {
             ))
             break
           } catch (error) {
-            if (epoch !== epochRef.current) return
+            if (stale()) return
             console.warn("[kiosk] invoice try", attempt, "failed", error instanceof Error ? `${error.name}: ${error.message}` : error)
             const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")
             const redFrom = Math.max(tryStartedAt, byteSince + INTRO_RED_MS) + MIN_AMBER_MS
             const nextAt = Math.max(Date.now(), redFrom + RED_HOLD_MS)
             if (timedOut || nextAt > startedAt + INVOICE_RETRY_UNTIL_MS) throw error
             await new Promise((r) => setTimeout(r, nextAt - Date.now()))
-            if (epoch !== epochRef.current) return
+            if (stale()) return
           }
         }
-        if (epoch !== epochRef.current) return
+        if (stale()) return
         const session = payment_collection.payment_sessions?.find((s) => s.provider_id === providerId)
         const invoice = readLightningInvoice(session?.data, Date.now(), method)
         if (!invoice) {
@@ -540,14 +555,14 @@ export function useKiosk() {
         setState((s) => (s.invoiceProgress ? { ...s, invoiceProgress: { ...s.invoiceProgress, arrived: true } } : s))
         const wait = Math.max(LIGHTS_GREEN_HOLD_MS, MIN_BYTE_MS - (Date.now() - byteSince))
         await new Promise((r) => setTimeout(r, wait))
-        if (epoch !== epochRef.current) return
+        if (stale()) return
 
         invoiceRef.current = invoice
         cartRef.current = cart
         setState((s) => ({ ...s, cart, invoice, invoiceProgress: null, paymentStatus: "awaiting" }))
         pollForPayment(cart.id)
       } catch (error) {
-        if (epoch !== epochRef.current) return
+        if (stale()) return
         // The reason, for the browser console (Nov 3, 2026: a failure was seen
         // with the server's 200 reply in the log and nothing to say why).
         console.error("[kiosk] invoice failed", method, error instanceof Error ? `${error.name}: ${error.message}` : error)
@@ -558,8 +573,11 @@ export function useKiosk() {
   )
 
   const startPayment = useCallback(async (method: InvoiceMethod = "lightning") => {
+    const run = ++invoiceRunRef.current
+    const epoch = epochRef.current
+    const stale = () => epoch !== epochRef.current || run !== invoiceRunRef.current
     const cart = await settleForPayment(method)
-    if (!cart) return
+    if (!cart || stale()) return
 
     // Coinos can't cancel an invoice, so one replaced by a new invoice stays
     // payable with no order behind it. If the member comes back to the same
@@ -584,8 +602,10 @@ export function useKiosk() {
     }))
     try {
       const withShipping = await ensureShippingMethod(cart)
-      await initiateLightningPayment(withShipping, byteSince, method)
+      if (stale()) return
+      await initiateLightningPayment(withShipping, byteSince, method, run)
     } catch {
+      if (stale()) return
       setState((s) => ({ ...s, error: t.errorInvoiceFailed, screen: "payment-method" }))
     }
   }, [ensureShippingMethod, initiateLightningPayment, settleForPayment])
@@ -717,6 +737,7 @@ export function useKiosk() {
   // the invoice anyway. If it gets paid, the order completes and the kiosk
   // moves to "done" from whichever screen it's on.
   const cancelPayment = useCallback(() => {
+    invoiceRunRef.current += 1
     const told = cashToldRef.current
     if (told && told === cashOpenRef.current && cartRef.current) notifyCashDesk(cartRef.current.id, told, true)
     cashOpenRef.current = null

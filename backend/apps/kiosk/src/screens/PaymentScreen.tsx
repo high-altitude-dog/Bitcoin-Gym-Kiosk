@@ -2,7 +2,8 @@ import { useEffect, useState } from "react"
 import { qrImageUrl } from "../lib/qrImage"
 import type { HttpTypes } from "@medusajs/types"
 import { formatBs } from "../lib/money"
-import { t } from "../lib/strings"
+import { t, useLang } from "../lib/strings"
+import { lineName } from "../lib/kioskMapping"
 import { useCountdown, formatCountdown } from "../hooks/useCountdown"
 import type { LightningInvoice } from "../lib/payment"
 import { KIOSK } from "../lib/stageConfig"
@@ -15,6 +16,8 @@ import type { PaymentMethod, PaymentStatus } from "../state/useKiosk"
 
 interface Props {
   cart: HttpTypes.StoreCart
+  // The catalogue, for the cash screen's line names in the current language.
+  products: HttpTypes.StoreProduct[]
   paymentMethod: PaymentMethod
   invoice: LightningInvoice | null
   // The invoice being created, for the traffic lights beside Byte.
@@ -77,6 +80,7 @@ function useBankQrCode(enabled: boolean) {
 
 export function PaymentScreen({
   cart,
+  products,
   paymentMethod,
   invoice,
   invoiceProgress,
@@ -113,7 +117,7 @@ export function PaymentScreen({
     return (
       <div className="screen screen--center">
         <h1>{t.cashTitle(formatBs(cart.total))}</h1>
-        <OrderLines cart={cart} />
+        <OrderLines cart={cart} products={products} />
         <p className="payment-note">{t.cashNote}</p>
         {cashDeadline && <p className="payment-countdown cash-countdown">{t.cashAutoIn(formatCountdown(cashMsLeft))}</p>}
         {error && <p className="payment-error" role="alert">{error}</p>}
@@ -372,7 +376,8 @@ function InvoiceQr({
 }
 
 /** The cart's lines (photo, quantity, name), styled like the done screen's list. */
-function OrderLines({ cart }: { cart: HttpTypes.StoreCart }) {
+function OrderLines({ cart, products }: { cart: HttpTypes.StoreCart; products: HttpTypes.StoreProduct[] }) {
+  const lang = useLang()
   const items = cart.items ?? []
   if (!items.length) return null
   return (
@@ -386,7 +391,7 @@ function OrderLines({ cart }: { cart: HttpTypes.StoreCart }) {
             </div>
             <span className="done-item__qty">{item.quantity}×</span>
             <span className="done-item__text">
-              <span className="done-item__name">{item.product_title ?? item.title}</span>
+              <span className="done-item__name">{lineName(item, products, lang)}</span>
             </span>
           </li>
         ))}

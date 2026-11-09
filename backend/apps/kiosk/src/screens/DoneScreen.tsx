@@ -1,7 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import { formatBs } from "../lib/money"
 import { KIOSK } from "../lib/stageConfig"
-import { t } from "../lib/strings"
+import { lineName } from "../lib/kioskMapping"
+import { t, useLang } from "../lib/strings"
 
 interface Props {
   // null while a confirmed Lightning payment's order is still being created:
@@ -10,10 +11,13 @@ interface Props {
   // Cash: the order is placed but not paid yet; the member pays at the
   // front desk, quoting the order number.
   payAtDesk: boolean
+  // The catalogue, for each line's name in the current language.
+  products: HttpTypes.StoreProduct[]
   onNewOrder: () => void
 }
 
-export function DoneScreen({ order, payAtDesk, onNewOrder }: Props) {
+export function DoneScreen({ order, payAtDesk, products, onNewOrder }: Props) {
+  const lang = useLang()
   const items = order?.items ?? []
   // Byte gives up room as the list grows, so the list and "Nuevo pedido"
   // stay on the stage; a long list scrolls inside its card.
@@ -45,7 +49,7 @@ export function DoneScreen({ order, payAtDesk, onNewOrder }: Props) {
                     </div>
                     <span className="done-item__qty">{item.quantity}×</span>
                     <span className="done-item__text">
-                      <span className="done-item__name">{item.product_title ?? item.title}</span>
+                      <span className="done-item__name">{lineName(item, products, lang)}</span>
                       {delivery && <span className="done-item__note">{delivery}</span>}
                     </span>
                   </li>

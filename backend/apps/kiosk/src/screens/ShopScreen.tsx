@@ -55,7 +55,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
   const [categoryId, setCategoryId] = useState<string | null>(null)
 
   const visible = useMemo(() => {
-    const kioskProducts = soldOutLast(products.map(toKioskProduct).filter((p) => p !== null))
+    const kioskProducts = soldOutLast(products.map((p) => toKioskProduct(p, lang)).filter((p) => p !== null))
     if (categoryId === null) return kioskProducts
     const idsInCategory = new Set(
       products
@@ -63,7 +63,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
         .map((p) => p.id)
     )
     return kioskProducts.filter((p) => idsInCategory.has(p.id))
-  }, [products, categoryId])
+  }, [products, categoryId, lang])
 
   // While rows are out of sight, the grid fades out at that edge, showing a
   // slice of the next row, and a chevron button sits in the faded strip.
@@ -136,7 +136,7 @@ export function ShopScreen({ products, categories, cart, pending, onSetQuantity,
   }, [checkMore, visible])
 
   const kioskCategories = categories.map((c) => ({ id: c.id, name: categoryName(c, lang) }))
-  const allProducts = useMemo(() => products.map(toKioskProduct).filter((p) => p !== null), [products])
+  const allProducts = useMemo(() => products.map((p) => toKioskProduct(p, lang)).filter((p) => p !== null), [products, lang])
   const kioskCart = toKioskCart(cart, pending, allProducts)
   const lines = toKioskLines(cart, pending, allProducts)
 

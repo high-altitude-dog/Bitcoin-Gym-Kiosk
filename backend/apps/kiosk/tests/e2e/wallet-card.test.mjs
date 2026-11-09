@@ -61,7 +61,10 @@ const tiles = (page) => page.locator(".invoice-wallet__tile")
   const STARS = { Binance: 2, Blink: 2, "coinos.io": 4, Phoenix: 4 }
   const perWallet = []
   for (const name of Object.keys(STARS)) {
-    await page.locator(".invoice-wallet__tile", { hasText: name }).click()
+    // Tapping the logo whose card is already open closes it, so skip the tap then
+    // (the first tap above may have landed on this wallet, whatever the shuffle).
+    const tile = page.locator(".invoice-wallet__tile", { hasText: name })
+    if ((await tile.getAttribute("aria-pressed")) !== "true") await tile.click()
     perWallet.push(await page.evaluate((name) => {
       const card = document.querySelector(".wallet-card").getBoundingClientRect()
       const back = document.querySelector(".wallet-card__back").getBoundingClientRect()

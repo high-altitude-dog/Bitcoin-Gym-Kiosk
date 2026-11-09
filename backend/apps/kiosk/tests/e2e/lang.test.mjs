@@ -8,7 +8,11 @@ const { check, finish } = createChecker()
 const ctx = await browser.newContext({ viewport: PORTRAIT, serviceWorkers: "block" })
 const page = await ctx.newPage()
 const mock = createMock()
-mock.orderItems = [{ id: "i1", quantity: 1, title: "Banana", product_title: "Banana", thumbnail: null, product_type: "Autoservicio" }]
+// The first product has an English name in its metadata, the second doesn't (it keeps its name as entered).
+mock.products[0].metadata = { name_en: "Chocolate whey protein" }
+mock.products[1].metadata = null
+mock.orderItems = [{ id: "i1", quantity: 1, product_id: "prod_0", title: "Default variant", product_title: mock.products[0].title, thumbnail: null, product_type: "Autoservicio" }]
+const cardNames = () => page.evaluate(() => [...document.querySelectorAll(".k-card__name")].slice(0, 2).map((c) => c.textContent).join(","))
 // One category with an English name in its metadata, one without (it keeps its Spanish name).
 mock.categories = [
   { id: "pcat_1", name: "Bebidas", rank: 0, parent_category_id: null, metadata: { name_en: "Drinks" } },
@@ -33,17 +37,20 @@ await page.screenshot({ path: `${SHOTS}/lang-idle-en.png`, clip: { x: 900, y: 0,
 await page.click(".k-idle")
 await page.waitForSelector(".k-card")
 check("category chips in English: name_en when set, Spanish name otherwise", (await chips()) === "All,Drinks,Donaciones", await chips())
+check("product names in English: name_en when set, the name as entered otherwise", (await cardNames()) === "Chocolate whey protein,Creatine Monohydrate", await cardNames())
 check("shop in English: greeting, 'All' chip, empty order bar", /^Good (morning|afternoon|evening)!$/.test(await text(".k-title")) && (await text(".k-chip")) === "All" && /Pick something to start/.test(await text(".k-bar")), await text(".k-title"))
 const sf = await box(".k-header .k-flags"), ex = await box(".k-exit")
 check("shop: flags left of the exit ring", sf.r < ex.x && (await active()) === "en", JSON.stringify({ sf, ex }))
 await page.screenshot({ path: `${SHOTS}/lang-shop-en.png`, clip: { x: 0, y: 0, width: 1200, height: 200 } })
 await page.click('.k-header .k-flag[lang="es"]')
+check("switching to Spanish turns the product names back at once", (await cardNames()) === "Whey Protein Concentrate - Chocolate,Creatine Monohydrate", await cardNames())
 check("switching to Spanish turns the chips back at once", (await chips()) === "Todo,Bebidas,Donaciones", await chips())
 check("switching to Spanish mid-visit updates the greeting at once", /^¡Buen(os|as) /.test(await text(".k-title")) && (await text(".k-chip")) === "Todo", await text(".k-title"))
 await page.click('.k-header .k-flag[lang="en"]')
 
 await page.evaluate(() => document.querySelectorAll(".k-card .k-add")[0].click())
 await page.waitForTimeout(1200)
+check("order panel line in English", (await page.textContent(".k-line__name")) === "Chocolate whey protein", await page.textContent(".k-line__name"))
 await page.click(".k-bar .k-pay")
 await page.waitForSelector(".k-method")
 check("payment choice in English", (await text(".k-method")).includes("How would you like to pay?") && (await text(".k-method__option--cash")) === "Pay with cash")
@@ -52,6 +59,7 @@ await page.waitForSelector(".bank-qr-paid")
 check("bank QR screen in English", /^Pay Bs/.test(await text(".payment-side h1")) && (await text(".bank-qr-paid")) === "Paid" && /with your bank app/.test(await text(".payment-note")))
 await page.click(".bank-qr-paid")
 await page.waitForSelector(".done-new")
+check("thank-you screen lists the product in English", (await text(".done-item__name")) === "Chocolate whey protein", await text(".done-item__name"))
 check("thank-you screen in English", (await text(".done-title")) === "Thank you!" && (await text(".done-order__label")) === "Your order" && (await text(".done-new")) === "New order")
 await page.click(".done-new")
 await page.waitForSelector(".k-idle")
